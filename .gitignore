@@ -1,0 +1,7 @@
+bin/
+*.prg
+*.prg.debug.xml
+*.der
+*.key
+.vscode/
+sdk/
