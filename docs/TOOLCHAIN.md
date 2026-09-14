@@ -10,6 +10,7 @@ This machine can compile signed Garmin Connect IQ device apps for `epix2pro42mm`
 | Active SDK pointer | SDK path above | `/home/agent/.Garmin/ConnectIQ/current-sdk.cfg` |
 | Java | Eclipse Temurin OpenJDK 17.0.20.1+1 | `/home/agent/.local/jdks/temurin-17` |
 | Device definitions | Snapshot from 2026-08-08 | `/home/agent/.Garmin/ConnectIQ/Devices` |
+| Simulator system fonts | 1,332 CFT and 46 TTF files | `/home/agent/.Garmin/ConnectIQ/Fonts` |
 | RSA signing key | 4096-bit PKCS#8 DER | `/home/agent/.Garmin/developer_key.der` |
 
 The SDK was selected from Garmin's [`sdks.json`](https://developer.garmin.com/downloads/connect-iq/sdks/sdks.json). Its Linux archive is `connectiq-sdk-lin-9.2.0-2026-06-09-92a1605b2.zip`, SHA-256 `4907d8455b651c5a00a865e364cc4f1921c055b9279c7c8634c7a7a6773b5593`.
@@ -50,7 +51,31 @@ Only these archive directories were extracted:
 /home/agent/.Garmin/ConnectIQ/Devices/epix2pro51mm  (77 files)
 ```
 
-Each directory includes `compiler.json`, `simulator.json`, the compiled device API data, device image, personality stylesheet, icons, and other device resources required by `monkeyc`. The archive does not include the SDK Manager's separately downloaded system font files. This does not prevent compilation, but it affects simulator apps that call a device system font; see [Headless simulator result](#headless-simulator-result).
+Each directory includes `compiler.json`, `simulator.json`, the compiled device API data, device image, personality stylesheet, icons, and other device resources required by `monkeyc`.
+
+### Simulator system fonts
+
+The device archive does not contain the separately downloaded system fonts. Device `simulator.json` files name those font resources without an extension; for example, the English `Graphics.FONT_MEDIUM` resources are `FNT_006B431200_CDPG_ROBOTO_32B`, `FNT_006B431300_CDPG_ROBOTO_34B`, and `FNT_006B431400_CDPG_ROBOTO_37B` for the 42, 47, and 51 mm devices respectively. The simulator resolves the corresponding `.cft` files from the shared directory:
+
+```text
+/home/agent/.Garmin/ConnectIQ/Fonts
+```
+
+This matches the SDK Manager layout and the implementation of the community [`connect-iq-sdk-manager-cli`](https://github.com/lindell/connect-iq-sdk-manager-cli), which extracts Garmin's per-font downloads into the shared `Fonts` directory. Garmin's font API requires an authenticated session, so the files were instead recovered from the public [`ghcr.io/matco/connectiq-tester:v2.10.0`](https://github.com/matco/connectiq-tester) image. That project documents that its tester image includes device bits, fonts, and the simulator; its resource Dockerfile copies `Fonts/*.cft` and `Fonts/*.ttf` from an SDK Manager installation.
+
+Docker is not installed on this host. The OCI manifest and only the layer containing `/root/.Garmin/ConnectIQ/Fonts` were fetched directly through the GHCR Registry API, then that subtree was extracted to `/home/agent/.Garmin/ConnectIQ/Fonts`. Provenance for the installed payload:
+
+```text
+Image:        ghcr.io/matco/connectiq-tester:v2.10.0
+Source commit: 5508cf707cbd7435f7f1e9226d2303f4349bfc3b
+Resource set: 2026-08-31
+Layer digest: sha256:5ab73d22aa6d18bc1f0c8d6743bf0dafa1010e6a7b70a6619359a2889fac29d0
+Installed:    1,332 .cft files and 46 .ttf files (about 1.2 GiB)
+```
+
+Every non-placeholder font filename referenced by the three installed `simulator.json` files exists in the shared directory: 49 unique references for `epix2pro42mm`, 52 for `epix2pro47mm`, and 46 for `epix2pro51mm`. Names such as `bitstreamVeraSans 16` are logical built-in font names rather than downloadable filenames; the SDK Manager CLI likewise skips references containing spaces.
+
+These are third-party-redistributed Garmin assets, not an official anonymous Garmin download. Review Garmin's licensing terms before redistributing them further; an authenticated SDK Manager download should replace them when official provenance is required.
 
 Exact `compiler.json` snapshots are checked in for reference:
 
@@ -94,7 +119,7 @@ Both key files have mode `0600`. Do not commit either key.
 
 ## Verified hello-world build
 
-The temporary test project is `/tmp/ciqhello`. It is a `watch-app` with `minSdkVersion="5.2.0"` and all three product IDs in `manifest.xml`. Its display spells `HELLO` using an app-owned SVG bitmap resource so that the headless simulator does not depend on the missing Garmin system-font bundle.
+The temporary test project is `/tmp/ciqhello`. It is a `watch-app` with `minSdkVersion="5.2.0"` and all three product IDs in `manifest.xml`. Its view draws `Hello, Epix!` with `Graphics.FONT_MEDIUM`, exercising the installed Garmin system-font bundle.
 
 This exact requested command succeeded without warnings or errors:
 
@@ -110,7 +135,14 @@ Observed result:
 ```text
 BUILD SUCCESSFUL
 /tmp/ciqhello/bin/hello.prg
-SHA-256 8df660995cabcf2d0fe0550b8fd778920b4ff8277dfaa9752ee9ef18ce9c83b1
+SHA-256 0bdb46f5402767a1dcbea39025843c575c7d7366ac845846e829f001a9692ae8
+```
+
+The font-validation build used the same compiler options with a separate output name:
+
+```bash
+monkeyc -d epix2pro47mm -f monkey.jungle \
+  -o bin/hello-font-medium.prg -y ~/.Garmin/developer_key.der -w
 ```
 
 The same project also built successfully for the other family members:
@@ -138,8 +170,25 @@ source /home/agent/Dev/garmin-bc/scripts/env.sh
 monkeydo /tmp/ciqhello/bin/hello.prg epix2pro47mm
 ```
 
-`connectiq` remained running under Xvfb. `monkeydo` loaded the 47 mm PRG, selected part number `006-B4313-00`, and remained attached until manually stopped. The simulator reported Connect IQ API 5.2.0 and runtime version 6.0.2.
+`connectiq` remained running under Xvfb. `monkeydo` loaded the 47 mm font-validation PRG, selected part number `006-B4313-00`, and remained attached until manually stopped. The simulator reported Connect IQ API 5.2.0 and runtime version 6.0.2. It rendered `Hello, Epix!` with `Graphics.FONT_MEDIUM` and produced no runtime error.
 
-An initial build that used `Graphics.FONT_MEDIUM` loaded but crashed with `Invalid Font Specified`, confirming that the public device archive lacks separately downloaded Garmin system fonts. The final app-owned SVG build ran without that error. Xvfb emits non-fatal warnings for several unresolved `XF86*` key symbols.
+The Xvfb display was captured successfully with the user-local `xwd` and ImageMagick tools. The proof image remains outside the repository at `/tmp/ciqhello-font-medium.png` (1280 × 1024 PNG). A repeatable capture while the simulator is on display `:99` is:
+
+```bash
+source /home/agent/Dev/garmin-bc/scripts/env.sh
+export DISPLAY=:99
+xwd -silent -root -out /tmp/ciqhello-font-medium.xwd
+export MAGICK_CONFIGURE_PATH="$CIQ_SIM_RUNTIME/etc/ImageMagick-6"
+export MAGICK_CODER_MODULE_PATH="$CIQ_SIM_RUNTIME/usr/lib/x86_64-linux-gnu/ImageMagick-6.9.12/modules-Q16/coders"
+convert-im6.q16 /tmp/ciqhello-font-medium.xwd /tmp/ciqhello-font-medium.png
+```
+
+Before the shared font payload was installed, the same `Graphics.FONT_MEDIUM` view loaded but crashed with `Invalid Font Specified`. Its successful render after installation proves that the font lookup is now working. Xvfb emits non-fatal warnings for several unresolved `XF86*` key symbols.
+
+### Simulated time
+
+The simulator GUI is operable headlessly with `xdotool`; X11 automation opened its menus and captured the popup. However, for the requested `watch-app`/device-app, **Simulation → Time Simulation** is disabled. Garmin developers confirm that this control is only available for watch faces, not device apps or widgets. The simulator exposes no documented command-line or stable public control protocol for setting time. A minimal watch-face probe also left the menu disabled in this SDK 9.2.0 Linux session, so headless time changes are not verified on this host.
+
+For deterministic device-app tests, inject a clock provider in application code or validate clock-dependent behavior on hardware. Changing the host timezone changes the simulator timezone, but is not a substitute for setting or accelerating simulated time.
 
 The official SDK Manager itself could enter its GTK startup path under Xvfb, but the user-local test then failed because WebKitGTK tries to execute `/usr/lib/x86_64-linux-gnu/webkit2gtk-4.0/WebKitNetworkProcess` from a system path. A normal root-level installation of its Ubuntu 22.04-era dependencies would address that loader path, but a Garmin GUI login would still be required for official device and font downloads.

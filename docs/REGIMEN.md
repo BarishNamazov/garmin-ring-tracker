@@ -28,7 +28,7 @@ The defaults are therefore `daysIn = 21` and `daysOut = 7`. A standard cycle anc
 
 “Calendar days” means preserving the intended local wall-clock time across daylight-saving changes; it does not always mean adding exactly 86,400 seconds per day. The technical conversion is specified in [SPEC.md](SPEC.md#time-and-calendar-rules).
 
-These rules come from the current [NuvaRing prescribing information on DailyMed](https://www.dailym.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=e14bc197-dd22-4e6e-8aa1-d6cf2242fe0f&type=display), section 2.1. The [FDA-approved NuvaRing label PDF](https://www.accessdata.fda.gov/drugsatfda_docs/label/2019/021187s037lbl.pdf) and the [EluRyng prescribing information](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=c6c8512d-b258-4be5-8c2f-0f1893f198b9) describe the same 3-weeks-in/1-week-out regimen.
+These rules come from the current [NuvaRing prescribing information on DailyMed](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=e14bc197-dd22-4e6e-8aa1-d6cf2242fe0f), section 2.1. The [FDA-approved NuvaRing label PDF](https://www.accessdata.fda.gov/drugsatfda_docs/label/2019/021187s037lbl.pdf) and the [EluRyng prescribing information](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=c6c8512d-b258-4be5-8c2f-0f1893f198b9) describe the same 3-weeks-in/1-week-out regimen; the [NHS patient guide](https://www.nhs.uk/contraception/methods-of-contraception/vaginal-ring/how-to-use-it/) likewise summarizes 21 days in followed by 7 days out.
 
 ## Extended and continuous use
 
@@ -54,6 +54,8 @@ Accordingly, the UI must distinguish these ranges:
 | 29–35 days | Outside the FDA-labelled duration; require an explicit acknowledgement and show the note persistently in Settings |
 
 The app must never infer that a 29–35-day schedule is appropriate from the brand name alone.
+
+If a ring is still recorded in after 28 calendar days, the main screen must also show “Beyond the FDA-labelled 4-week duration” even when a clinician-directed 29–35-day plan is configured. This is a label-boundary notice, not an instruction to override a prescriber.
 
 ## Temporary removal
 
@@ -130,7 +132,7 @@ The medical schedule maps to these user-observable states:
 
 ## Sources and review requirement
 
-- [NuvaRing current prescribing information, DailyMed](https://www.dailym.nlm.nih.gov/dailymed/fda/fdaDrugXsl.cfm?setid=e14bc197-dd22-4e6e-8aa1-d6cf2242fe0f&type=display)
+- [NuvaRing current prescribing information, DailyMed](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=e14bc197-dd22-4e6e-8aa1-d6cf2242fe0f)
 - [NuvaRing FDA label PDF, 2019](https://www.accessdata.fda.gov/drugsatfda_docs/label/2019/021187s037lbl.pdf)
 - [EluRyng prescribing information, DailyMed](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=c6c8512d-b258-4be5-8c2f-0f1893f198b9)
 - [NHS: How to use the vaginal ring](https://www.nhs.uk/contraception/methods-of-contraception/vaginal-ring/how-to-use-it/)

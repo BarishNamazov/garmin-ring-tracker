@@ -73,6 +73,7 @@ The following is a conceptual schema, not Monkey C source:
 ```text
 state = {
   schemaVersion: 1,
+  nextCycleId: Long,
 
   active: {
     cycleId: Long,
@@ -82,6 +83,7 @@ state = {
     removalWall: { y, m, d, hh, mm } | null,
     scheduledRemovalUtc: Long,
     scheduledInsertionUtc: Long,
+    labelFourWeekUtc: Long,
     ringFreeCeilingUtc: Long | null,
     dstAdjustment: String | null,
     temporaryOut: [
@@ -89,6 +91,7 @@ state = {
         outUtc: Long,
         backInUtc: Long | null,
         phaseWeekAtStart: 1 | 2 | 3 | null,
+        phaseWeekAtEnd: 1 | 2 | 3 | null,
         thresholdCode: String | null
       }
     ]
@@ -115,6 +118,7 @@ state = {
     dayOfSent: Boolean,
     lastOverdueSlot: Number | null,
     lastTempOutSlot: Number | null,
+    labelFourWeekSent: Boolean,
     ringFreeExceededSent: Boolean
   },
 
@@ -127,7 +131,8 @@ state = {
       closeReason: String,
       regimenDaysIn: Number,
       regimenDaysOut: Number,
-      temporaryOut: [ ...closed intervals... ]
+      temporaryOut: [ ...retained closed intervals... ],
+      temporaryOutSummary: { shortIntervalCount, shortIntervalSeconds }
     }
   ],
 
@@ -136,6 +141,7 @@ state = {
     lastAcceptedInsertionIso: String,
     lastWatchScheduleEditUtc: Long,
     lastSettingsObservationUtc: Long,
+    pendingMirrorIso: String | null,
     pendingSettingsError: String | null
   }
 }
@@ -148,7 +154,7 @@ state = {
 - Persist computed action deadlines when an insertion/removal/edit occurs. Background checks read them rather than rebuilding a calendar recurrence every hour.
 - Snapshot `daysIn` and `daysOut` into each closed cycle so changing settings does not rewrite history.
 - Cap history at 24 completed cycles. Drop the oldest whole cycle only after successfully storing the new state.
-- Cap temporary-out intervals at 64 per active cycle. If the cap is reached, retain the oldest threshold-crossing intervals and most recent intervals, and show “Some short intervals were summarized.” Never silently discard an open interval.
+- Cap detailed temporary-out intervals at 32 in the active cycle. When closing a cycle, retain every threshold-crossing interval plus the eight most recent short intervals; consolidate older short intervals into a count and elapsed-seconds summary. If the state approaches 24 KiB, consolidate additional short intervals before removing any threshold-crossing record. Show “Some short intervals were summarized.” Never discard an open interval.
 - Store no names, notes, symptoms, sexual activity, or location.
 - Validate all loaded fields. On corruption, preserve the raw value under a bounded `recovery` key if it fits, reset to setup, and show an error; do not guess dates.
 - Write a fully validated replacement document. Update the foreground model only after `Storage.setValue()` succeeds.
@@ -183,6 +189,7 @@ secondsRemaining: Long | null       // negative when overdue
 displayDays: Number
 displayHours: Number
 ringFreeLimitExceeded: Boolean
+beyondLabelFourWeeks: Boolean
 ```
 
 ### Deadline construction
@@ -191,6 +198,7 @@ At insertion:
 
 - `scheduledRemovalUtc = addLocalCalendarDays(insertion, daysIn)`.
 - `scheduledInsertionUtc = addLocalCalendarDays(insertion, daysIn + daysOut)`.
+- `labelFourWeekUtc = addLocalCalendarDays(insertion, 28)` independently of configuration.
 - For `daysOut == 0`, both actions form one `REPLACE` deadline at `daysIn`; there is no planned ring-free phase.
 
 At actual removal:
@@ -198,6 +206,7 @@ At actual removal:
 - `ringFreeCeilingUtc = addLocalCalendarDays(actualRemoval, 7)`.
 - Planned insertion remains anchored to the original cycle. Do not let a late removal silently postpone the original insertion.
 - `nextActionUtc = min(scheduledInsertionUtc, addLocalCalendarDays(actualRemoval, daysOut), ringFreeCeilingUtc)` for `daysOut > 0`.
+- If a user records removal under a `daysOut == 0` plan, `nextActionUtc = actualRemovalUtc`: insertion is immediately due. The app does not manufacture a ring-free interval.
 - If this produces an insertion deadline at or before the actual removal—late or off-plan removal—the phase is immediately overdue and the UI says that the recorded schedule needs attention.
 
 That “earlier deadline wins” rule is intentionally conservative and deterministic. It preserves the normal same-weekday schedule, prevents an early removal from creating a longer interval, and never moves the medical 7-day ceiling later. The app reports the discrepancy; it does not give a medical recommendation.
@@ -212,8 +221,21 @@ That “earlier deadline wins” rule is intentionally conservative and determin
 - An open temporary-out interval overrides the primary action shown with `RING_BACK_IN`, but does not erase the underlying phase or advance its deadlines.
 - At exactly 3 hours temporarily out, show “3-hour limit reached.” The `>3h` warning flag becomes true only after 10,800 seconds have elapsed.
 - At exactly the 7-day ring-free ceiling, the deadline is reached and insertion is overdue. After it, set `ringFreeLimitExceeded = true` and use the escalated copy from REGIMEN.
+- While a ring remains recorded in, set `beyondLabelFourWeeks = true` only when `nowUtc > labelFourWeekUtc`. Under a 29–35-day configured plan this does not change `RING_IN` to `OVERDUE` before its configured action, but it adds the persistent FDA-label-boundary warning. Under a shorter plan, ordinary overdue state already applies and the warning escalates its detail.
 
 All comparisons use seconds and explicitly use `<` before a deadline and `>=` at/after a deadline. Tests must lock these boundary semantics.
+
+### Event and edit edge cases
+
+- Reject an actual insertion, removal, or back-in timestamp materially in the future. A future intention belongs in a planned-action override, not in event history.
+- If a backward clock change places `now` before the recorded insertion, show `Watch time is before recorded insertion` and require date review. Do not render a negative cycle day or mutate the record.
+- A removal before insertion and a back-in before its out time are invalid. Keep the picker open with an error.
+- `Ring inserted now` while a ring is already recorded in means replacement. Label it `Ring replaced now`; confirmation archives the old cycle and starts exactly one new cycle.
+- `Ring removed now` while a temporary-out interval is open closes that interval and records removal at the same timestamp, in one confirmation.
+- A second temporary-out start is disabled while one is open. `Ring back in` is disabled when no interval is open.
+- Standard labelled weeks are local cycle days 1–7, 8–14, and 15–21. A temporary-out interval on day 22 or later of an extended plan gets `phaseWeekAtStart = null` and an “outside the standard three-week schedule” message; the app must not invent a week-3 instruction. If an interval crosses a week boundary, record that fact and present every potentially relevant label section without choosing a medical option.
+- Changes to `daysIn/daysOut` do not retroactively alter archived cycles or temporary-out classifications.
+- An adjusted planned-action override may be future-dated; every actual event remains immutable except through a separately confirmed correction.
 
 ### Day of cycle
 
@@ -252,6 +274,8 @@ Use [`Time.now()`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Time.
 6. If no instant matches a spring-forward nonexistent time, choose the first valid local minute after the requested wall time and persist `dstAdjustment = "advancedToValidLocalTime"`. Show a one-time informational message.
 
 This bounded search is inexpensive because it runs only on event/edit, never on every draw. Write unit tests in a simulator time zone that observes DST.
+
+For a standalone settings/picker wall tuple that has no source instant, create a UTC-shaped value with `Gregorian.moment(targetFields)`, subtract the current `System.getClockTime().timeZoneOffset` in seconds to seed the candidate, and apply the same ±4-hour round-trip search. `timeZoneOffset` is already documented as the current offset from UTC; do not add the separate `dst` field. The offset is only a seed—acceptance still depends on `Gregorian.info(candidate)` exactly matching the selected local tuple.
 
 ### Time-zone changes
 
@@ -375,11 +399,14 @@ For the current `nextActionUtc`, calculate local reminder instants using the con
 |---|---|---:|
 | Ring-free interval exceeded | Actual removal + 7 calendar days has passed | 1, highest |
 | Temporary out >3h | Open interval elapsed is strictly >3h | 2 |
-| Action overdue | `now >= nextActionUtc`, repeated by slot | 3 |
-| Day-of | Reminder time on the local calendar date of action | 4 |
-| Day-before | Reminder time on the prior local calendar date | 5 |
+| Beyond labelled 4 weeks | Ring remains recorded in strictly after the 28-day boundary; once per cycle | 3 |
+| Action overdue | `now >= nextActionUtc`, repeated by slot | 4 |
+| Day-of | Reminder time on the local calendar date of action | 5 |
+| Day-before | Reminder time on the prior local calendar date | 6 |
 
 An overdue slot is `floor((nowUtc - nextActionUtc) / (repeatHours * 3600))`. Send once per new slot, beginning with slot 0, using the persisted ledger. The escalating ring-free warning is emitted once at the 7-day ceiling, then replaces ordinary overdue text on later repeat slots. Temporary-out warnings may repeat at the configured interval while still open, but do not state that the ring is ineffective.
+
+Suppress a day-before/day-of candidate if its configured local time is at or after an action deadline that has already passed; the current due/overdue candidate is the truth at that point. This means a reminder time later than the scheduled action time may go directly from day-before to due/overdue copy.
 
 On every hourly wake:
 
@@ -387,11 +414,11 @@ On every hourly wake:
 2. Derive status from `Time.now()`.
 3. Build all candidates currently due but not recorded sent.
 4. Choose the single highest-priority candidate. Never post a catch-up burst.
-5. Call `Notifications.showNotification(title, subtitle, options)` with localized strings, a small monochrome icon, `:body`, compact `:data`, and `:dismissPrevious => true` so an updated reminder replaces this app’s stale one. With no custom action list, the standard launch/dismiss behavior is sufficient.
+5. Call `Notifications.showNotification(title, subtitle, options)` with localized strings, a small monochrome icon, `:body`, compact `:data`, and `:dismissPrevious => true` so an updated reminder replaces this app’s stale one. With no custom action list, the documented default launch/dismiss actions are sufficient; the default launch returns `:data` in `onStart` as `:launchedFromNotification`.
 6. Persist the ledger only after the notification call succeeds. If persistence fails, accept a possible later duplicate rather than recording a notification that was never posted.
-7. Call `Background.exit({ :kind => ..., :cycleId => ..., :at => ... })` exactly once from a finally-equivalent path. Keep data far below its approximately 8 KiB limit.
+7. Call `Background.exit(null)` exactly once from a finally-equivalent path for a notification-only run. The native notification’s launch data already travels through `:launchedFromNotification`, so passing the same payload as background data would make a later ordinary app launch look like a selected reminder.
 
-The native notification’s `:data` identifies only a cycle and alert kind; it contains no medical detail. If `Notifications.showNotification()` throws or is unavailable despite the supported-device contract, optionally call `Background.requestApplicationWake()` with a message below 255 bytes, then call `Background.exit()`. This fallback displays a confirmation, not a notification equivalent. Do not repeatedly request application wake.
+The native notification’s `:data` identifies only a cycle and alert kind; it contains no medical detail. If `Notifications.showNotification()` throws or is unavailable despite the supported-device contract, optionally call `Background.requestApplicationWake()` with a message below 255 bytes, then call `Background.exit({ :kind => ..., :cycleId => ..., :at => ..., :expiresUtc => ... })`. Keep that data far below its approximately 8 KiB limit and expire it after 10 minutes. This fallback displays a confirmation, not a notification equivalent. Do not repeatedly request application wake.
 
 ### Vibration and tone limits
 
@@ -405,17 +432,19 @@ For a native notification, `AppBase.onStart(state)` receives launch context incl
 
 The app must:
 
-1. validate the cycle ID and alert kind against current storage;
+1. validate the cycle ID, alert kind, and optional expiry against current storage;
 2. install/return the normal root view first;
 3. then use [`WatchUi.pushView()`](https://developer.garmin.com/connect-iq/api-docs/Toybox/WatchUi.html#pushView-instance_function) (API 1.0.0) to show an alert-detail view, or make that detail the initial view if lifecycle ordering requires it;
 4. call foreground Attention APIs only after the view is active and only if enabled;
 5. show the live derived state, not stale notification text.
 
-Register `Notifications.registerForNotificationMessages()` in the foreground if dismissal/selection analytics are needed for local deduplication. Do not collect or transmit analytics.
+Register `Notifications.registerForNotificationMessages()` in the foreground only if local selection/dismissal feedback is useful. Reminder-posting deduplication must not depend on that callback, and no feedback is transmitted.
 
 ## 10. Garmin Connect / Connect IQ mobile-side settings
 
 Connect IQ App Settings are declarative properties edited in the Connect IQ Store app, Garmin Connect, or Garmin Express and synchronized to the watch. They are not a custom companion UI. This version has no channel for pushing live ring status or watch events to the phone. Doing that would require a deliberately designed companion/mobile integration and additional permissions/infrastructure, which are out of scope.
+
+Within Garmin’s stock apps, the only limited status surface would be one or more declared, read-only App Settings properties written on the watch. They can be shown when the phone opens the app’s Settings while connected/synchronized, but they are not a proactive phone push, a phone notification, or a reliably current dashboard. Version 1 deliberately exposes only editable configuration and the insertion mirror listed below, not a status summary.
 
 The current App Settings schema supports `list`, `boolean`, `numeric`, `alphaNumeric`, `phone`, `email`, `url`, `date`, and `password`. There **is** a native `date` control backed by a numeric property, but there is no native **time** or combined **date-time** control. Garmin also cautions that a native date property is stored in UTC and should be interpreted with `Gregorian.utcInfo()`.
 
@@ -450,35 +479,37 @@ This is the complete settings-property contract. String resource IDs are illustr
 <resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <settings>
-        <setting propertyKey="insertionIso"
+        <setting propertyKey="@Properties.insertionIso"
                  title="@Strings.SetInsertionDateTimeTitle"
                  prompt="@Strings.SetInsertionDateTimePrompt">
-            <settingConfig type="alphaNumeric" maxLength="16" />
+            <settingConfig type="alphaNumeric"
+                           maxLength="16"
+                           errorMessage="@Strings.InsertionDateTimeError" />
         </setting>
 
-        <setting propertyKey="reminderHour"
+        <setting propertyKey="@Properties.reminderHour"
                  title="@Strings.ReminderHourTitle">
             <settingConfig type="numeric" min="0" max="23" />
         </setting>
 
-        <setting propertyKey="reminderMinute"
+        <setting propertyKey="@Properties.reminderMinute"
                  title="@Strings.ReminderMinuteTitle">
             <settingConfig type="numeric" min="0" max="59" />
         </setting>
 
-        <setting propertyKey="daysIn"
+        <setting propertyKey="@Properties.daysIn"
                  title="@Strings.DaysInTitle"
                  prompt="@Strings.DaysInPrompt">
             <settingConfig type="numeric" min="21" max="35" />
         </setting>
 
-        <setting propertyKey="daysOut"
+        <setting propertyKey="@Properties.daysOut"
                  title="@Strings.DaysOutTitle"
                  prompt="@Strings.DaysOutPrompt">
             <settingConfig type="numeric" min="0" max="7" />
         </setting>
 
-        <setting propertyKey="overdueRepeatHours"
+        <setting propertyKey="@Properties.overdueRepeatHours"
                  title="@Strings.OverdueRepeatTitle">
             <settingConfig type="list">
                 <listEntry value="1">@Strings.Repeat1Hour</listEntry>
@@ -489,19 +520,19 @@ This is the complete settings-property contract. String resource IDs are illustr
             </settingConfig>
         </setting>
 
-        <setting propertyKey="vibrationEnabled"
+        <setting propertyKey="@Properties.vibrationEnabled"
                  title="@Strings.VibrationTitle"
                  prompt="@Strings.ForegroundAttentionPrompt">
             <settingConfig type="boolean" />
         </setting>
 
-        <setting propertyKey="soundEnabled"
+        <setting propertyKey="@Properties.soundEnabled"
                  title="@Strings.SoundTitle"
                  prompt="@Strings.ForegroundAttentionPrompt">
             <settingConfig type="boolean" />
         </setting>
 
-        <setting propertyKey="clockFormat"
+        <setting propertyKey="@Properties.clockFormat"
                  title="@Strings.ClockFormatTitle">
             <settingConfig type="list">
                 <listEntry value="0">@Strings.ClockSystem</listEntry>
@@ -513,7 +544,7 @@ This is the complete settings-property contract. String resource IDs are illustr
 </resources>
 ```
 
-The insertion prompt must say `YYYY-MM-DDTHH:mm, local time`. XML constrains only length, not the pattern or real calendar validity; runtime parsing must reject malformed strings, impossible dates, DST-invalid times, or years outside a documented range such as current year ±2. Never silently normalize `2026-02-31`.
+The insertion prompt must say `YYYY-MM-DDTHH:mm, local time`. XML constrains only length, not the pattern or real calendar validity. Implement [`AppBase.onValidateProperty()`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/AppBase.html#onValidateProperty-instance_function) (API 4.1.0) to return a localized error string for malformed/impossible insertion values, and still validate defensively when reading properties. Reject DST-invalid times or years outside a documented range such as current year ±2. Never silently normalize `2026-02-31`.
 
 ### Settings flow and reconciliation
 
@@ -522,7 +553,7 @@ Use [`AppBase.onSettingsChanged()`](https://developer.garmin.com/connect-iq/api-
 Storage is the canonical schedule. The conflict rule is “watch wins unless a genuinely changed settings value is observed after the latest watch edit”:
 
 1. Persist `lastSeenInsertionIso`, `lastWatchScheduleEditUtc`, and `lastSettingsObservationUtc` in Storage.
-2. A watch insertion or Adjust dates edit updates canonical Storage first, sets `lastWatchScheduleEditUtc`, mirrors the formatted ISO value to `Application.Properties`, and updates `lastSeenInsertionIso` in the same successful logical transaction.
+2. A watch insertion or Adjust dates edit first writes canonical Storage, `lastWatchScheduleEditUtc`, and `pendingMirrorIso`. It then writes the formatted ISO value to `Application.Properties`, and finally writes `lastSeenInsertionIso` and clears the pending mirror. Storage and Properties have no shared transaction; if startup sees `pendingMirrorIso`, it completes that mirror before performing snapshot comparison.
 3. At startup or `onSettingsChanged`, if `insertionIso == lastSeenInsertionIso`, it is merely the mirror or an unchanged/stale sync; do not overwrite Storage.
 4. If it differs and parses/round-trips successfully, treat that detection time as a settings edit. Because it was observed after the last local edit, ask for confirmation if the foreground app is open, then accept it, recompute deadlines, set both observation and accepted values, and update `lastSeenInsertionIso`.
 5. If invalid, retain the watch schedule, store a bounded pending error for the next foreground opening, and mirror the last accepted ISO back only after showing the error. Never clear an active cycle because the field arrived empty accidentally; an explicit Reset on watch is required.
@@ -619,6 +650,8 @@ Every API relied upon here exists in the current official documentation:
 | [`Application.Storage.getValue/setValue`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/Storage.html) | 2.4.0 | Canonical persistent state |
 | [`Application.Properties.getValue/setValue`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/Properties.html) | 2.4.0 | App Settings bridge |
 | [`Application.AppBase.onSettingsChanged`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/AppBase.html#onSettingsChanged-instance_function) | 1.2.0 | Live settings update |
+| [`Application.AppBase.onValidateProperty`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/AppBase.html#onValidateProperty-instance_function) | 4.1.0 | Reject malformed mobile setting values |
+| [`Application.AppBase.getServiceDelegate`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/AppBase.html#getServiceDelegate-instance_function) | 2.3.0 | Supply the background delegate |
 | `Application.AppBase.onBackgroundData` | 2.3.0 | Request-wake/service launch payload |
 | `Application.AppBase.getGlanceView` | 3.1.0 | Device-app glance |
 | [`Background.registerForTemporalEvent`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Background.html#registerForTemporalEvent-instance_function) | 2.3.0 | Hourly wake |
@@ -630,13 +663,15 @@ Every API relied upon here exists in the current official documentation:
 | `Attention.vibrate/playTone` | 1.0.0 | Foreground attention only |
 | `Time.now`, `Time.Moment` | 1.0.0 | UTC instant arithmetic |
 | `Time.Gregorian.info/moment/utcInfo` | 1.0.0 | Local and UTC calendar fields |
+| [`System.getClockTime`](https://developer.garmin.com/connect-iq/api-docs/Toybox/System.html#getClockTime-instance_function) | 1.0.0 | Seed local-wall-time conversion |
 | `WatchUi.View`, `pushView/popView` | 1.0.0 | Foreground view stack |
 | `WatchUi.BehaviorDelegate` | 1.0.0 | Button/touch-independent navigation |
 | `WatchUi.Menu2` | 3.0.0 | Main menu |
 | `WatchUi.Confirmation` | 1.0.0 | State-change confirmation |
 | `WatchUi.Picker/PickerFactory` | 1.2.0 | Date/time adjustment |
 | `WatchUi.GlanceView` | 3.1.0 | Glance renderer |
-| [`Graphics.Dc.drawArc`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Graphics/Dc.html#drawArc-instance_function) | 1.0.0 | Progress arc |
+| [`Graphics.Dc.drawArc`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Graphics/Dc.html#drawArc-instance_function) | 1.2.0 | Progress arc |
+| [`Graphics.getFontHeight`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Graphics.html#getFontHeight-instance_function) / [`Graphics.Dc.getTextWidthInPixels`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Graphics/Dc.html#getTextWidthInPixels-instance_function) | 1.2.0 / 1.0.0 | Measured adaptive typography |
 | `Graphics.FONT_GLANCE` | 3.1.8 | Glance text |
 | [`Toybox.Test`](https://developer.garmin.com/connect-iq/api-docs/Toybox/Test.html) | 2.1.0 | Simulator unit tests |
 
@@ -650,6 +685,7 @@ Date-math cases:
 
 - standard insertion at 09:00 produces removal on the same weekday/time after 21 local days and insertion after 28;
 - `daysIn = 28`, `daysOut = 0`, and `daysIn = 35` produce correct distinct actions/badges;
+- a 35-day configured plan stays in its configured phase after day 28 but gains the once-per-cycle FDA-label-boundary warning;
 - leap day, end of month, end of year, and leap-year boundaries;
 - spring-forward nonexistent selected time and fall-back ambiguous time follow the documented rule;
 - current device time-zone display changes without changing persisted UTC deadlines;
@@ -669,7 +705,7 @@ State/storage cases:
 - history evicts the oldest whole record at 25 entries;
 - corrupt record recovery, unknown newer schema, and `StorageFullException` behavior;
 - watch edit/mirror does not return as a false settings edit;
-- valid changed ISO setting wins only after detection/confirmation;
+- valid changed ISO setting wins only after detection/confirmation, and an interrupted pending mirror resumes without becoming a false phone edit;
 - invalid, empty, stale, and DST-invalid ISO strings do not overwrite the watch schedule.
 
 Reminder-policy cases:
@@ -721,8 +757,8 @@ Run each of these on the 42, 47, and 51 mm simulator profiles:
 
 ## 18. Official Connect IQ references
 
-- [Connect IQ Programmer’s Guide](https://developer.garmin.com/connect-iq/programmers-guide/)
-- [Background Services core topic](https://developer.garmin.com/connect-iq/core-topics/background-services/)
+- [Connect IQ Programmer’s Guide / Core Topics](https://developer.garmin.com/connect-iq/core-topics/)
+- [Backgrounding core topic](https://developer.garmin.com/connect-iq/core-topics/backgrounding/)
 - [Notifications core topic](https://developer.garmin.com/connect-iq/core-topics/notifications/)
 - [Properties and App Settings core topic](https://developer.garmin.com/connect-iq/core-topics/properties-and-app-settings/)
 - [Glances core topic](https://developer.garmin.com/connect-iq/core-topics/glances/)
