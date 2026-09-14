@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <properties>
+        <property id="insertionIso" type="string"></property>
+        <property id="reminderHour" type="number">9</property>
+        <property id="reminderMinute" type="number">0</property>
+        <property id="daysIn" type="number">21</property>
+        <property id="daysOut" type="number">7</property>
+        <property id="overdueRepeatHours" type="number">6</property>
+        <property id="vibrationEnabled" type="boolean">true</property>
+        <property id="soundEnabled" type="boolean">false</property>
+        <property id="clockFormat" type="number">0</property>
+    </properties>
+</resources>

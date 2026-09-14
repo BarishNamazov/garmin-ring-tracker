@@ -1,0 +1,14 @@
+<strings xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <string id="DemoScenarios">Demo scenarios</string>
+    <string id="DemoFresh">Fresh</string>
+    <string id="DemoDay5">Day 5 ring-in</string>
+    <string id="DemoBeforeRemoval">Day before removal</string>
+    <string id="DemoOverdueRemoval">Overdue removal</string>
+    <string id="DemoFreeDay3">Ring-free day 3</string>
+    <string id="DemoFreeExceeded">Ring-free ceiling exceeded</string>
+    <string id="DemoTemp250">Temporary-out 2h50m</string>
+    <string id="DemoTemp310">Temporary-out 3h10m</string>
+    <string id="DemoExtended35">35-day plan past day 28</string>
+    <string id="DemoSeedQuestion">Load this demo scenario? Replaces stored data.</string>
+</strings>

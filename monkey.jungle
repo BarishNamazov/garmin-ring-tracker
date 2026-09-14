@@ -1,0 +1,10 @@
+# Release configuration. Debug-only clock overrides and demo scenarios are
+# physically excluded from the PRG by this annotation filter.
+project.manifest = manifest.xml
+base.sourcePath = source
+base.resourcePath = resources
+base.excludeAnnotations = debug;test;testhelper
+
+# Debug/QA configuration: build with monkey.debug.jungle. That configuration
+# excludes the :production clock implementation, retains :debug helpers, and
+# still excludes :test functions. Unit tests use monkey.tests.jungle.

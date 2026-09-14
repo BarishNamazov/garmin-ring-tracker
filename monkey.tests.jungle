@@ -1,0 +1,7 @@
+# Unit-test configuration: debug clock/scenario implementations are retained
+# because the tests exercise the same QA build, and :production alternatives
+# are excluded to avoid duplicate declarations.
+project.manifest = manifest.xml
+base.sourcePath = source
+base.resourcePath = resources;resources-debug
+base.excludeAnnotations = production

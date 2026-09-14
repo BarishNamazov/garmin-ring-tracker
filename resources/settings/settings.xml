@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+           xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
+    <settings>
+        <setting propertyKey="@Properties.insertionIso" title="@Strings.SetInsertionDateTimeTitle" prompt="@Strings.SetInsertionDateTimePrompt">
+            <settingConfig type="alphaNumeric" maxLength="16" errorMessage="@Strings.InsertionDateTimeError" />
+        </setting>
+        <setting propertyKey="@Properties.reminderHour" title="@Strings.ReminderHourTitle">
+            <settingConfig type="numeric" min="0" max="23" />
+        </setting>
+        <setting propertyKey="@Properties.reminderMinute" title="@Strings.ReminderMinuteTitle">
+            <settingConfig type="numeric" min="0" max="59" />
+        </setting>
+        <setting propertyKey="@Properties.daysIn" title="@Strings.DaysInTitle" prompt="@Strings.DaysInPrompt">
+            <settingConfig type="numeric" min="21" max="35" />
+        </setting>
+        <setting propertyKey="@Properties.daysOut" title="@Strings.DaysOutTitle" prompt="@Strings.DaysOutPrompt">
+            <settingConfig type="numeric" min="0" max="7" />
+        </setting>
+        <setting propertyKey="@Properties.overdueRepeatHours" title="@Strings.OverdueRepeatTitle">
+            <settingConfig type="list">
+                <listEntry value="1">@Strings.Repeat1Hour</listEntry>
+                <listEntry value="3">@Strings.Repeat3Hours</listEntry>
+                <listEntry value="6">@Strings.Repeat6Hours</listEntry>
+                <listEntry value="12">@Strings.Repeat12Hours</listEntry>
+                <listEntry value="24">@Strings.Repeat24Hours</listEntry>
+            </settingConfig>
+        </setting>
+        <setting propertyKey="@Properties.vibrationEnabled" title="@Strings.VibrationTitle" prompt="@Strings.ForegroundAttentionPrompt">
+            <settingConfig type="boolean" />
+        </setting>
+        <setting propertyKey="@Properties.soundEnabled" title="@Strings.SoundTitle" prompt="@Strings.ForegroundAttentionPrompt">
+            <settingConfig type="boolean" />
+        </setting>
+        <setting propertyKey="@Properties.clockFormat" title="@Strings.ClockFormatTitle">
+            <settingConfig type="list">
+                <listEntry value="0">@Strings.ClockSystem</listEntry>
+                <listEntry value="12">@Strings.Clock12Hour</listEntry>
+                <listEntry value="24">@Strings.Clock24Hour</listEntry>
+            </settingConfig>
+        </setting>
+    </settings>
+</resources>

@@ -1,0 +1,6 @@
+# Debug/QA configuration. Kept separate so release builds cannot accidentally
+# retain the clock override or Demo scenarios menu.
+project.manifest = manifest.xml
+base.sourcePath = source
+base.resourcePath = resources;resources-debug
+base.excludeAnnotations = production;test;testhelper
