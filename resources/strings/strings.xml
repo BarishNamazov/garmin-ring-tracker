@@ -54,15 +54,20 @@
     <string id="InsertedNow">Insert now</string>
     <string id="ChooseDateTime">Choose date &amp; time</string>
     <string id="RecordInsertionQuestion">Insert ring?
-$1$ · $2$ · $3$</string>
-    <string id="ReplaceRingQuestion">Replace ring?
-$1$ · $2$ · $3$</string>
-    <string id="RemoveRingQuestion">Remove ring?
-$1$ · $2$ · $3$</string>
-    <string id="TempOutQuestion">Ring out?
 $1$ · $2$</string>
-    <string id="BackInQuestion">Ring back in?
+    <string id="InsertNowQuestion">Insert ring now?
+$1$</string>
+    <string id="ReplaceRingQuestion">Replace ring now?
+$1$</string>
+    <string id="RemoveRingQuestion">Remove ring now?
+$1$</string>
+    <string id="SetInsertionQuestion">Set insertion?
 $1$ · $2$</string>
+    <string id="SetRemovalQuestion">Set removal?
+$1$ · $2$</string>
+    <string id="TempOutQuestion">Ring out now?</string>
+    <string id="BackInQuestion">Ring back in now?
+Out $1$</string>
     <string id="SaveChangeQuestion">Save changes?</string>
     <string id="ClearHistoryQuestion">Clear all history?</string>
     <string id="ResetQuestion">Reset dates and settings?</string>
@@ -149,8 +154,10 @@ $1$ · $2$</string>
     <string id="ExtendedUseNotice">Use only with your clinician's advice.</string>
     <string id="OutsideLabelNotice">Over 4 weeks. Use only with your clinician's advice.</string>
     <string id="OutsideLabelBadge">Over 4 weeks</string>
-    <string id="AcknowledgeDurationQuestion">$1$ Save this length?</string>
-    <string id="RegimenChangeQuestion">Change from $1$ to $2$? Upcoming dates will update.</string>
+    <string id="AcknowledgeDurationQuestion">Save this length?
+Clinician advice only.</string>
+    <string id="RegimenChangeQuestion">$1$
+→ $2$</string>
     <string id="RepeatTitle">Overdue repeat</string>
     <string id="ClockTitle">Clock</string>
     <string id="HistoryEmpty">No history yet</string>
@@ -203,7 +210,8 @@ $1$ · $2$</string>
     <string id="SettingsReviewBody">Review changes from Garmin App Settings.</string>
     <string id="InvalidSettingsBody">A Garmin App Settings value was invalid.</string>
     <string id="SettingsReviewQuestion">Apply these settings?</string>
-    <string id="RemoteInsertionQuestion">Change insertion from $1$ to $2$?</string>
+    <string id="RemoteInsertionQuestion">Watch $1$
+Phone $2$</string>
     <string id="InvalidSettingsQuestion">Keep watch dates?</string>
     <string id="MigrationTitle">Dates updated</string>
     <string id="MigrationBody">Dates now follow actual insertions and removals. Check Edit dates.</string>

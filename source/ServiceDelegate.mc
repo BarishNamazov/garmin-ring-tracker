@@ -82,12 +82,12 @@ class RingServiceDelegate extends System.ServiceDelegate {
         var info = Gregorian.info(new Time.Moment(utc), Time.FORMAT_SHORT);
         var use24 = clockFormat == 24 || (clockFormat == 0 && System.getDeviceSettings().is24Hour);
         if (use24) {
-            return info.hour.format("%02d") + text(Rez.Strings.TimeSeparator) + info.min.format("%02d");
+            return info.hour.format("%02d") + ":" + info.min.format("%02d");
         }
         var hour = info.hour % 12;
         if (hour == 0) { hour = 12; }
-        return hour.toString() + text(Rez.Strings.TimeSeparator) + info.min.format("%02d") + " "
-            + text(info.hour < 12 ? Rez.Strings.Am : Rez.Strings.Pm);
+        return hour.toString() + ":" + info.min.format("%02d") + " "
+            + (info.hour < 12 ? "AM" : "PM");
     }
 
     private function elapsed(seconds as Lang.Number) as Lang.String {
@@ -97,13 +97,13 @@ class RingServiceDelegate extends System.ServiceDelegate {
         var hours = Math.floor((absolute % 86400) / 3600);
         var minutes = Math.floor((absolute % 3600) / 60);
         if (days > 0) {
-            var dayText = days.toString() + text(Rez.Strings.DayUnit);
-            return hours > 0 ? dayText + " " + hours.toString() + text(Rez.Strings.HourUnit) : dayText;
+            var dayText = days.toString() + "d";
+            return hours > 0 ? dayText + " " + hours.toString() + "h" : dayText;
         }
         if (hours > 0) {
-            var hourText = hours.toString() + text(Rez.Strings.HourUnit);
-            return minutes > 0 ? hourText + " " + minutes.toString() + text(Rez.Strings.MinuteUnit) : hourText;
+            var hourText = hours.toString() + "h";
+            return minutes > 0 ? hourText + " " + minutes.toString() + "m" : hourText;
         }
-        return minutes.toString() + text(Rez.Strings.MinuteUnit);
+        return minutes.toString() + "m";
     }
 }

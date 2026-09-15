@@ -202,7 +202,7 @@ class ForegroundController {
     }
 
     function showHistory() as Void {
-        WatchUi.pushView(Menus.historyMenu(_state), new HistoryMenuDelegate(), WatchUi.SLIDE_UP);
+        WatchUi.pushView(new HistoryView(), new HistoryDelegate(), WatchUi.SLIDE_UP);
     }
 
     function showAbout() as Void {
@@ -230,9 +230,10 @@ class ForegroundController {
         if (_pendingSettings == null) { showMain(); return; }
         var message = Ui.s(Rez.Strings.SettingsReviewQuestion);
         if ((_pendingSettings as Lang.Dictionary)[:insertionUtc] != null && _state[:active] != null) {
-            var clock = (_state[:reminders] as Lang.Dictionary)[:clockFormat];
-            var watchTime = Ui.timestamp((_state[:active] as Lang.Dictionary)[:insertionUtc], clock);
-            var phoneTime = Ui.timestamp((_pendingSettings as Lang.Dictionary)[:insertionUtc], clock);
+            var watchTime = Ui.compactDate((_state[:active] as Lang.Dictionary)[:insertionUtc]) + " "
+                + Ui.timeForUtc((_state[:active] as Lang.Dictionary)[:insertionUtc], 24);
+            var phoneTime = Ui.compactDate((_pendingSettings as Lang.Dictionary)[:insertionUtc]) + " "
+                + Ui.timeForUtc((_pendingSettings as Lang.Dictionary)[:insertionUtc], 24);
             message = Ui.fmt(Rez.Strings.RemoteInsertionQuestion, [watchTime, phoneTime]);
         } else if ((_pendingSettings as Lang.Dictionary)[:invalid] == true) {
             message = Ui.s(Rez.Strings.InvalidSettingsQuestion);
@@ -325,38 +326,46 @@ class ForegroundController {
     function confirmAction(action as Lang.Symbol, atUtc as Lang.Number, data) as Void {
         var message = Ui.s(Rez.Strings.SaveChangeQuestion);
         var clock = (_state[:reminders] as Lang.Dictionary)[:clockFormat];
-        var whenParts = [Ui.dateOnly(atUtc), Ui.timeForUtc(atUtc, clock)];
+        var whenParts = [Ui.compactDate(atUtc), Ui.timeForUtc(atUtc, clock)];
         if (action == :acceptDisclaimer) { message = Ui.s(Rez.Strings.ContinueQuestion); }
         else if (action == :acceptRegimen) { message = Ui.s(Rez.Strings.ConfirmRegimenQuestion); }
         else if (action == :insert) {
-            whenParts = [Ui.s(Rez.Strings.FirstCycle), whenParts[0], whenParts[1]];
-            message = Ui.fmt(Rez.Strings.RecordInsertionQuestion, whenParts);
+            message = data == null
+                ? Ui.fmt(Rez.Strings.InsertNowQuestion, [Ui.s(Rez.Strings.FirstCycle)])
+                : Ui.fmt(Rez.Strings.RecordInsertionQuestion, whenParts);
         }
         else if (action == :replace) {
             var replacing = _state[:active] as Lang.Dictionary;
             var replaceDue = replacing[:removalUtc] == null ? replacing[:removeDueUtc] : replacing[:insertDueUtc];
-            whenParts = [Ui.eventDelta(atUtc - replaceDue, false), whenParts[0], whenParts[1]];
+            var replaceDelta = Ui.eventDelta(atUtc - replaceDue, false);
             message = Ui.fmt(replacing[:removalUtc] == null
-                ? Rez.Strings.ReplaceRingQuestion : Rez.Strings.RecordInsertionQuestion, whenParts);
+                ? Rez.Strings.ReplaceRingQuestion : Rez.Strings.InsertNowQuestion, [replaceDelta]);
         }
         else if (action == :remove) {
             var removing = _state[:active] as Lang.Dictionary;
-            whenParts = [Ui.eventDelta(atUtc - removing[:removeDueUtc], false), whenParts[0], whenParts[1]];
-            message = Ui.fmt(Rez.Strings.RemoveRingQuestion, whenParts);
+            message = Ui.fmt(Rez.Strings.RemoveRingQuestion,
+                [Ui.eventDelta(atUtc - removing[:removeDueUtc], false)]);
         }
-        else if (action == :tempOut) { message = Ui.fmt(Rez.Strings.TempOutQuestion, whenParts); }
-        else if (action == :backIn) { message = Ui.fmt(Rez.Strings.BackInQuestion, whenParts); }
+        else if (action == :tempOut) { message = Ui.s(Rez.Strings.TempOutQuestion); }
+        else if (action == :backIn) {
+            var backInCycle = _state[:active] as Lang.Dictionary;
+            var open = ScheduleModel.tempOpen(backInCycle);
+            var outFor = open == null ? 0 : atUtc - open[:outUtc];
+            message = Ui.fmt(Rez.Strings.BackInQuestion, [Ui.compactElapsed(outFor)]);
+        }
+        else if (action == :adjustInsertion) {
+            message = Ui.fmt(Rez.Strings.SetInsertionQuestion, whenParts);
+        }
+        else if (action == :adjustRemoval) {
+            message = Ui.fmt(Rez.Strings.SetRemovalQuestion, whenParts);
+        }
         else if (action == :clearHistory) { message = Ui.s(Rez.Strings.ClearHistoryQuestion); }
         else if (action == :reset) { message = Ui.s(Rez.Strings.ResetQuestion); }
         else if (action == :setDaysIn || action == :setDaysOut) {
             var active = _state[:active] as Lang.Dictionary?;
             if (active == null) {
-                var notice = (action == :setDaysIn && data > 28) ? Ui.s(Rez.Strings.OutsideLabelNotice) : Ui.s(Rez.Strings.ExtendedUseNotice);
-                message = Ui.fmt(Rez.Strings.AcknowledgeDurationQuestion, [notice]);
+                message = Ui.s(Rez.Strings.AcknowledgeDurationQuestion);
             } else {
-                var regimen = _state[:regimen] as Lang.Dictionary;
-                var oldDaysOut = regimen[:daysOut];
-                var newDaysOut = action == :setDaysOut ? data : oldDaysOut;
                 var oldDue = (active as Lang.Dictionary)[:removalUtc] == null
                     ? (active as Lang.Dictionary)[:removeDueUtc] : (active as Lang.Dictionary)[:insertDueUtc];
                 var newDue = oldDue;
@@ -365,22 +374,13 @@ class ForegroundController {
                 } else if ((active as Lang.Dictionary)[:removalUtc] != null && action == :setDaysOut) {
                     newDue = CalendarMath.addLocalCalendarDays((active as Lang.Dictionary)[:removalUtc], data)[:utc];
                 }
-                var oldAction = (active as Lang.Dictionary)[:removalUtc] != null ? :insert
-                    : (oldDaysOut == 0 ? :replace : :remove);
-                var newAction = (active as Lang.Dictionary)[:removalUtc] != null ? :insert
-                    : (newDaysOut == 0 ? :replace : :remove);
                 message = Ui.fmt(Rez.Strings.RegimenChangeQuestion,
-                    [actionTimestamp(oldAction, oldDue, clock), actionTimestamp(newAction, newDue, clock)]);
+                    [Ui.compactDate(oldDue) + " " + Ui.timeForUtc(oldDue, clock),
+                     Ui.compactDate(newDue) + " " + Ui.timeForUtc(newDue, clock)]);
             }
         }
         message = optionalActionMessage(action, message);
         WatchUi.pushView(new WatchUi.Confirmation(message), new ActionConfirmationDelegate(action, atUtc, data), WatchUi.SLIDE_UP);
-    }
-
-    private function actionTimestamp(action as Lang.Symbol, utc as Lang.Number, clock as Lang.Number) as Lang.String {
-        var id = action == :insert ? Rez.Strings.MainInsertDate
-            : (action == :replace ? Rez.Strings.MainReplaceDate : Rez.Strings.MainRemoveDate);
-        return Ui.fmt(id, [Ui.dateOnly(utc), Ui.timeForUtc(utc, clock)]);
     }
 
     function performConfirmed(action as Lang.Symbol, atUtc as Lang.Number, data) as Void {

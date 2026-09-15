@@ -26,5 +26,6 @@
     <string id="DemoNotificationTemp">Notification · out over 3h</string>
     <string id="DemoNotificationFree">Notification · ring out over 7d</string>
     <string id="DemoNotificationFourWeeks">Notification · ring in over 4 weeks</string>
-    <string id="DemoSeedQuestion">Load this demo scenario? Replaces stored data.</string>
+    <string id="DemoSeedQuestion">Load demo?
+Replaces data.</string>
 </strings>

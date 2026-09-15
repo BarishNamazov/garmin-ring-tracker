@@ -35,6 +35,10 @@ medical-model source record.
   so the canonical values are written back without repeating the prompt.
 - A mid-cycle days-in/days-out change shows the old and new next-action time in
   its native confirmation.
+- History is a custom two-row scrollable view with full-width dates, event
+  variance, regimen bars, row focus, cycle detail, and a final Clear-history
+  action. Native confirmations use compact two-line copy, and Main warning
+  text breaks at sentence boundaries.
 - Foreground orchestration lives in the unscoped `ForegroundController` and
   `ForegroundRuntime`, outside the `:background` and `:glance` personalities.
 
@@ -48,12 +52,12 @@ medical-model source record.
 | Persistence | `source/RingStore.mc` | Schema-v3 codecs; v1/v2 migration; revisioned canonical/history/mirror writes; 24 KiB preflight and compaction |
 | Settings | `source/SettingsBridge.mc`, `resources/settings/` | 12-item configuration contract, App Settings validation, conflict review, and durable canonical mirrors |
 | App shell | `source/RingTrackerApp.mc` | Minimal scoped `AppBase` bridge plus unscoped foreground controller, navigation, confirmations, and settings orchestration |
-| Foreground UI | `source/MainView.mc`, `source/UpcomingView.mc`, `source/HistoryView.mc`, `source/StaticViews.mc`, `source/Menus.mc`, `source/Pickers.mc`, `source/UiUtils.mc` | Main, six-cycle Upcoming, History/detail, setup/About, menus, and native pickers |
+| Foreground UI | `source/MainView.mc`, `source/UpcomingView.mc`, `source/HistoryView.mc`, `source/StaticViews.mc`, `source/Menus.mc`, `source/Pickers.mc`, `source/UiUtils.mc` | Main, six-cycle Upcoming, custom scrollable History/detail, setup/About, menus, confirmations, and native pickers |
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Reduced mirror codecs, glance rendering, and hourly reminder service |
 | Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production no-op seams and debug-only clock, fixtures, notification previews, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
-| Tests | `source/tests/*.mc` | 105 deterministic domain, migration, settings, storage, reminder, and review-regression tests |
-| Visual evidence | `docs/screenshots/` | 82 native-resolution v1.1 captures |
+| Tests | `source/tests/*.mc` | 108 deterministic domain, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Visual evidence | `docs/screenshots/` | 93 native-resolution v1.1 captures |
 
 The canonical document excludes archived history. History is split across two
 revisioned values in alternating parity slots. Glance and background each use a
@@ -101,7 +105,7 @@ and the dedicated constrained implementations are tagged into those scopes.
 
 ## Tests
 
-The final simulator result is **105 passed, 0 failed, 0 errors**:
+The final simulator result is **108 passed, 0 failed, 0 errors**:
 
 | File | Tests |
 | --- | ---: |
@@ -110,11 +114,12 @@ The final simulator result is **105 passed, 0 failed, 0 errors**:
 | `ReviewResolutionTests.mc` | 15 |
 | `Review2Tests.mc` | 15 |
 | `V11Tests.mc` | 12 |
-| `V11CoverageTests.mc` | 12 |
+| `V11CoverageTests.mc` | 15 |
 
 The suite covers exact and crossed regimen boundaries, leap/month/year and DST
 calendar behavior, actual-event re-anchoring, early/late deltas, six-cycle
-projection, reminder priority and per-slot deduplication, v1/v2 migration,
+projection, compact confirmation timestamps, sentence-boundary warning splits,
+History variance/scroll bounds, reminder priority and per-slot deduplication, v1/v2 migration,
 pending settings mirrors, schema validation, split-history recovery and
 compaction, reduced codecs, and the maximum retained-history fixture.
 
@@ -162,18 +167,18 @@ it cannot exceed the foreground watchdog; storage stress remains persistent in
 the automated suite.
 
 The native screenshot crops are 390×390 at `+118+259`, 416×416 at `+122+263`,
-and 454×454 at `+146+281`. All 82 images in `docs/screenshots/` were regenerated
+and 454×454 at `+146+281`. All 93 images in `docs/screenshots/` were regenerated
 and visually checked at native size for clipping, overlap, round-edge clearance,
 warning wrapping, and correct local date/time content.
 
-For every size, the 18 captures cover ring-in, ring-free, overdue removal,
+For every size, 23 captures cover ring-in, ring-free, overdue removal,
 overdue insertion, temporary out at 2h50 and 3h10, >7d and >28d warnings,
 Upcoming rows 1–3 and 4–6, long 12-hour and 24-hour formatting, maximum
-countdown, warning wrapping, and all four glance states. The 47 mm interaction
-set adds 28 captures covering first run, regimen, four context menus, Edit
+countdown, warning wrapping, all four glance states, custom History and cycle
+detail, and early-removal, late-insertion, and edit-removal confirmations. The
+47 mm interaction set adds 24 captures covering first run, regimen, four context menus, Edit
 dates, Reminder 2 Off/On/submenus/picker, day-before, overdue repeat, clock,
-early/late confirmations, History/detail, About, migration notice, and all
-seven native notification kinds. Obsolete Schedule, planned-override, and
+About, migration notice, and all seven native notification kinds. Obsolete Schedule, planned-override, and
 v1.0-jargon screenshots were removed.
 
 ## Memory verification
@@ -184,9 +189,9 @@ background use reduced active mirrors.
 
 | Personality | Peak/live use | Available heap | Result |
 | --- | ---: | ---: | --- |
-| Foreground | 129.4 KiB | 763.6 KiB | within foreground budget |
+| Foreground | 136.0 KiB | 763.6 KiB | within foreground budget |
 | Glance | 16.8 KiB | 59.8 KiB | below 45 KiB |
-| Background | 14,832 bytes (14.5 KiB) | 61,256 bytes (59.8 KiB) | below 45 KiB |
+| Background | 15,040 bytes (14.7 KiB) | 61,256 bytes (59.8 KiB) | below 45 KiB |
 
 The background number is sampled after temporal evaluation immediately before
 the short-lived process exits. Neither constrained personality loads the full
@@ -194,17 +199,12 @@ history, foreground controller, or foreground view graph.
 
 ## Deliberate deviation
 
-No functional requirement in SPEC-1.1 is omitted. There are two narrow copy
-presentation overrides:
+No functional requirement in SPEC-1.1 is omitted. There is one narrow copy
+presentation override:
 
 - The About version is `Ring Tracker v1.1.0`, following the release instruction
   to put the full semantic version in both the manifest and About; section A's
   table abbreviates that line to `v1.1`.
-- Native early/late confirmations render the event delta before date and time
-  (`2d early · date · time`) instead of after them. Garmin's native confirmation
-  truncates the tail of long text on the small display; leading with the delta
-  preserves the safety-relevant value on all three sizes while retaining the
-  specified wording and confirmation gate.
 
 ## Release contents
 

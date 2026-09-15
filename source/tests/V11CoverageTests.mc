@@ -33,6 +33,29 @@ function v11EventDeltaFormattingCoversMinuteHourDayAndOnTime(logger as Test.Logg
 }
 
 (:test)
+function v11CompactConfirmationTimestampOmitsWeekday(logger as Test.Logger) as Boolean {
+    var at = testWall(2026, 9, 14, 17, 26);
+    Test.assertEqual("14 Sep", Ui.compactDate(at));
+    Test.assertEqual("14 Sep · 5:26 PM", Ui.compactTimestamp(at, 12));
+    Test.assertEqual("14 Sep · 17:26", Ui.compactTimestamp(at, 24));
+    return true;
+}
+
+(:test)
+function v11WarningCopySplitsAtSentenceBoundaries(logger as Test.Logger) as Boolean {
+    var free = Ui.sentences("Insert now. Use backup 7 days.");
+    Test.assertEqual(2, free.size());
+    Test.assertEqual("Insert now.", free[0]);
+    Test.assertEqual("Use backup 7 days.", free[1]);
+    var temporary = Ui.sentences("Out over 3h. Reinsert now. Use backup 7 days.");
+    Test.assertEqual(3, temporary.size());
+    Test.assertEqual("Out over 3h.", temporary[0]);
+    Test.assertEqual("Reinsert now.", temporary[1]);
+    Test.assertEqual("Use backup 7 days.", temporary[2]);
+    return true;
+}
+
+(:test)
 function v11HistoryPrependsActiveAndClearPreservesIt(logger as Test.Logger) as Boolean {
     var state = ScheduleModel.defaultState();
     var first = ScheduleModel.insertOrReplace(state, testWall(2026, 2, 1, 9, 0));
@@ -46,6 +69,24 @@ function v11HistoryPrependsActiveAndClearPreservesIt(logger as Test.Logger) as B
     state[:history] = [];
     Test.assertEqual(active, state[:active]);
     Test.assertEqual(1, HistoryUi.entries(state).size());
+    return true;
+}
+
+(:test)
+function v11HistoryVarianceAndScrollBoundsAreCompact(logger as Test.Logger) as Boolean {
+    var cycle = ScheduleModel.newCycle(25, testWall(2026, 8, 20, 9, 0),
+        ScheduleModel.defaultRegimen());
+    cycle[:removalDeltaSeconds] = 12 * CalendarMath.SECONDS_PER_DAY;
+    cycle[:nextInsertionDeltaSeconds] = 12 * CalendarMath.SECONDS_PER_DAY;
+    Test.assertEqual("Removed 12d late · Inserted 12d late",
+        HistoryUi.listVariance(cycle, false));
+    cycle[:removalDeltaSeconds] = 0;
+    cycle[:nextInsertionDeltaSeconds] = 0;
+    Test.assertEqual(Ui.s(Rez.Strings.OnTime), HistoryUi.listVariance(cycle, false));
+    Test.assertEqual(0, HistoryUi.boundedSelection(-1, 25));
+    Test.assertEqual(24, HistoryUi.boundedSelection(99, 25));
+    Test.assertEqual(0, HistoryUi.topForSelection(0, 25));
+    Test.assertEqual(23, HistoryUi.topForSelection(24, 25));
     return true;
 }
 

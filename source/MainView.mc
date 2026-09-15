@@ -194,7 +194,7 @@ class MainView extends WatchUi.View {
         if (elapsed == ScheduleModel.TEMP_LIMIT_SECONDS) {
             drawWarning(dc, boundary, Ui.px(dc, 304), Ui.px(dc, 354));
         } else if (elapsed > ScheduleModel.TEMP_LIMIT_SECONDS) {
-            drawWarning(dc, boundary, Ui.px(dc, 294), Ui.px(dc, 354));
+            drawWarning(dc, boundary, Ui.px(dc, 278), Ui.px(dc, 365));
         } else {
             Ui.centered(dc, Ui.px(dc, 285), boundary, Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
         }
@@ -202,7 +202,7 @@ class MainView extends WatchUi.View {
 
     private function drawWarning(dc as Graphics.Dc, text as Lang.String,
                                  startY as Lang.Number, bottomY as Lang.Number) as Void {
-        var lines = Ui.wrap(dc, text, Graphics.FONT_SYSTEM_XTINY, dc.getWidth() - Ui.px(dc, 124));
+        var lines = Ui.warningLines(dc, text, Graphics.FONT_SYSTEM_XTINY, dc.getWidth() - Ui.px(dc, 124));
         var lineHeight = Graphics.getFontHeight(Graphics.FONT_SYSTEM_XTINY) + Ui.px(dc, 4);
         var y = startY;
         for (var i = 0; i < lines.size() && y <= bottomY; i += 1) {

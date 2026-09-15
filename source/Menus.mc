@@ -63,7 +63,7 @@ module Menus {
         menu.addItem(item(Rez.Strings.RepeatOverdue, Ui.fmt(Rez.Strings.HoursShortTemplate, [reminders[:overdueRepeatHours]]), :repeat));
         menu.addItem(item(Rez.Strings.DaysRingIn, regimen[:daysIn].toString(), :daysIn));
         if (regimen[:daysIn] > 28) {
-            menu.addItem(item(Rez.Strings.OutsideLabelBadge, Rez.Strings.ExtendedUseNotice, :outsideLabelInfo));
+            menu.addItem(item(Rez.Strings.OutsideLabelBadge, null, :outsideLabelInfo));
         }
         menu.addItem(item(Rez.Strings.DaysRingFree, regimen[:daysOut] == 0 ? Rez.Strings.ReplaceImmediately : regimen[:daysOut].toString(), :daysOut));
         menu.addItem(item(Rez.Strings.Vibration, reminders[:vibrationEnabled] ? Rez.Strings.On : Rez.Strings.Off, :vibration));
@@ -99,26 +99,6 @@ module Menus {
         menu.addItem(item(Rez.Strings.ClockSystem, null, 0));
         menu.addItem(item(Rez.Strings.Clock12Hour, null, 12));
         menu.addItem(item(Rez.Strings.Clock24Hour, null, 24));
-        return menu;
-    }
-
-    function historyMenu(state as Lang.Dictionary) as WatchUi.Menu2 {
-        var history = state[:history] as Lang.Array<Lang.Dictionary>;
-        var active = state[:active] as Lang.Dictionary?;
-        var count = history.size() + (active == null ? 0 : 1);
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.History, :footer => Ui.fmt(Rez.Strings.HistoryCountTemplate, [count])});
-        if (count == 0) { menu.addItem(item(Rez.Strings.HistoryEmpty, null, :empty)); }
-        var entries = HistoryUi.entries(state);
-        for (var i = 0; i < entries.size(); i += 1) {
-            var entry = entries[i] as Lang.Dictionary;
-            var cycle = entry[:cycle] as Lang.Dictionary;
-            var label = Ui.fmt(Rez.Strings.CycleTemplate, [cycle[:cycleId]]);
-            if (entry[:active]) {
-                label += Ui.s(Rez.Strings.DateTimeSeparator) + Ui.s(Rez.Strings.CurrentCycle);
-            }
-            menu.addItem(item(label, HistoryUi.listVariance(cycle, entry[:active]), entry[:id]));
-        }
-        if (history.size() > 0) { menu.addItem(item(Rez.Strings.ClearHistory, null, :clear)); }
         return menu;
     }
 
@@ -186,7 +166,7 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         else if (id == :adjust) { WatchUi.switchToView(Menus.adjustMenu(app.getState()), new AdjustMenuDelegate(), WatchUi.SLIDE_LEFT); }
         else if (id == :upcoming) { app.showUpcoming(); }
         else if (id == :settings) { app.showSettingsMenu(); }
-        else if (id == :history) { WatchUi.pushView(Menus.historyMenu(app.getState()), new HistoryMenuDelegate(), WatchUi.SLIDE_LEFT); }
+        else if (id == :history) { app.showHistory(); }
         else if (id == :about) { app.showAbout(); }
         else { openOptionalMenu(id); }
     }
@@ -244,16 +224,6 @@ class ValueMenuDelegate extends WatchUi.Menu2InputDelegate {
     function initialize(action as Lang.Symbol) { Menu2InputDelegate.initialize(); _action = action; }
     function onSelect(item as WatchUi.MenuItem) as Void { getApp().confirmAction(_action, currentUtc(), item.getId()); }
     function onBack() as Void { getApp().showSettingsMenu(); }
-}
-
-class HistoryMenuDelegate extends WatchUi.Menu2InputDelegate {
-    function initialize() { Menu2InputDelegate.initialize(); }
-    function onSelect(item as WatchUi.MenuItem) as Void {
-        var id = item.getId();
-        if (id instanceof Lang.Number || id == :activeCycle) { WatchUi.pushView(new CycleDetailView(id), new PopDelegate(), WatchUi.SLIDE_LEFT); }
-        else if (id == :clear) { getApp().confirmAction(:clearHistory, currentUtc(), null); }
-    }
-    function onBack() as Void { WatchUi.popView(WatchUi.SLIDE_RIGHT); }
 }
 
 (:debug)

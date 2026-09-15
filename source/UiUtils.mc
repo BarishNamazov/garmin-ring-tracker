@@ -121,6 +121,15 @@ module Ui {
         return weekdayName(f[:weekday]) + " " + f[:day].toString() + " " + monthName(f[:month]);
     }
 
+    function compactDate(utcSeconds as Lang.Number) as Lang.String {
+        var f = CalendarMath.localFields(utcSeconds);
+        return f[:day].toString() + " " + monthName(f[:month]);
+    }
+
+    function compactTimestamp(utcSeconds as Lang.Number, clockFormat as Lang.Number) as Lang.String {
+        return compactDate(utcSeconds) + s(Rez.Strings.DateTimeSeparator) + timeForUtc(utcSeconds, clockFormat);
+    }
+
     function shortTimestamp(utcSeconds as Lang.Number, clockFormat as Lang.Number) as Lang.String {
         return shortDate(utcSeconds) + s(Rez.Strings.DateTimeSeparator) + timeForUtc(utcSeconds, clockFormat);
     }
@@ -246,6 +255,38 @@ module Ui {
             while (start < text.length() && text.substring(start, start + 1).equals(" ")) { start += 1; }
         }
         return lines;
+    }
+
+    function sentences(text as Lang.String) as Lang.Array<Lang.String> {
+        var result = [] as Lang.Array<Lang.String>;
+        var start = 0;
+        for (var i = 0; i < text.length(); i += 1) {
+            if (text.substring(i, i + 1).equals(".")
+                && (i + 1 == text.length() || text.substring(i + 1, i + 2).equals(" "))) {
+                result.add(text.substring(start, i + 1));
+                start = i + 1;
+                while (start < text.length() && text.substring(start, start + 1).equals(" ")) { start += 1; }
+                i = start - 1;
+            }
+        }
+        if (start < text.length()) { result.add(text.substring(start, text.length())); }
+        return result;
+    }
+
+    function warningLines(dc as Graphics.Dc, text as Lang.String, font,
+                          maxWidth as Lang.Number) as Lang.Array<Lang.String> {
+        if (dc.getTextWidthInPixels(text, font) <= maxWidth) { return [text]; }
+        var result = [] as Lang.Array<Lang.String>;
+        var parts = sentences(text);
+        for (var i = 0; i < parts.size(); i += 1) {
+            if (dc.getTextWidthInPixels(parts[i], font) <= maxWidth) {
+                result.add(parts[i]);
+            } else {
+                var wrapped = wrap(dc, parts[i], font, maxWidth);
+                for (var j = 0; j < wrapped.size(); j += 1) { result.add(wrapped[j]); }
+            }
+        }
+        return result;
     }
 
     function drawParagraphs(dc as Graphics.Dc, paragraphs as Lang.Array<Lang.String>, startY as Lang.Number,
