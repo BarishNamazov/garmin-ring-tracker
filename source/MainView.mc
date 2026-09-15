@@ -61,15 +61,23 @@ class MainView extends WatchUi.View {
         dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, 90);
 
         if (status[:phase] == :overdue && !status[:temporaryOutOpen]) {
-            dc.setColor(status[:ringFreeLimitExceeded] ? Ui.RED : Ui.AMBER, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(status[:ringFreeOverSevenDays] || status[:ringInOverFourWeeks] ? Ui.RED : Ui.AMBER, Graphics.COLOR_TRANSPARENT);
             dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 120, -180);
-            cap(dc, cx, cy, radius, 120, stroke, status[:ringFreeLimitExceeded] ? Ui.RED : Ui.AMBER);
-            cap(dc, cx, cy, radius, -180, stroke, status[:ringFreeLimitExceeded] ? Ui.RED : Ui.AMBER);
+            cap(dc, cx, cy, radius, 120, stroke, status[:ringFreeOverSevenDays] || status[:ringInOverFourWeeks] ? Ui.RED : Ui.AMBER);
+            cap(dc, cx, cy, radius, -180, stroke, status[:ringFreeOverSevenDays] || status[:ringInOverFourWeeks] ? Ui.RED : Ui.AMBER);
             return;
         }
 
-        var total = regimen[:daysIn] + regimen[:daysOut];
-        var inSweep = 360.0 * regimen[:daysIn] / total;
+        var boundary = active[:removalUtc] == null ? active[:removeDueUtc] : active[:removalUtc];
+        var cycleEnd = active[:removalUtc] == null
+            ? CalendarMath.addLocalCalendarDays(active[:removeDueUtc], regimen[:daysOut])[:utc]
+            : active[:insertDueUtc];
+        var cycleDuration = cycleEnd - active[:insertionUtc];
+        var boundaryFraction = cycleDuration <= 0 ? 1.0
+            : (boundary - active[:insertionUtc]).toFloat() / cycleDuration;
+        if (boundaryFraction < 0.0) { boundaryFraction = 0.0; }
+        if (boundaryFraction > 1.0) { boundaryFraction = 1.0; }
+        var inSweep = 360.0 * boundaryFraction;
         var dim = status[:temporaryOutOpen];
         var inColor = dim ? 0x144B39 : Ui.RING_IN;
         var outColor = dim ? 0x372C59 : Ui.RING_FREE;
@@ -82,11 +90,16 @@ class MainView extends WatchUi.View {
             dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 89 - inSweep, -269);
             cap(dc, cx, cy, radius, 89 - inSweep, stroke, outColor);
             cap(dc, cx, cy, radius, -269, stroke, outColor);
+        } else {
+            dc.setPenWidth(Ui.px(dc, 5));
+            dc.setColor(outColor, Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 91 - inSweep, 88 - inSweep);
         }
 
-        var cycleEnd = active[:scheduledInsertionUtc];
         var duration = cycleEnd - active[:insertionUtc];
-        var fraction = duration <= 0 ? 1.0 : (nowUtc - active[:insertionUtc]).toFloat() / duration;
+        var markerUtc = nowUtc;
+        if (markerUtc > status[:underlyingActionUtc]) { markerUtc = status[:underlyingActionUtc]; }
+        var fraction = duration <= 0 ? 1.0 : (markerUtc - active[:insertionUtc]).toFloat() / duration;
         if (fraction < 0) { fraction = 0.0; }
         if (fraction > 1) { fraction = 1.0; }
         var angle = 90.0 - (360.0 * fraction);
@@ -119,85 +132,83 @@ class MainView extends WatchUi.View {
             phaseText = Ui.s(Rez.Strings.PhaseRingFree);
             phaseColor = Ui.RING_FREE;
         } else if (status[:phase] == :overdue) {
-            phaseText = Ui.s(Rez.Strings.PhaseOverdue);
-            phaseColor = status[:ringFreeLimitExceeded] ? Ui.RED : Ui.AMBER;
+            phaseText = status[:nextAction] == :insert ? Ui.s(Rez.Strings.InsertRing)
+                : (status[:nextAction] == :replace ? Ui.s(Rez.Strings.ReplaceRing)
+                : Ui.s(Rez.Strings.RemoveRing));
+            phaseColor = status[:ringFreeOverSevenDays] || status[:ringInOverFourWeeks] ? Ui.RED : Ui.AMBER;
         }
         var overdue = status[:phase] == :overdue;
-        var compactWarning = status[:beyondLabelFourWeeks] && dc.getWidth() <= 390;
-        Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 60 : 55) : (overdue ? 68 : 80)), phaseText,
-                    Graphics.FONT_SYSTEM_XTINY, phaseColor, Ui.px(dc, 280));
-        if (!overdue) {
-            Ui.centered(dc, Ui.px(dc, compactWarning ? 82 : 108), Ui.fmt(Rez.Strings.DayTemplate, [status[:dayOfCycle]]),
-                        Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
-        }
-
-        var heading = Ui.s(Rez.Strings.RemoveIn);
-        if (status[:nextAction] == :insert) { heading = status[:phase] == :overdue ? Ui.s(Rez.Strings.InsertRing) : Ui.s(Rez.Strings.InsertIn); }
-        else if (status[:nextAction] == :replace) { heading = status[:phase] == :overdue ? Ui.s(Rez.Strings.ReplaceRing) : Ui.s(Rez.Strings.ReplaceIn); }
-        else if (status[:phase] == :overdue) { heading = Ui.s(Rez.Strings.RemoveRing); }
-        if (status[:ringFreeLimitReached]) { heading = Ui.s(Rez.Strings.InsertNow); }
-        Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 100 : 115) : (overdue ? 112 : 148)), heading,
-                    Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 280));
-
+        var warning = null;
+        if (status[:clockBeforeInsertion]) { warning = Ui.s(Rez.Strings.WatchBeforeInsertion); }
+        else if (status[:ringFreeOverSevenDays]) { warning = Ui.s(Rez.Strings.RingFreeLimitPassed); }
+        else if (status[:ringInOverFourWeeks]) { warning = Ui.s(Rez.Strings.BeyondFourWeeks); }
+        var warningLayout = warning != null;
+        Ui.centered(dc, Ui.px(dc, warningLayout ? 68 : 90), phaseText,
+                    Graphics.FONT_SYSTEM_SMALL, phaseColor, Ui.px(dc, 286));
         var countdownColor = phaseColor;
         if (status[:secondsRemaining] > 0 && status[:secondsRemaining] < CalendarMath.SECONDS_PER_DAY) { countdownColor = Ui.AMBER; }
         if (overdue) {
-            Ui.centered(dc, Ui.px(dc, compactWarning ? 137 : 154), Ui.s(Rez.Strings.OverdueBy),
-                        Graphics.FONT_SYSTEM_XTINY, countdownColor, Ui.px(dc, 260));
-        }
-        if (compactWarning) {
-            Ui.drawCompactCountdown(dc, Ui.px(dc, overdue ? 186 : 173), status[:secondsRemaining], countdownColor);
+            Ui.centered(dc, Ui.px(dc, warningLayout ? 168 : 194),
+                status[:secondsRemaining] == 0 ? Ui.s(Rez.Strings.DueNow)
+                    : Ui.fmt(Rez.Strings.LateTemplate, [Ui.compactElapsed(status[:secondsRemaining])]),
+                Graphics.FONT_SYSTEM_LARGE, countdownColor, Ui.px(dc, 300));
         } else {
-            Ui.drawCountdown(dc, Ui.px(dc, overdue ? 211 : 212), status[:secondsRemaining], countdownColor);
+            Ui.drawCountdown(dc, Ui.px(dc, warningLayout ? 168 : 194), status[:secondsRemaining], countdownColor);
         }
-        Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 240 : 226) : (overdue ? 270 : 276)), Ui.dateOnly(status[:nextActionUtc]),
-                    Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 268 : 254) : (overdue ? 300 : 307)),
-                    Ui.timeForUtc(status[:nextActionUtc], reminders[:clockFormat]),
-                    Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
-
-        var hint = Ui.s(Rez.Strings.MenuStartHint);
-        var hintColor = Ui.SECONDARY;
-        if (status[:clockBeforeInsertion]) { hint = Ui.s(Rez.Strings.WatchBeforeInsertion); hintColor = Ui.RED; }
-        else if (status[:ringFreeLimitExceeded]) { hint = Ui.s(Rez.Strings.RingFreeLimitPassed); hintColor = Ui.RED; }
-        else if (status[:ringFreeLimitReached]) { hint = Ui.s(Rez.Strings.RingFreeLimitReached); hintColor = Ui.AMBER; }
-        else if (status[:beyondLabelFourWeeks]) {
-            Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 292 : 280) : 326), Ui.s(Rez.Strings.BeyondFourWeeksLine1),
-                        Graphics.FONT_SYSTEM_XTINY, Ui.AMBER, Ui.px(dc, 260));
-            Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 312 : 300) : 350), Ui.s(Rez.Strings.BeyondFourWeeksLine2),
-                        Graphics.FONT_SYSTEM_XTINY, Ui.AMBER, Ui.px(dc, 220));
-            if (compactWarning) {
-                Ui.centered(dc, Ui.px(dc, overdue ? 340 : 332), hint, Graphics.FONT_SYSTEM_XTINY,
-                            Ui.SECONDARY, Ui.px(dc, 280));
-            }
-            return;
+        var dateId = status[:nextAction] == :insert ? Rez.Strings.MainInsertDate
+            : (status[:nextAction] == :replace ? Rez.Strings.MainReplaceDate : Rez.Strings.MainRemoveDate);
+        var dueTime = Ui.timeForUtc(status[:underlyingActionUtc], reminders[:clockFormat]);
+        var dueLabel = Ui.fmt(dateId, [Ui.dateOnly(status[:underlyingActionUtc]), dueTime]);
+        if (overdue) {
+            dueLabel = Ui.fmt(Rez.Strings.MainDueDate,
+                [Ui.dateOnly(status[:underlyingActionUtc]),
+                 Ui.timeForUtc(status[:underlyingActionUtc], reminders[:clockFormat])]);
         }
-        else if ((getApp().getState()[:active] as Lang.Dictionary)[:plannedOverrideUtc] != null) { hint = Ui.s(Rez.Strings.AdjustedBadge); hintColor = Ui.AMBER; }
-        Ui.centered(dc, Ui.px(dc, 330), hint, Graphics.FONT_SYSTEM_XTINY, hintColor, Ui.px(dc, 300));
+        var separator = Ui.s(Rez.Strings.DateTimeSeparator);
+        var dateLength = dueLabel.length() - dueTime.length() - separator.length();
+        var datePart = dateLength > 0 ? dueLabel.substring(0, dateLength) : dueLabel;
+        Ui.centered(dc, Ui.px(dc, warningLayout ? 238 : 270), datePart,
+            Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 330));
+        Ui.centered(dc, Ui.px(dc, warningLayout ? 266 : 300), dueTime,
+            Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 270));
+        if (warning != null) {
+            drawWarning(dc, warning as Lang.String, Ui.px(dc, 294), Ui.px(dc, 354));
+        }
     }
 
     private function drawTemporary(dc as Graphics.Dc, status as Lang.Dictionary) as Void {
         var elapsed = status[:tempElapsed];
         var color = elapsed > ScheduleModel.TEMP_LIMIT_SECONDS ? Ui.RED : (elapsed >= 9000 ? Ui.AMBER : Ui.PRIMARY);
-        Ui.centered(dc, Ui.px(dc, 86), Ui.s(Rez.Strings.RingIsOut), Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 280));
-        Ui.centered(dc, Ui.px(dc, 148), Ui.s(Rez.Strings.Elapsed), Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 280));
-        Ui.drawCountdown(dc, Ui.px(dc, 212), elapsed, color);
+        var warningLayout = elapsed >= ScheduleModel.TEMP_LIMIT_SECONDS;
+        Ui.centered(dc, Ui.px(dc, warningLayout ? 68 : 90), Ui.s(Rez.Strings.RingIsOut),
+            Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 280));
+        Ui.drawCountdown(dc, Ui.px(dc, warningLayout ? 168 : 194), elapsed, color);
         var boundary = Ui.s(Rez.Strings.ReinsertSoon);
         if (elapsed < ScheduleModel.TEMP_LIMIT_SECONDS) {
-            var remainingMinutes = (ScheduleModel.TEMP_LIMIT_SECONDS - elapsed + 59) / 60;
-            boundary = Ui.fmt(Rez.Strings.ThreeHourInTemplate, [remainingMinutes]);
+            boundary = Ui.s(Rez.Strings.ThreeHourInTemplate);
         } else if (elapsed == ScheduleModel.TEMP_LIMIT_SECONDS) {
             boundary = Ui.s(Rez.Strings.ThreeHourReached);
         } else {
             boundary = Ui.s(Rez.Strings.RecordedOutOver3h);
         }
         if (elapsed == ScheduleModel.TEMP_LIMIT_SECONDS) {
-            Ui.drawParagraphs(dc, [boundary], Ui.px(dc, 258), Ui.px(dc, 300), 0);
+            drawWarning(dc, boundary, Ui.px(dc, 304), Ui.px(dc, 354));
+        } else if (elapsed > ScheduleModel.TEMP_LIMIT_SECONDS) {
+            drawWarning(dc, boundary, Ui.px(dc, 294), Ui.px(dc, 354));
         } else {
-            Ui.centered(dc, Ui.px(dc, 270), boundary, Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
+            Ui.centered(dc, Ui.px(dc, 285), boundary, Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
         }
-        Ui.centered(dc, Ui.px(dc, 324), Ui.s(Rez.Strings.RingBackIn), Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 260));
-        Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.PressStart), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
+    }
+
+    private function drawWarning(dc as Graphics.Dc, text as Lang.String,
+                                 startY as Lang.Number, bottomY as Lang.Number) as Void {
+        var lines = Ui.wrap(dc, text, Graphics.FONT_SYSTEM_XTINY, dc.getWidth() - Ui.px(dc, 124));
+        var lineHeight = Graphics.getFontHeight(Graphics.FONT_SYSTEM_XTINY) + Ui.px(dc, 4);
+        var y = startY;
+        for (var i = 0; i < lines.size() && y <= bottomY; i += 1) {
+            Ui.centered(dc, y, lines[i], Graphics.FONT_SYSTEM_XTINY, Ui.RED, Ui.px(dc, 292));
+            y += lineHeight;
+        }
     }
 }
 
@@ -207,15 +218,15 @@ class MainDelegate extends WatchUi.BehaviorDelegate {
     function onSelect() as Boolean {
         var app = getApp();
         var state = app.getState();
-        var active = state[:active] as Lang.Dictionary;
+        var active = state[:active] as Lang.Dictionary?;
+        if (active == null) { app.showMainMenu(); return true; }
         var status = ScheduleModel.deriveStatus(currentUtc(), active, state[:regimen] as Lang.Dictionary);
         if (status[:temporaryOutOpen]) { app.confirmAction(:backIn, currentUtc(), null); }
-        else if (status[:phase] == :overdue || status[:beyondLabelFourWeeks] || status[:clockBeforeInsertion]) { app.showAlert(); }
         else { app.showMainMenu(); }
         return true;
     }
 
     function onMenu() as Boolean { getApp().showMainMenu(); return true; }
-    function onNextPage() as Boolean { getApp().showSchedule(); return true; }
-    function onPreviousPage() as Boolean { getApp().showSchedule(); return true; }
+    function onNextPage() as Boolean { getApp().showHistory(); return true; }
+    function onPreviousPage() as Boolean { getApp().showUpcoming(); return true; }
 }

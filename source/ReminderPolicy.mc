@@ -8,8 +8,10 @@ module ReminderPolicy {
         return status[:underlyingAction].toString() + ":" + status[:underlyingActionUtc].toString();
     }
 
-    function candidate(kind as Lang.Symbol, priority as Lang.Number, slot as Lang.Number?) as Lang.Dictionary {
-        return { :kind => kind, :priority => priority, :slot => slot };
+    function candidate(kind as Lang.Symbol, priority as Lang.Number, slot as Lang.Number?,
+                       reminderSlot as Lang.Number?) as Lang.Dictionary {
+        return { :kind => kind, :priority => priority, :slot => slot,
+            :reminderSlot => reminderSlot, :consume1 => false, :consume2 => false };
     }
 
     function reminderAt(actionUtc as Lang.Number, dayOffset as Lang.Number, hour as Lang.Number, minute as Lang.Number) as Lang.Number? {
@@ -18,7 +20,7 @@ module ReminderPolicy {
         shifted[:hour] = hour;
         shifted[:minute] = minute;
         shifted[:second] = 0;
-        var resolved = CalendarMath.resolveLocalWall(shifted, actionUtc + (dayOffset * CalendarMath.SECONDS_PER_DAY));
+        var resolved = CalendarMath.wallToUtcUsingDevice(shifted);
         return resolved == null ? null : resolved[:utc];
     }
 
@@ -30,42 +32,55 @@ module ReminderPolicy {
             ledger[:cycleId] = active[:cycleId];
             ledger[:actionKey] = key;
             ledger[:dayBeforeSent] = false;
-            ledger[:dayOfSent] = false;
+            ledger[:dayOf1Sent] = false;
+            ledger[:dayOf2Sent] = false;
             ledger[:lastOverdueSlot] = null;
-            ledger[:lastTempOutSlot] = null;
         }
 
-        if ((status[:ringFreeLimitReached] || status[:ringFreeLimitExceeded])
-            && !ledger[:ringFreeExceededSent]) {
-            return candidate(:ringFreeExceeded, 1, null);
+        if (status[:ringFreeOverSevenDays] && !ledger[:ringFreeExceededSent]) {
+            return candidate(:ringFreeExceeded, 1, null, null);
         }
         if (status[:temporaryOutOpen] && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
             var repeatSeconds = reminders[:overdueRepeatHours] * CalendarMath.SECONDS_PER_HOUR;
             var tempSlot = Math.floor((status[:tempElapsed] - ScheduleModel.TEMP_LIMIT_SECONDS - 1) / repeatSeconds);
             if (ledger[:lastTempOutSlot] == null || tempSlot > ledger[:lastTempOutSlot]) {
-                return candidate(:tempOver3h, 2, tempSlot);
+                return candidate(:tempOver3h, 2, tempSlot, null);
             }
         }
-        if (status[:beyondLabelFourWeeks] && !ledger[:labelFourWeekSent]) {
-            return candidate(:beyondFourWeeks, 3, null);
+        if (status[:ringInOverFourWeeks] && !ledger[:labelFourWeekSent]) {
+            return candidate(:beyondFourWeeks, 3, null, null);
         }
+
+        var deadline = status[:underlyingActionUtc];
+        var sameDate = CalendarMath.dateOrdinal(nowUtc) == CalendarMath.dateOrdinal(deadline);
+        if (sameDate) {
+            var first = reminderAt(deadline, 0, reminders[:reminder1Hour], reminders[:reminder1Minute]);
+            var second = reminders[:reminder2Enabled]
+                ? reminderAt(deadline, 0, reminders[:reminder2Hour], reminders[:reminder2Minute]) : null;
+            var firstEligible = first != null && nowUtc >= first && !ledger[:dayOf1Sent];
+            var secondEligible = second != null && nowUtc >= second && !ledger[:dayOf2Sent];
+            if (firstEligible || secondEligible) {
+                var useSecond = secondEligible && (!firstEligible || second >= first);
+                var selected = candidate(:dayOf, 4, null, useSecond ? 2 : 1);
+                selected[:consume1] = firstEligible && first <= (useSecond ? second : first);
+                selected[:consume2] = secondEligible && second <= (useSecond ? second : first);
+                return selected;
+            }
+        }
+
         if (status[:underlyingSecondsRemaining] <= 0) {
             var overdueSlot = Math.floor((-status[:underlyingSecondsRemaining]) / (reminders[:overdueRepeatHours] * CalendarMath.SECONDS_PER_HOUR));
             if (ledger[:lastOverdueSlot] == null || overdueSlot > ledger[:lastOverdueSlot]) {
-                return candidate(:overdue, 4, overdueSlot);
+                return candidate(:overdue, 5, overdueSlot, null);
             }
             return null;
         }
 
-        var deadline = status[:underlyingActionUtc];
-        var dayOf = reminderAt(deadline, 0, reminders[:localHour], reminders[:localMinute]);
-        if (dayOf != null && dayOf < deadline && nowUtc >= dayOf && !ledger[:dayOfSent]) {
-            return candidate(:dayOf, 5, null);
-        }
-        var dayBefore = reminderAt(deadline, -1, reminders[:localHour], reminders[:localMinute]);
-        if (dayBefore != null && dayBefore < deadline && nowUtc >= dayBefore
-            && (dayOf == null || nowUtc < dayOf) && !ledger[:dayBeforeSent]) {
-            return candidate(:dayBefore, 6, null);
+        var dayBefore = reminderAt(deadline, -1, reminders[:reminder1Hour], reminders[:reminder1Minute]);
+        var priorDate = CalendarMath.dateOrdinal(nowUtc) == CalendarMath.dateOrdinal(deadline) - 1;
+        if (reminders[:dayBeforeEnabled] && priorDate && dayBefore != null
+            && nowUtc >= dayBefore && !ledger[:dayBeforeSent]) {
+            return candidate(:dayBefore, 6, null, null);
         }
         return null;
     }
@@ -86,8 +101,8 @@ module ReminderPolicy {
                 ledger[:lastOverdueSlot] = selected[:slot];
                 break;
             case :dayOf:
-                ledger[:dayOfSent] = true;
-                ledger[:dayBeforeSent] = true;
+                if (selected[:consume1]) { ledger[:dayOf1Sent] = true; }
+                if (selected[:consume2]) { ledger[:dayOf2Sent] = true; }
                 break;
             case :dayBefore:
                 ledger[:dayBeforeSent] = true;

@@ -21,6 +21,22 @@ function assertLocalDateTime(value as Number, y as Number, m as Number, d as Num
     Test.assertEqual(mm, fields[:minute]);
 }
 
+(:testhelper)
+function testHistoryCycle(id as Number, inserted as Number, removed as Number?,
+                          nextInserted as Number?, intervals as Array) as Dictionary {
+    var removeDue = CalendarMath.addLocalCalendarDays(inserted, 21)[:utc];
+    var insertDue = removed == null ? null : CalendarMath.addLocalCalendarDays(removed as Number, 7)[:utc];
+    var expected = removed == null ? removeDue : insertDue;
+    return {:cycleId=>id, :insertionUtc=>inserted, :insertionPlanUtc=>null,
+        :insertionDeltaSeconds=>null, :removeDueUtc=>removeDue, :removalUtc=>removed,
+        :removalDeltaSeconds=>removed == null ? null : (removed as Number) - removeDue,
+        :insertDueUtc=>insertDue, :nextInsertionUtc=>nextInserted,
+        :nextInsertionDeltaSeconds=>nextInserted == null ? null : (nextInserted as Number) - expected,
+        :closeReason=>"replaced", :regimenDaysIn=>21, :regimenDaysOut=>7,
+        :temporaryOut=>intervals,
+        :temporaryOutSummary=>{:shortIntervalCount=>0, :shortIntervalSeconds=>0}};
+}
+
 (:test)
 function calendarStandardTwentyOneDays(logger as Test.Logger) as Boolean {
     var start = testWall(2026, 9, 1, 9, 0);
@@ -75,7 +91,7 @@ function scheduleFirstRun(logger as Test.Logger) as Boolean {
 function scheduleRemovalBoundary(logger as Test.Logger) as Boolean {
     var start = testWall(2026, 9, 1, 9, 0);
     var cycle = ScheduleModel.newCycle(1, start, ScheduleModel.defaultRegimen());
-    var due = cycle[:scheduledRemovalUtc];
+    var due = cycle[:removeDueUtc];
     Test.assertEqual(:ringIn, ScheduleModel.deriveStatus(due - 1, cycle, ScheduleModel.defaultRegimen())[:phase]);
     Test.assertEqual(:overdue, ScheduleModel.deriveStatus(due, cycle, ScheduleModel.defaultRegimen())[:phase]);
     Test.assertEqual(:overdue, ScheduleModel.deriveStatus(due + 1, cycle, ScheduleModel.defaultRegimen())[:phase]);
@@ -87,8 +103,11 @@ function scheduleImmediateReplacement(logger as Test.Logger) as Boolean {
     var regimen = {:daysIn=>28, :daysOut=>0};
     var start = testWall(2026, 9, 1, 9, 0);
     var cycle = ScheduleModel.newCycle(1, start, regimen);
-    Test.assertEqual(cycle[:scheduledRemovalUtc], cycle[:scheduledInsertionUtc]);
     Test.assertEqual(:replace, ScheduleModel.deriveStatus(start, cycle, regimen)[:nextAction]);
+    Test.assert(cycle[:insertDueUtc] == null);
+    Test.assert(ScheduleModel.recordRemoval(cycle, cycle[:removeDueUtc], regimen));
+    Test.assertEqual(cycle[:removeDueUtc], cycle[:insertDueUtc]);
+    Test.assertEqual(:insert, ScheduleModel.deriveStatus(cycle[:insertDueUtc], cycle, regimen)[:nextAction]);
     return true;
 }
 
@@ -98,9 +117,9 @@ function scheduleExtendedLabelBoundary(logger as Test.Logger) as Boolean {
     var start = testWall(2026, 9, 1, 9, 0);
     var cycle = ScheduleModel.newCycle(1, start, regimen);
     var boundary = cycle[:labelFourWeekUtc];
-    Test.assert(!ScheduleModel.deriveStatus(boundary, cycle, regimen)[:beyondLabelFourWeeks]);
+    Test.assert(!ScheduleModel.deriveStatus(boundary, cycle, regimen)[:ringInOverFourWeeks]);
     var after = ScheduleModel.deriveStatus(boundary + 1, cycle, regimen);
-    Test.assert(after[:beyondLabelFourWeeks]);
+    Test.assert(after[:ringInOverFourWeeks]);
     Test.assertEqual(:ringIn, after[:phase]);
     return true;
 }
@@ -133,33 +152,34 @@ function ringFreeCeilingBoundary(logger as Test.Logger) as Boolean {
     var start = testWall(2026, 9, 1, 9, 0);
     var regimen = ScheduleModel.defaultRegimen();
     var cycle = ScheduleModel.newCycle(1, start, regimen);
-    var removed = cycle[:scheduledRemovalUtc];
+    var removed = cycle[:removeDueUtc];
     Test.assert(ScheduleModel.recordRemoval(cycle, removed, regimen));
     var ceiling = cycle[:ringFreeCeilingUtc];
-    Test.assert(!ScheduleModel.deriveStatus(ceiling, cycle, regimen)[:ringFreeLimitExceeded]);
-    Test.assert(ScheduleModel.deriveStatus(ceiling + 1, cycle, regimen)[:ringFreeLimitExceeded]);
+    Test.assert(!ScheduleModel.deriveStatus(ceiling, cycle, regimen)[:ringFreeOverSevenDays]);
+    Test.assert(ScheduleModel.deriveStatus(ceiling + 1, cycle, regimen)[:ringFreeOverSevenDays]);
     return true;
 }
 
 (:test)
-function earlyRemovalUsesEarlierDeadline(logger as Test.Logger) as Boolean {
+function earlyRemovalAnchorsInsertionToActualRemoval(logger as Test.Logger) as Boolean {
     var start = testWall(2026, 9, 1, 9, 0);
     var regimen = ScheduleModel.defaultRegimen();
     var cycle = ScheduleModel.newCycle(1, start, regimen);
     var early = CalendarMath.addLocalCalendarDays(start, 20)[:utc];
     ScheduleModel.recordRemoval(cycle, early, regimen);
-    Test.assertEqual(CalendarMath.addLocalCalendarDays(early, 7)[:utc], ScheduleModel.nextInsertUtc(cycle, regimen));
+    Test.assertEqual(CalendarMath.addLocalCalendarDays(early, 7)[:utc], cycle[:insertDueUtc]);
     return true;
 }
 
 (:test)
-function lateRemovalIsImmediatelyOverdue(logger as Test.Logger) as Boolean {
+function lateRemovalShiftsInsertionDue(logger as Test.Logger) as Boolean {
     var start = testWall(2026, 9, 1, 9, 0);
     var regimen = ScheduleModel.defaultRegimen();
     var cycle = ScheduleModel.newCycle(1, start, regimen);
-    var late = cycle[:scheduledInsertionUtc] + 10;
+    var late = cycle[:removeDueUtc] + (2 * CalendarMath.SECONDS_PER_DAY);
     ScheduleModel.recordRemoval(cycle, late, regimen);
-    Test.assertEqual(:overdue, ScheduleModel.deriveStatus(late, cycle, regimen)[:phase]);
+    Test.assertEqual(CalendarMath.addLocalCalendarDays(late, 7)[:utc], cycle[:insertDueUtc]);
+    Test.assertEqual(:ringFree, ScheduleModel.deriveStatus(late, cycle, regimen)[:phase]);
     return true;
 }
 
@@ -195,7 +215,10 @@ function reminderOverdueSlotsDeduplicate(logger as Test.Logger) as Boolean {
     var start = testWall(2026, 9, 1, 9, 0);
     var cycle = ScheduleModel.newCycle(7, start, regimen);
     var ledger = ScheduleModel.defaultLedger();
-    var due = cycle[:scheduledRemovalUtc];
+    var due = cycle[:removeDueUtc];
+    ledger[:cycleId] = 7;
+    ledger[:actionKey] = "remove:" + due.toString();
+    ledger[:dayOf1Sent] = true;
     var selected = ReminderPolicy.evaluate(due, cycle, regimen, reminders, ledger);
     Test.assertEqual(:overdue, selected[:kind]);
     Test.assertEqual(0, selected[:slot]);
@@ -212,7 +235,10 @@ function reminderLedgerChangesOnlyWhenMarked(logger as Test.Logger) as Boolean {
     var start = testWall(2026, 9, 1, 9, 0);
     var cycle = ScheduleModel.newCycle(4, start, regimen);
     var ledger = ScheduleModel.defaultLedger();
-    var due = cycle[:scheduledRemovalUtc];
+    var due = cycle[:removeDueUtc];
+    ledger[:cycleId] = 4;
+    ledger[:actionKey] = "remove:" + due.toString();
+    ledger[:dayOf1Sent] = true;
     var first = ReminderPolicy.evaluate(due, cycle, regimen, reminders, ledger);
     var second = ReminderPolicy.evaluate(due, cycle, regimen, reminders, ledger);
     Test.assertEqual(first[:kind], second[:kind]);
@@ -310,11 +336,11 @@ function backgroundLedgerWritePreservesHistory(logger as Test.Logger) as Boolean
     var backgroundState = RingStore.loadBackground();
     Test.assert(backgroundState[:history] == null);
     var ledger = backgroundState[:reminderLedger] as Dictionary;
-    ledger[:dayOfSent] = true;
+    ledger[:dayOf1Sent] = true;
     Test.assert(RingStore.saveBackgroundLedger(backgroundState));
     var restored = RingStore.load();
     Test.assertEqual(1, (restored[:history] as Array).size());
-    Test.assert((restored[:reminderLedger] as Dictionary)[:dayOfSent]);
+    Test.assert((restored[:reminderLedger] as Dictionary)[:dayOf1Sent]);
     return true;
 }
 
@@ -379,7 +405,12 @@ function compactBackgroundOverdueDeduplicates(logger as Test.Logger) as Boolean 
     Test.assert(RingStore.save(state));
     var compact = BackgroundRuntime.load();
     Test.assert(compact != null);
-    var due = active[:scheduledRemovalUtc];
+    var due = active[:removeDueUtc];
+    var compactArray = compact as Array;
+    var compactLedger = compactArray[6] as Array;
+    compactLedger[0] = active[:cycleId];
+    compactLedger[1] = "remove:" + due.toString();
+    compactLedger[3] = true;
     var first = BackgroundRuntime.evaluate(due, compact as Array);
     Test.assertEqual(3, first[0]);
     Test.assertEqual(0, first[2]);
@@ -412,7 +443,11 @@ function compactBackgroundLedgerMergesIntoForeground(logger as Test.Logger) as B
     var active = ScheduleModel.insertOrReplace(state, start);
     Test.assert(RingStore.save(state));
     var compact = BackgroundRuntime.load() as Array;
-    var selected = BackgroundRuntime.evaluate(active[:scheduledRemovalUtc], compact);
+    var ledger = compact[6] as Array;
+    ledger[0] = active[:cycleId];
+    ledger[1] = "remove:" + active[:removeDueUtc].toString();
+    ledger[3] = true;
+    var selected = BackgroundRuntime.evaluate(active[:removeDueUtc], compact);
     BackgroundRuntime.markSent(compact, selected);
     BackgroundRuntime.save(compact);
     var restored = RingStore.load();

@@ -2,7 +2,6 @@ import Toybox.Graphics;
 import Toybox.Attention;
 import Toybox.Lang;
 import Toybox.System;
-import Toybox.Timer;
 import Toybox.WatchUi;
 
 class InfoView extends WatchUi.View {
@@ -34,11 +33,10 @@ class InfoView extends WatchUi.View {
         var titleText = _title instanceof Lang.ResourceId ? Ui.s(_title) : _title as Lang.String;
         Ui.centered(dc, Ui.px(dc, 66), titleText, Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
         var startY = Ui.px(dc, 112);
-        var bottomY = Ui.px(dc, 316);
+        var bottomY = Ui.px(dc, 350);
         _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
         _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount, _visibleLines, Ui.RING_IN);
-        Ui.centered(dc, Ui.px(dc, 356), Ui.s(Rez.Strings.BackHint), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 240));
     }
 }
 
@@ -66,12 +64,12 @@ class DisclaimerDelegate extends ScrollDelegate {
 class RegimenView extends WatchUi.View {
     private var _focus as Lang.Number;
 
-    function initialize() { View.initialize(); _focus = 3; }
+    function initialize() { View.initialize(); _focus = 2; }
 
     function moveFocus(delta as Lang.Number) as Void {
         _focus += delta;
-        if (_focus < 0) { _focus = 3; }
-        if (_focus > 3) { _focus = 0; }
+        if (_focus < 0) { _focus = 2; }
+        if (_focus > 2) { _focus = 0; }
         WatchUi.requestUpdate();
     }
 
@@ -86,16 +84,14 @@ class RegimenView extends WatchUi.View {
         Ui.clear(dc);
         var regimen = getApp().getState()[:regimen] as Lang.Dictionary;
         Ui.centered(dc, Ui.px(dc, 66), Ui.s(Rez.Strings.RegimenTitle), Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        Ui.centered(dc, Ui.px(dc, 112), Ui.s(Rez.Strings.ProductLine1), Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 142), Ui.s(Rez.Strings.ProductLine2), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 300));
-        Ui.row(dc, Ui.px(dc, 205), Ui.s(Rez.Strings.InRing), Ui.fmt(Rez.Strings.DaysTemplate, [regimen[:daysIn]]));
-        Ui.row(dc, Ui.px(dc, 245), Ui.s(Rez.Strings.RingFree),
+        Ui.centered(dc, Ui.px(dc, 120), Ui.s(Rez.Strings.ProductLine1), Graphics.FONT_SYSTEM_TINY, Ui.PRIMARY, Ui.px(dc, 300));
+        Ui.row(dc, Ui.px(dc, 196), Ui.s(Rez.Strings.InRing), Ui.fmt(Rez.Strings.DaysTemplate, [regimen[:daysIn]]));
+        Ui.row(dc, Ui.px(dc, 246), Ui.s(Rez.Strings.RingFree),
             Ui.fmt(regimen[:daysOut] == 1 ? Rez.Strings.OneDayTemplate : Rez.Strings.DaysTemplate, [regimen[:daysOut]]));
-        Ui.centered(dc, Ui.px(dc, 292), Ui.s(Rez.Strings.AnnoveraUnsupported), Graphics.FONT_SYSTEM_XTINY, Ui.AMBER, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 340), Ui.s(Rez.Strings.StartConfirm), Graphics.FONT_SYSTEM_TINY, Ui.PRIMARY, Ui.px(dc, 280));
-        var ys = [205, 245, 292, 340];
+        Ui.centered(dc, Ui.px(dc, 326), Ui.s(Rez.Strings.StartConfirm), Graphics.FONT_SYSTEM_TINY, Ui.PRIMARY, Ui.px(dc, 280));
+        var ys = [196, 246, 326];
         focusRail(dc, Ui.px(dc, ys[_focus]));
-        Ui.drawScrollIndicator(dc, Ui.px(dc, 190), Ui.px(dc, 350), _focus, 4, 1, Ui.RING_IN);
+        Ui.drawScrollIndicator(dc, Ui.px(dc, 180), Ui.px(dc, 342), _focus, 3, 1, Ui.RING_IN);
     }
 }
 
@@ -107,7 +103,6 @@ class RegimenDelegate extends WatchUi.BehaviorDelegate {
         var regimen = getApp().getState()[:regimen] as Lang.Dictionary;
         if (focus == 0) { PickerFlow.openNumber(:setDaysIn, 21, 35, regimen[:daysIn], Rez.Strings.DaysRingIn); }
         else if (focus == 1) { PickerFlow.openNumber(:setDaysOut, 0, 7, regimen[:daysOut], Rez.Strings.DaysRingFree); }
-        else if (focus == 2) { getApp().showAbout(); }
         else { getApp().confirmAction(:acceptRegimen, currentUtc(), null); }
         return true;
     }
@@ -120,60 +115,18 @@ class RegimenDelegate extends WatchUi.BehaviorDelegate {
     }
 }
 
-class ScheduleView extends WatchUi.View {
-    function initialize() { View.initialize(); }
-    function onUpdate(dc as Graphics.Dc) as Void {
-        Ui.clear(dc);
-        var state = getApp().getState();
-        var active = state[:active] as Lang.Dictionary;
-        var regimen = state[:regimen] as Lang.Dictionary;
-        var reminders = state[:reminders] as Lang.Dictionary;
-        var status = ScheduleModel.deriveStatus(currentUtc(), active, regimen);
-        Ui.centered(dc, Ui.px(dc, 48), Ui.s(Rez.Strings.ScheduleTitle), Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        Ui.dateTimeRow(dc, Ui.px(dc, 88), Ui.s(Rez.Strings.InsertedLabel), active[:insertionUtc], reminders[:clockFormat]);
-        Ui.dateTimeRow(dc, Ui.px(dc, 140), Ui.s(Rez.Strings.RemoveLabel), active[:scheduledRemovalUtc], reminders[:clockFormat]);
-        Ui.dateTimeRow(dc, Ui.px(dc, 192), Ui.s(Rez.Strings.InsertLabel), active[:scheduledInsertionUtc], reminders[:clockFormat]);
-        Ui.compactRow(dc, Ui.px(dc, 244), Ui.s(Rez.Strings.CycleDayLabel), status[:dayOfCycle].toString());
-        Ui.compactRow(dc, Ui.px(dc, 280), Ui.s(Rez.Strings.PlanLabel), Ui.fmt(Rez.Strings.PlanTemplate, [regimen[:daysIn], regimen[:daysOut]]));
-        Ui.centered(dc, Ui.px(dc, 320), Ui.s(Rez.Strings.TimesCurrentLocal), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 350), Ui.s(Rez.Strings.BackHint), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 240));
-    }
-}
-
 class AboutView extends InfoView {
     function initialize() {
-        InfoView.initialize(Rez.Strings.AboutTitle, [Ui.s(Rez.Strings.ProductVersion), Ui.s(Rez.Strings.DisclaimerLine1), Ui.s(Rez.Strings.DisclaimerLine2), Ui.s(Rez.Strings.DisclaimerLine3), Ui.s(Rez.Strings.SupportedScope), Ui.s(Rez.Strings.AnnoveraUnsupported), Ui.s(Rez.Strings.ReminderLimit), Ui.s(Rez.Strings.Privacy), Ui.s(Rez.Strings.SourcesTitle), Ui.s(Rez.Strings.SourcesLine1), Ui.s(Rez.Strings.SourcesLine2), Ui.s(Rez.Strings.SourcesLine3)]);
+        InfoView.initialize(Rez.Strings.AboutTitle, [Ui.s(Rez.Strings.ProductVersion), Ui.s(Rez.Strings.DisclaimerLine1), Ui.s(Rez.Strings.DisclaimerLine2), Ui.s(Rez.Strings.DisclaimerLine3), Ui.s(Rez.Strings.SupportedScope), Ui.s(Rez.Strings.AnnoveraUnsupported), Ui.s(Rez.Strings.ReminderLimit), Ui.s(Rez.Strings.Privacy), Ui.s(Rez.Strings.SourcesTitle), Ui.s(Rez.Strings.SourcesLine1), Ui.s(Rez.Strings.SourcesLine2)]);
     }
 }
 
 class AlertView extends WatchUi.View {
     private var _attentionPlayed as Lang.Boolean;
-    private var _detailScroll as Lang.Number;
-    private var _detailLines as Lang.Number;
-    private var _detailVisibleLines as Lang.Number;
 
     function initialize() {
         View.initialize();
         _attentionPlayed = false;
-        _detailScroll = -1;
-        _detailLines = 0;
-        _detailVisibleLines = 0;
-    }
-
-    function scroll(delta as Lang.Number) as Void {
-        if (delta > 0) {
-            if (_detailScroll < 0) { _detailScroll = 0; }
-            else {
-                var maxScroll = _detailLines > _detailVisibleLines
-                    ? _detailLines - _detailVisibleLines : 0;
-                if (_detailScroll < maxScroll) { _detailScroll += 1; }
-            }
-        } else if (_detailScroll > 0) {
-            _detailScroll -= 1;
-        } else {
-            _detailScroll = -1;
-        }
-        WatchUi.requestUpdate();
     }
 
     function onShow() as Void {
@@ -202,47 +155,27 @@ class AlertView extends WatchUi.View {
         var title = Rez.Strings.ActionDueTitle;
         var color = Ui.AMBER;
         var details = [Ui.s(Rez.Strings.ActionDueBody)];
-        var hint = Rez.Strings.AlertRecordHint;
         var alertInterval = getApp().getAlertContext();
         if (alertInterval == null && status[:temporaryOutOpen]
             && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
             alertInterval = ScheduleModel.tempOpen(active);
         }
-        if (status[:ringFreeLimitExceeded] || status[:ringFreeLimitReached]) {
+        if (status[:ringFreeOverSevenDays]) {
             title = Rez.Strings.AlertRingFreeTitle;
-            color = status[:ringFreeLimitExceeded] ? Ui.RED : Ui.AMBER;
-            details = [Ui.s(status[:ringFreeLimitExceeded]
-                ? Rez.Strings.RingFreeExceededBody : Rez.Strings.RingFreeReachedBody)];
-            hint = Rez.Strings.AlertLabelHint;
+            color = Ui.RED;
+            details = [Ui.s(Rez.Strings.RingFreeExceededBody)];
         } else if (alertInterval != null) {
             title = Rez.Strings.AlertTemporaryTitle;
             color = Ui.RED;
-            details = temporaryDetails(alertInterval as Lang.Dictionary);
-            hint = Rez.Strings.AlertLabelHint;
-        } else if (status[:beyondLabelFourWeeks]) {
+            details = [Ui.s(Rez.Strings.TempOverBody12)];
+        } else if (status[:ringInOverFourWeeks]) {
             title = Rez.Strings.AlertDurationTitle;
             details = [Ui.s(Rez.Strings.ExtendedBody)];
-            hint = Rez.Strings.AlertLabelHint;
         } else if (status[:clockBeforeInsertion]) {
             title = Rez.Strings.AlertDateReviewTitle;
             color = Ui.RED;
-            hint = Rez.Strings.AlertReviewDateHint;
         } else if (status[:secondsRemaining] <= 0) {
             title = Rez.Strings.AlertOverdueTitle;
-        }
-
-        if (_detailScroll >= 0) {
-            Ui.centered(dc, Ui.px(dc, 58), Ui.s(Rez.Strings.LabelInformationTitle),
-                        Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 280));
-            details.add(Ui.s(Rez.Strings.AboutSourcesHint));
-            _detailLines = Ui.drawParagraphs(dc, details,
-                              Ui.px(dc, 104), Ui.px(dc, 302), _detailScroll);
-            _detailVisibleLines = Ui.paragraphVisibleLines(dc, Ui.px(dc, 104), Ui.px(dc, 302));
-            Ui.drawScrollIndicator(dc, Ui.px(dc, 104), Ui.px(dc, 302), _detailScroll,
-                                   _detailLines, _detailVisibleLines, color);
-            Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.AlertActionsHint),
-                        Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
-            return;
         }
 
         var action = Ui.s(Rez.Strings.RemoveRing);
@@ -264,28 +197,11 @@ class AlertView extends WatchUi.View {
         Ui.centered(dc, Ui.px(dc, 56), Ui.s(title), Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 286));
         Ui.centered(dc, Ui.px(dc, 106), action, Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 300));
         Ui.centered(dc, Ui.px(dc, 151), timing, Graphics.FONT_SYSTEM_TINY, color, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 198), Ui.s(Rez.Strings.NextActionLabel),
-                    Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
-        Ui.centered(dc, Ui.px(dc, 230), Ui.dateOnly(status[:nextActionUtc]),
+        Ui.centered(dc, Ui.px(dc, 216), Ui.dateOnly(status[:nextActionUtc]),
                     Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 262), Ui.timeForUtc(status[:nextActionUtc], clock),
+        Ui.centered(dc, Ui.px(dc, 252), Ui.timeForUtc(status[:nextActionUtc], clock),
                     Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
-        Ui.centered(dc, Ui.px(dc, 306), Ui.s(hint), Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.AlertActionsHint),
-                    Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.drawScrollIndicator(dc, Ui.px(dc, 104), Ui.px(dc, 302), 0, 2, 1, color);
-    }
-
-    private function temporaryDetails(interval as Lang.Dictionary) as Lang.Array<Lang.String> {
-        var codes = ScheduleModel.temporaryGuidance(interval);
-        var result = [] as Lang.Array<Lang.String>;
-        for (var i = 0; i < codes.size(); i += 1) {
-            var id = codes[i] == :week12 ? Rez.Strings.TempOverBody12
-                : (codes[i] == :week3 ? Rez.Strings.TempOverBody3
-                : (codes[i] == :outside ? Rez.Strings.TempOverBodyOutside : Rez.Strings.TempOverBodyUnknown));
-            result.add(Ui.s(id));
-        }
-        return result;
+        Ui.drawParagraphs(dc, details, Ui.px(dc, 292), Ui.px(dc, 350), 0);
     }
 }
 
@@ -311,14 +227,9 @@ class PopDelegate extends WatchUi.BehaviorDelegate {
 
 class AlertDelegate extends WatchUi.BehaviorDelegate {
     function initialize() { BehaviorDelegate.initialize(); }
-    private function view() as AlertView { return WatchUi.getCurrentView()[0] as AlertView; }
     function onSelect() as Boolean { getApp().showAlertMenu(); return true; }
-    function onNextPage() as Boolean { view().scroll(1); return true; }
-    function onPreviousPage() as Boolean { view().scroll(-1); return true; }
     function onBack() as Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
     function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
-        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
-        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
         if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
         return false;
     }
@@ -336,12 +247,10 @@ class SettingsReviewView extends InfoView {
         var titleText = _title instanceof Lang.ResourceId ? Ui.s(_title) : _title as Lang.String;
         Ui.centered(dc, Ui.px(dc, 66), titleText, Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
         var startY = Ui.px(dc, 112);
-        var bottomY = Ui.px(dc, 292);
+        var bottomY = Ui.px(dc, 344);
         _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
         _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount, _visibleLines, Ui.RING_IN);
-        Ui.centered(dc, Ui.px(dc, 350), Ui.s(Rez.Strings.SettingsReviewActionsHint),
-                    Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
     }
 }
 
@@ -351,18 +260,10 @@ class SettingsReviewDelegate extends ScrollDelegate {
 }
 
 class SettingsConfirmationDelegate extends WatchUi.ConfirmationDelegate {
-    private var _timer as Timer.Timer?;
-    private var _accept as Lang.Boolean;
-    function initialize() { ConfirmationDelegate.initialize(); _timer = null; _accept = false; }
+    function initialize() { ConfirmationDelegate.initialize(); }
     function onResponse(value as WatchUi.Confirm) as Boolean {
-        _accept = value == WatchUi.CONFIRM_YES;
-        _timer = new Timer.Timer();
-        (_timer as Timer.Timer).start(method(:apply), 100, false);
+        getApp().deferSettings(value == WatchUi.CONFIRM_YES);
         return true;
-    }
-    function apply() as Void {
-        if (_timer != null) { (_timer as Timer.Timer).stop(); }
-        getApp().resolvePendingSettings(_accept);
     }
 }
 
@@ -370,23 +271,16 @@ class ActionConfirmationDelegate extends WatchUi.ConfirmationDelegate {
     private var _action as Lang.Symbol;
     private var _atUtc as Lang.Number;
     private var _data;
-    private var _timer as Timer.Timer?;
     function initialize(action as Lang.Symbol, atUtc as Lang.Number, data) {
         ConfirmationDelegate.initialize();
         _action = action;
         _atUtc = atUtc;
         _data = data;
-        _timer = null;
     }
     function onResponse(value as WatchUi.Confirm) as Boolean {
         if (value == WatchUi.CONFIRM_YES) {
-            _timer = new Timer.Timer();
-            (_timer as Timer.Timer).start(method(:apply), 100, false);
+            getApp().deferAction(_action, _atUtc, _data);
         }
         return true;
-    }
-    function apply() as Void {
-        if (_timer != null) { (_timer as Timer.Timer).stop(); }
-        getApp().performConfirmed(_action, _atUtc, _data);
     }
 }

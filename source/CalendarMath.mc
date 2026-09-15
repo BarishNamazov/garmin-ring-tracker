@@ -177,6 +177,52 @@ module CalendarMath {
         return resolveLocalWall(target, seed);
     }
 
+    // Exact derived-field validation takes a fast path for ordinary days and
+    // falls back to the full DST resolver only when the UTC seed changed
+    // offset or the requested wall time was adjusted by a transition. This is
+    // important when validating the maximum 24-cycle history in one callback.
+    function isExactLocalCalendarAddition(sourceUtc as Lang.Number, days as Lang.Number,
+                                          actualUtc as Lang.Number) as Lang.Boolean {
+        var target = dateShift(localFields(sourceUtc), days);
+        var actual = localFields(actualUtc);
+        var same = actual[:year] == target[:year]
+            && actual[:month] == target[:month] && actual[:day] == target[:day]
+            && actual[:hour] == target[:hour] && actual[:minute] == target[:minute]
+            && actual[:second] == target[:second];
+        var seed = sourceUtc + (days * SECONDS_PER_DAY);
+        if (same && actualUtc == seed) { return true; }
+        if (same) {
+            // A representable wall tuple has a unique instant except during a
+            // backward fold. Check the transition sizes used by current IANA
+            // zones and apply the resolver's closest-to-seed, earlier-on-tie
+            // rule without its full transition scan.
+            var best = actualUtc;
+            var bestDistance = (actualUtc - seed).abs();
+            var foldOffsets = [1800, 3600, 7200];
+            for (var i = 0; i < foldOffsets.size(); i += 1) {
+                for (var direction = -1; direction <= 1; direction += 2) {
+                    var candidate = actualUtc + (foldOffsets[i] * direction);
+                    var candidateFields = localFields(candidate);
+                    if (candidateFields[:year] == target[:year]
+                        && candidateFields[:month] == target[:month]
+                        && candidateFields[:day] == target[:day]
+                        && candidateFields[:hour] == target[:hour]
+                        && candidateFields[:minute] == target[:minute]
+                        && candidateFields[:second] == target[:second]) {
+                        var distance = (candidate - seed).abs();
+                        if (distance < bestDistance || (distance == bestDistance && candidate < best)) {
+                            best = candidate;
+                            bestDistance = distance;
+                        }
+                    }
+                }
+            }
+            return best == actualUtc;
+        }
+        var resolved = resolveLocalWall(target, seed);
+        return resolved != null && (resolved as Lang.Dictionary)[:utc] == actualUtc;
+    }
+
     function wallToUtc(fields as Lang.Dictionary, timeZoneOffsetSeconds as Lang.Number) as Lang.Dictionary? {
         var shaped = utc(fields[:year], fields[:month], fields[:day], fields[:hour], fields[:minute], fields[:second]);
         return resolveLocalWall(fields, shaped - timeZoneOffsetSeconds);

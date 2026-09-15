@@ -50,13 +50,16 @@ module SettingsBridge {
         }
         if (key.equals("reminderHour")) { return numberIn(value, 0, 23); }
         if (key.equals("reminderMinute")) { return numberIn(value, 0, 59); }
+        if (key.equals("reminder2Hour")) { return numberIn(value, 0, 23); }
+        if (key.equals("reminder2Minute")) { return numberIn(value, 0, 59); }
         if (key.equals("daysIn")) { return numberIn(value, 21, 35); }
         if (key.equals("daysOut")) { return numberIn(value, 0, 7); }
         if (key.equals("overdueRepeatHours")) {
             return value == 1 || value == 3 || value == 6 || value == 12 || value == 24;
         }
         if (key.equals("clockFormat")) { return value == 0 || value == 12 || value == 24; }
-        if (key.equals("vibrationEnabled") || key.equals("soundEnabled")) {
+        if (key.equals("reminder2Enabled") || key.equals("dayBeforeEnabled")
+            || key.equals("vibrationEnabled") || key.equals("soundEnabled")) {
             return value instanceof Lang.Boolean;
         }
         return true;
@@ -69,16 +72,20 @@ module SettingsBridge {
     function configFromState(state as Lang.Dictionary) as Lang.Array {
         var r = state[:reminders] as Lang.Dictionary;
         var g = state[:regimen] as Lang.Dictionary;
-        return [r[:localHour], r[:localMinute], g[:daysIn], g[:daysOut],
+        return [r[:reminder1Hour], r[:reminder1Minute], r[:reminder2Hour], r[:reminder2Minute],
+            r[:reminder2Enabled], r[:dayBeforeEnabled], g[:daysIn], g[:daysOut],
             r[:overdueRepeatHours], r[:vibrationEnabled], r[:soundEnabled], r[:clockFormat]];
     }
 
     function configFromProperties() as Lang.Array? {
         var values = [Properties.getValue("reminderHour"), Properties.getValue("reminderMinute"),
+            Properties.getValue("reminder2Hour"), Properties.getValue("reminder2Minute"),
+            Properties.getValue("reminder2Enabled"), Properties.getValue("dayBeforeEnabled"),
             Properties.getValue("daysIn"), Properties.getValue("daysOut"),
             Properties.getValue("overdueRepeatHours"), Properties.getValue("vibrationEnabled"),
             Properties.getValue("soundEnabled"), Properties.getValue("clockFormat")];
-        var keys = ["reminderHour", "reminderMinute", "daysIn", "daysOut",
+        var keys = ["reminderHour", "reminderMinute", "reminder2Hour", "reminder2Minute",
+            "reminder2Enabled", "dayBeforeEnabled", "daysIn", "daysOut",
             "overdueRepeatHours", "vibrationEnabled", "soundEnabled", "clockFormat"];
         for (var i = 0; i < keys.size(); i += 1) {
             if (!validate(keys[i], values[i], currentUtc())) { return null; }
@@ -128,7 +135,7 @@ module SettingsBridge {
             result[:invalid] = true;
         } else if (!arraysEqual(snapshot, fromPhone)) {
             var current = configFromState(state);
-            var durationChanged = current[2] != fromPhone[2] || current[3] != fromPhone[3];
+            var durationChanged = current[6] != fromPhone[6] || current[7] != fromPhone[7];
             if (durationChanged && state[:active] != null) {
                 result[:config] = fromPhone;
             } else {
@@ -143,10 +150,12 @@ module SettingsBridge {
     function applyConfig(state as Lang.Dictionary, values as Lang.Array) as Void {
         var r = state[:reminders] as Lang.Dictionary;
         var g = state[:regimen] as Lang.Dictionary;
-        r[:localHour] = values[0]; r[:localMinute] = values[1];
-        g[:daysIn] = values[2]; g[:daysOut] = values[3];
-        r[:overdueRepeatHours] = values[4]; r[:vibrationEnabled] = values[5];
-        r[:soundEnabled] = values[6]; r[:clockFormat] = values[7];
+        r[:reminder1Hour] = values[0]; r[:reminder1Minute] = values[1];
+        r[:reminder2Hour] = values[2]; r[:reminder2Minute] = values[3];
+        r[:reminder2Enabled] = values[4]; r[:dayBeforeEnabled] = values[5];
+        g[:daysIn] = values[6]; g[:daysOut] = values[7];
+        r[:overdueRepeatHours] = values[8]; r[:vibrationEnabled] = values[9];
+        r[:soundEnabled] = values[10]; r[:clockFormat] = values[11];
     }
 
     function completePendingMirrors(state as Lang.Dictionary) as Void {
@@ -161,12 +170,16 @@ module SettingsBridge {
             var values = sync[:pendingConfigSnapshot] as Lang.Array;
             Properties.setValue("reminderHour", values[0]);
             Properties.setValue("reminderMinute", values[1]);
-            Properties.setValue("daysIn", values[2]);
-            Properties.setValue("daysOut", values[3]);
-            Properties.setValue("overdueRepeatHours", values[4]);
-            Properties.setValue("vibrationEnabled", values[5]);
-            Properties.setValue("soundEnabled", values[6]);
-            Properties.setValue("clockFormat", values[7]);
+            Properties.setValue("reminder2Hour", values[2]);
+            Properties.setValue("reminder2Minute", values[3]);
+            Properties.setValue("reminder2Enabled", values[4]);
+            Properties.setValue("dayBeforeEnabled", values[5]);
+            Properties.setValue("daysIn", values[6]);
+            Properties.setValue("daysOut", values[7]);
+            Properties.setValue("overdueRepeatHours", values[8]);
+            Properties.setValue("vibrationEnabled", values[9]);
+            Properties.setValue("soundEnabled", values[10]);
+            Properties.setValue("clockFormat", values[11]);
             sync[:configSnapshot] = values;
             sync[:pendingConfigSnapshot] = null;
         }
@@ -175,18 +188,28 @@ module SettingsBridge {
     function stageMirrors(state as Lang.Dictionary) as Void {
         var sync = state[:settingsSync] as Lang.Dictionary;
         var values = configFromState(state);
-        if (sync[:configSnapshot] == null
-            || !arraysEqual(sync[:configSnapshot] as Lang.Array, values)) {
+        var properties = configFromProperties();
+        if (properties == null || !arraysEqual(properties as Lang.Array, values)) {
             sync[:pendingConfigSnapshot] = values;
+        } else {
+            sync[:configSnapshot] = values;
         }
         if (state[:active] != null) {
             var iso = isoForUtc((state[:active] as Lang.Dictionary)[:insertionUtc]);
-            if (!iso.equals(sync[:lastSeenInsertionIso] as Lang.String)) {
+            var propertyIso = Properties.getValue("insertionIso");
+            if (!(propertyIso instanceof Lang.String) || !iso.equals(propertyIso as Lang.String)) {
                 sync[:pendingMirrorIso] = iso;
+            } else {
+                sync[:lastSeenInsertionIso] = iso;
+                sync[:lastAcceptedInsertionIso] = iso;
             }
         } else {
-            if (!(sync[:lastSeenInsertionIso] as Lang.String).equals("")) {
+            var emptyProperty = Properties.getValue("insertionIso");
+            if (!(emptyProperty instanceof Lang.String) || !(emptyProperty as Lang.String).equals("")) {
                 sync[:pendingMirrorIso] = "";
+            } else {
+                sync[:lastSeenInsertionIso] = "";
+                sync[:lastAcceptedInsertionIso] = "";
             }
         }
     }

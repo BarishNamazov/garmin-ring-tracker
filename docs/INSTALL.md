@@ -6,9 +6,9 @@ the first-run setup, add the glance, and troubleshoot reminders.
 
 > **Health disclaimer:** Ring Tracker records dates and shows reminders. It does
 > not determine whether contraception is effective and is not a substitute for
-> the product label or advice from a qualified clinician. Read and accept the
-> in-app disclaimer before use. Annovera uses a different 13-cycle regimen and
-> is not supported. See [the regimen and source notes](REGIMEN.md).
+> the product label or advice from a qualified clinician. Read the in-app
+> safety text before use. Ring Tracker v1.1.0 is for NuvaRing only. See [the
+> regimen and source notes](REGIMEN.md).
 
 Information and menu names were checked on 14 September 2026. Garmin sometimes
 renames a menu in firmware updates; the route should remain similar.
@@ -237,7 +237,7 @@ documents that route in
 
 This is Garmin's documented [glance-loop customization
 flow](https://www8.garmin.com/manuals/webhelp/GUID-E5C62F3F-DCE3-4197-8CA5-E419B2A55D12/EN-US/GUID-61C825F5-5D80-413F-BA3F-CD8C51BB63F2.html).
-The Ring Tracker glance shows a one-line status such as **Ring: remove in 5d**
+The Ring Tracker glance shows a one-line status such as **Remove in 5 days**
 and a miniature cycle-progress bar.
 
 Ring Tracker is a watch app with a glance; it is **not** a Controls app. Holding
@@ -251,35 +251,41 @@ Have the actual insertion date and time available before starting. If uncertain,
 do not guess for contraceptive decisions; check the product instructions or ask
 a qualified clinician.
 
-1. **Read the disclaimer.** Scroll through it, then choose **Accept** to
-   continue. The app will not start reminders before acceptance.
-2. **Confirm the regimen.** The default is 21 days in and 7 days out for
-   NuvaRing and its generics. Change it only to match a regimen given by the
-   prescriber. Annovera is not supported.
-3. **Set the insertion time.** Choose **Inserted now** only if it just happened.
-   Otherwise choose **Set date & time**, use the picker, review the summary, and
-   confirm it.
+1. **Read the safety text.** Scroll through it, then choose **Continue**. The
+   app will not start reminders before that acknowledgement.
+2. **Confirm the schedule.** The default is 21 days in and 7 days out for
+   NuvaRing. Change it only to match instructions from a clinician.
+3. **Set the insertion time.** Choose **Insert now** only if it just happened.
+   Otherwise choose **Choose date & time**, use the picker, review the summary,
+   and confirm it.
 4. **Review the main screen.** The outer arc shows the configured cycle. The
-   center identifies **RING IN**, **RING-FREE**, or **OVERDUE**, gives the time
+   center identifies **RING IN**, **RING FREE**, or **OVERDUE**, gives the time
    until removal/insertion, and shows the next-action date.
 5. **Set reminders.** From the main screen, hold **MENU**, open **Settings**, and
-   set the reminder time, overdue repeat interval, vibration, sound, and clock
-   format. On a pure sideload, this on-watch screen is the authoritative editor.
+   set **Reminder 1**, optional **Reminder 2**, the **Day-before reminder**,
+   overdue repeat interval, vibration, sound, and clock format. Reminder 1
+   defaults to 09:00; Reminder 2 defaults to 20:00 and Off; day-before defaults
+   On and uses Reminder 1's time. On a pure sideload, this on-watch screen is
+   the authoritative editor.
 6. **Return to the main screen** with **BACK**, then add the glance using the
    steps above.
 
-The planned screens and controls are illustrated in [UI.md](UI.md). In normal
-use, open the menu and choose **Ring removed now**, **Ring inserted now**, **Ring
-out temporarily**, or **Ring back in** as the event occurs. State-changing
-actions require confirmation. Use **Adjust dates** to correct an entry rather
-than recording a false new event.
+From Main, press **UP** for six projected **Upcoming** cycles, **DOWN** for
+**History**, **START** or tap for the context menu, and hold **MENU** for the
+same menu. Within Upcoming or History, UP/DOWN scrolls and BACK returns. In
+normal use, choose **Remove ring**, **Insert ring**, **Ring out**, or **Ring back
+in** as the event occurs. State-changing actions require confirmation. The
+actual removal anchors the next insertion; the actual insertion anchors the
+next removal. Use **Edit dates** to correct only recorded insertion/removal
+timestamps rather than recording a false event.
 
 ## What reminders look like—and their limits
 
 Ring Tracker checks in the background about once per hour. It asks Garmin OS to
-show a native notification the day before an action, on the day at the selected
-time, repeatedly while overdue, and with stronger wording if the ring-free
-interval exceeds seven days.
+show a native notification on the optional day-before slot at Reminder 1's
+time, on the action date at Reminder 1 and optional Reminder 2, repeatedly while
+overdue, and with stronger wording if the ring-free interval exceeds seven
+days. Each slot is deduplicated independently.
 
 On an epix Pro, expect a Garmin-style full-screen notification card with the app
 icon, title, and reminder text. The default actions are **Open** and **Dismiss**.
@@ -373,6 +379,20 @@ Ring Tracker therefore represents a remote exact date/time as a validated ISO
 text value. A remote insertion-time change made after a watch edit is presented
 for reconciliation rather than silently replacing the watch record.
 
+The complete phone settings list is:
+
+| Setting | Value |
+| --- | --- |
+| Insertion date & time | Local `YYYY-MM-DDTHH:mm` |
+| Reminder 1 hour / minute | `0–23` / `0–59`; always enabled |
+| Reminder 2 | On or Off |
+| Reminder 2 hour / minute | `0–23` / `0–59`; editable and retained while Off |
+| Day-before reminder | On or Off; uses Reminder 1's time |
+| Days ring in / ring-free | `21–35` / `0–7` |
+| Overdue repeat | `1`, `3`, `6`, `12`, or `24` hours |
+| Vibration / sound | On or Off for foreground feedback |
+| Clock | System, 12-hour, or 24-hour |
+
 ## Remove Ring Tracker
 
 Record any dates you need first. Treat uninstalling as deletion of the app's
@@ -443,8 +463,9 @@ phone-managed settings are essential.
 
 ### A reminder did not arrive
 
-1. Open Ring Tracker and confirm the insertion record, next-action time,
-   reminder time, and overdue repeat interval.
+1. Open Ring Tracker and confirm the actual insertion/removal record,
+   next-action time, Reminder 1, Reminder 2 state/time, day-before state, and
+   overdue repeat interval.
 2. Hold **LIGHT** and turn off **Do Not Disturb**. Garmin documents that DND
    disables alerts and notifications in the [epix DND
    guide](https://www8.garmin.com/manuals-apac/webhelp/epix/EN-SG/GUID-F54B5128-BDC3-40C3-948F-E51FACAE18BA-4493.html).

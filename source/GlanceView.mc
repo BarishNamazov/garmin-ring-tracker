@@ -22,12 +22,12 @@ class RingGlanceView extends WatchUi.GlanceView {
         try {
             var raw = Storage.getValue("ringTrackerGlance");
             var state = Storage.getValue("ringTrackerState");
-            if (raw instanceof Lang.Array && raw.size() == 5 && raw[0] == 2
+            if (raw instanceof Lang.Array && raw.size() == 5 && raw[0] == 3
                 && raw[1] instanceof Lang.Number && raw[3] instanceof Lang.Number
                 && raw[4] instanceof Lang.Number && raw[3] >= 21 && raw[3] <= 35
                 && raw[4] >= 0 && raw[4] <= 7
                 && state instanceof Lang.Array && state.size() >= 10
-                && state[0] == 2 && state[9] == raw[1]
+                && state[0] == 3 && state[9] == raw[1]
                 && validActive(raw[2])) {
                 active = raw[2];
                 daysIn = raw[3];

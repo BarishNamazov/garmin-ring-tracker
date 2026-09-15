@@ -35,8 +35,17 @@ module RingStore {
                 return future;
             }
             var state;
+            var migrated = false;
             if (version == 1) {
-                state = migrateV1(a);
+                state = migrateV2ToV3(migrateV1(a));
+                migrated = true;
+            } else if (version == 2) {
+                state = decodeLegacyV2(a);
+                if (a.size() >= 12 && a[10] > 0) {
+                    state[:history] = loadLegacyHistory(a[9], a[10], a[11]);
+                }
+                state = migrateV2ToV3(state);
+                migrated = true;
             } else if (version == ScheduleModel.SCHEMA_VERSION) {
                 state = decodeState(a);
                 if (a.size() >= 12 && a[10] > 0) {
@@ -48,7 +57,7 @@ module RingStore {
             if (!ScheduleModel.validState(state)) { return recover(raw, "invalid state"); }
             mergeBackgroundLedger(state);
             repairMirrors(state);
-            if (version == 1) { save(state); }
+            if (migrated) { save(state); }
             return state;
         } catch (ex) {
             return recover(raw, "decode failed");
@@ -253,6 +262,27 @@ module RingStore {
         return result;
     }
 
+    function loadLegacyHistory(revision as Lang.Number, expectedCount as Lang.Number,
+                               chunkCount as Lang.Number) as Lang.Array {
+        if (expectedCount < 0 || expectedCount > ScheduleModel.MAX_HISTORY
+            || chunkCount < 0 || chunkCount > 2) { throw new Lang.InvalidValueException("invalid legacy history metadata"); }
+        var result = [];
+        var parity = revision % 2;
+        for (var c = 0; c < chunkCount; c += 1) {
+            var raw = Storage.getValue(historyKey(c, parity));
+            if (!(raw instanceof Lang.Array)) { throw new Lang.InvalidValueException("missing legacy history chunk"); }
+            var a = raw as Lang.Array;
+            if (a.size() != 3 || a[0] != 2 || a[1] != revision
+                || !(a[2] instanceof Lang.Array)) { throw new Lang.InvalidValueException("invalid legacy history chunk"); }
+            var encoded = a[2] as Lang.Array;
+            for (var i = 0; i < encoded.size(); i += 1) {
+                result.add(decodeLegacyHistory(encoded[i] as Lang.Array));
+            }
+        }
+        if (result.size() != expectedCount) { throw new Lang.InvalidValueException("legacy history count mismatch"); }
+        return result;
+    }
+
     function loadGlance() as Lang.Dictionary {
         var raw = Storage.getValue(GLANCE_KEY);
         if (!(raw instanceof Lang.Array)) {
@@ -285,8 +315,11 @@ module RingStore {
                 :active => a[2] == null ? null : decodeReducedActive(a[2] as Lang.Array),
                 :regimen => { :daysIn => a[3], :daysOut => a[4] },
                 :reminders => {
-                    :localHour => r[0], :localMinute => r[1], :overdueRepeatHours => r[2],
-                    :vibrationEnabled => r[3], :soundEnabled => r[4], :clockFormat => r[5]
+                    :reminder1Hour => r[0], :reminder1Minute => r[1],
+                    :reminder2Hour => r[2], :reminder2Minute => r[3],
+                    :reminder2Enabled => r[4], :dayBeforeEnabled => r[5],
+                    :overdueRepeatHours => r[6], :vibrationEnabled => r[7],
+                    :soundEnabled => r[8], :clockFormat => r[9]
                 },
                 :reminderLedger => decodeLedger(a[6] as Lang.Array)
             };
@@ -319,9 +352,12 @@ module RingStore {
         if (state[:active] != null) {
             var active = state[:active] as Lang.Dictionary;
             var open = ScheduleModel.tempOpen(active);
-            var deadline = active[:removalUtc] == null ? active[:scheduledRemovalUtc] : active[:finalInsertionUtc];
+            var deadline = active[:removalUtc] == null ? active[:removeDueUtc] : active[:insertDueUtc];
+            var cycleEnd = active[:removalUtc] == null
+                ? CalendarMath.addLocalCalendarDays(active[:removeDueUtc], regimen[:daysOut])[:utc]
+                : active[:insertDueUtc];
             compact = [active[:insertionUtc], active[:removalUtc], deadline,
-                active[:scheduledInsertionUtc], active[:labelFourWeekUtc],
+                cycleEnd, active[:labelFourWeekUtc],
                 active[:ringFreeCeilingUtc], open == null ? null : open[:outUtc]];
         }
         return [ScheduleModel.SCHEMA_VERSION, revision, compact, regimen[:daysIn], regimen[:daysOut]];
@@ -335,14 +371,17 @@ module RingStore {
             var active = state[:active] as Lang.Dictionary;
             var open = ScheduleModel.tempOpen(active);
             var action = active[:removalUtc] != null ? 1 : (regimen[:daysOut] == 0 ? 2 : 0);
-            var deadline = active[:removalUtc] == null ? active[:scheduledRemovalUtc] : active[:finalInsertionUtc];
+            var deadline = active[:removalUtc] == null ? active[:removeDueUtc] : active[:insertDueUtc];
             reduced = [active[:cycleId], active[:insertionUtc], active[:removalUtc],
-                active[:scheduledRemovalUtc], active[:finalInsertionUtc], active[:labelFourWeekUtc],
+                active[:removeDueUtc], active[:insertDueUtc], active[:labelFourWeekUtc],
                 active[:ringFreeCeilingUtc], open == null ? null : open[:outUtc], action, deadline];
         }
         return [ScheduleModel.SCHEMA_VERSION, revision, reduced, regimen[:daysIn], regimen[:daysOut],
-            [reminders[:localHour], reminders[:localMinute], reminders[:overdueRepeatHours],
-                reminders[:vibrationEnabled], reminders[:soundEnabled], reminders[:clockFormat]],
+            [reminders[:reminder1Hour], reminders[:reminder1Minute],
+                reminders[:reminder2Hour], reminders[:reminder2Minute],
+                reminders[:reminder2Enabled], reminders[:dayBeforeEnabled],
+                reminders[:overdueRepeatHours], reminders[:vibrationEnabled],
+                reminders[:soundEnabled], reminders[:clockFormat]],
             encodeLedger(state[:reminderLedger] as Lang.Dictionary)];
     }
 
@@ -365,22 +404,31 @@ module RingStore {
             || !(a[1] instanceof Lang.Number) || a[1] < 0
             || !ScheduleModel.numberBetween(a[3], 21, 35)
             || !ScheduleModel.numberBetween(a[4], 0, 7)
-            || !(a[5] instanceof Lang.Array) || (a[5] as Lang.Array).size() != 6
-            || !(a[6] instanceof Lang.Array) || (a[6] as Lang.Array).size() != 8) { return false; }
+            || !(a[5] instanceof Lang.Array) || (a[5] as Lang.Array).size() != 10
+            || !(a[6] instanceof Lang.Array) || (a[6] as Lang.Array).size() != 9) { return false; }
         var r = a[5] as Lang.Array;
-        var reminder = { :localHour=>r[0], :localMinute=>r[1], :overdueRepeatHours=>r[2],
-            :vibrationEnabled=>r[3], :soundEnabled=>r[4], :clockFormat=>r[5] };
+        var reminder = { :reminder1Hour=>r[0], :reminder1Minute=>r[1],
+            :reminder2Hour=>r[2], :reminder2Minute=>r[3],
+            :reminder2Enabled=>r[4], :dayBeforeEnabled=>r[5],
+            :overdueRepeatHours=>r[6], :vibrationEnabled=>r[7],
+            :soundEnabled=>r[8], :clockFormat=>r[9] };
         if (!ScheduleModel.validReminders(reminder)
             || !ScheduleModel.validLedger(decodeLedger(a[6] as Lang.Array))) { return false; }
         if (a[2] == null) { return true; }
         if (!(a[2] instanceof Lang.Array) || (a[2] as Lang.Array).size() != 10) { return false; }
         var active = a[2] as Lang.Array;
-        return ScheduleModel.numberBetween(active[0], 1, 2147483647)
+        if (!(ScheduleModel.numberBetween(active[0], 1, 2147483647)
             && active[1] instanceof Lang.Number && (active[2] == null || active[2] instanceof Lang.Number)
-            && active[3] instanceof Lang.Number && active[4] instanceof Lang.Number
+            && active[3] instanceof Lang.Number && (active[4] == null || active[4] instanceof Lang.Number)
             && active[5] instanceof Lang.Number && (active[6] == null || active[6] instanceof Lang.Number)
             && (active[7] == null || active[7] instanceof Lang.Number)
-            && ScheduleModel.numberBetween(active[8], 0, 2) && active[9] instanceof Lang.Number;
+            && ScheduleModel.numberBetween(active[8], 0, 2) && active[9] instanceof Lang.Number)) { return false; }
+        if (active[2] == null) {
+            return active[4] == null && active[6] == null && active[9] == active[3]
+                && active[8] == (a[4] == 0 ? 2 : 0);
+        }
+        return active[4] instanceof Lang.Number && active[6] instanceof Lang.Number
+            && active[7] == null && active[8] == 1 && active[9] == active[4];
     }
 
     function canonicalRevision() as Lang.Number? {
@@ -447,14 +495,13 @@ module RingStore {
             ScheduleModel.SCHEMA_VERSION, s[:nextCycleId], s[:setupStep],
             s[:active] == null ? null : encodeActive(s[:active] as Lang.Dictionary),
             [regimen[:daysIn], regimen[:daysOut]],
-            [reminders[:localHour], reminders[:localMinute], reminders[:overdueRepeatHours],
-                reminders[:vibrationEnabled], reminders[:soundEnabled], reminders[:clockFormat]],
+            encodeReminders(reminders),
             encodeLedger(s[:reminderLedger] as Lang.Dictionary), [],
             [sync[:lastSeenInsertionIso], sync[:lastAcceptedInsertionIso],
                 sync[:lastWatchScheduleEditUtc], sync[:lastSettingsObservationUtc],
                 sync[:pendingMirrorIso], sync[:pendingSettingsError], sync[:configSnapshot],
                 sync[:pendingConfigSnapshot]],
-            revision, historyCount, chunkCount
+            revision, historyCount, chunkCount, s[:migrationNoticePending]
         ];
     }
 
@@ -471,25 +518,24 @@ module RingStore {
             ScheduleModel.SCHEMA_VERSION, s[:nextCycleId], s[:setupStep],
             s[:active] == null ? null : encodeActive(s[:active] as Lang.Dictionary),
             [regimen[:daysIn], regimen[:daysOut]],
-            [reminders[:localHour], reminders[:localMinute], reminders[:overdueRepeatHours],
-                reminders[:vibrationEnabled], reminders[:soundEnabled], reminders[:clockFormat]],
+            encodeReminders(reminders),
             encodeLedger(s[:reminderLedger] as Lang.Dictionary), encodedHistory,
             [sync[:lastSeenInsertionIso], sync[:lastAcceptedInsertionIso],
                 sync[:lastWatchScheduleEditUtc], sync[:lastSettingsObservationUtc],
                 sync[:pendingMirrorIso], sync[:pendingSettingsError], sync[:configSnapshot],
                 sync[:pendingConfigSnapshot]],
-            s[:revision]
+            s[:revision], 0, 0, s[:migrationNoticePending]
         ];
     }
 
     function decodeState(a as Lang.Array) as Lang.Dictionary {
-        if (a.size() < 10 || !(a[4] instanceof Lang.Array) || !(a[5] instanceof Lang.Array)
+        if (a.size() < 13 || !(a[4] instanceof Lang.Array) || !(a[5] instanceof Lang.Array)
             || !(a[6] instanceof Lang.Array) || !(a[7] instanceof Lang.Array)
             || !(a[8] instanceof Lang.Array)) { throw new Lang.InvalidValueException("invalid state shape"); }
         var regimen = a[4] as Lang.Array;
         var reminders = a[5] as Lang.Array;
         var sync = a[8] as Lang.Array;
-        if (regimen.size() != 2 || reminders.size() != 6 || sync.size() < 7) {
+        if (regimen.size() != 2 || reminders.size() != 10 || sync.size() != 8) {
             throw new Lang.InvalidValueException("invalid state fields");
         }
         var decodedHistory = [];
@@ -502,9 +548,7 @@ module RingStore {
             :nextCycleId => a[1], :setupStep => a[2],
             :active => a[3] == null ? null : decodeActive(a[3] as Lang.Array),
             :regimen => { :daysIn => regimen[0], :daysOut => regimen[1] },
-            :reminders => { :localHour => reminders[0], :localMinute => reminders[1],
-                :overdueRepeatHours => reminders[2], :vibrationEnabled => reminders[3],
-                :soundEnabled => reminders[4], :clockFormat => reminders[5] },
+            :reminders => decodeReminders(reminders),
             :reminderLedger => decodeLedger(a[6] as Lang.Array),
             :history => decodedHistory,
             :settingsSync => {
@@ -514,37 +558,201 @@ module RingStore {
                 :configSnapshot => sync[6],
                 :pendingConfigSnapshot => sync.size() > 7 ? sync[7] : null
             },
-            :revision => a[9]
+            :revision => a[9],
+            :migrationNoticePending => a[12]
         };
     }
 
+    // Schema 1 was the pre-revision form of schema 2. Decode it into the
+    // legacy dictionary first so both legacy paths share one v3 migration.
     function migrateV1(a as Lang.Array) as Lang.Dictionary {
-        // Version 1 used the same top-level positions without revision and the
-        // active summary/final-deadline fields.
         if (a.size() < 9) { throw new Lang.InvalidValueException("invalid v1 state"); }
         var copy = [];
-        copy.add(ScheduleModel.SCHEMA_VERSION);
+        copy.add(2);
         for (var i = 1; i < a.size(); i += 1) { copy.add(a[i]); }
         copy.add(0);
-        var state = decodeState(copy);
-        state[:revision] = 0;
-        var active = state[:active] as Lang.Dictionary?;
-        if (active != null) {
-            ScheduleModel.refreshFinalInsertionUtc(active, state[:regimen] as Lang.Dictionary);
+        return decodeLegacyV2(copy);
+    }
+
+    function decodeLegacyV2(a as Lang.Array) as Lang.Dictionary {
+        if (a.size() < 10 || !(a[4] instanceof Lang.Array) || !(a[5] instanceof Lang.Array)
+            || !(a[6] instanceof Lang.Array) || !(a[7] instanceof Lang.Array)
+            || !(a[8] instanceof Lang.Array)) { throw new Lang.InvalidValueException("invalid v2 state shape"); }
+        var regimen = a[4] as Lang.Array;
+        var reminders = a[5] as Lang.Array;
+        var sync = a[8] as Lang.Array;
+        if (regimen.size() != 2 || reminders.size() != 6 || sync.size() < 7) {
+            throw new Lang.InvalidValueException("invalid v2 state fields");
         }
+        var decodedHistory = [];
+        var history = a[7] as Lang.Array;
+        for (var i = 0; i < history.size(); i += 1) {
+            decodedHistory.add(decodeLegacyHistory(history[i] as Lang.Array));
+        }
+        return {
+            :schemaVersion=>2, :nextCycleId=>a[1], :setupStep=>a[2],
+            :active=>a[3] == null ? null : decodeLegacyActive(a[3] as Lang.Array),
+            :regimen=>{:daysIn=>regimen[0], :daysOut=>regimen[1]},
+            :reminders=>{:localHour=>reminders[0], :localMinute=>reminders[1],
+                :overdueRepeatHours=>reminders[2], :vibrationEnabled=>reminders[3],
+                :soundEnabled=>reminders[4], :clockFormat=>reminders[5]},
+            :reminderLedger=>decodeLegacyLedger(a[6] as Lang.Array),
+            :history=>decodedHistory,
+            :settingsSync=>{:lastSeenInsertionIso=>sync[0], :lastAcceptedInsertionIso=>sync[1],
+                :lastWatchScheduleEditUtc=>sync[2], :lastSettingsObservationUtc=>sync[3],
+                :pendingMirrorIso=>sync[4], :pendingSettingsError=>sync[5],
+                :configSnapshot=>sync[6], :pendingConfigSnapshot=>sync.size() > 7 ? sync[7] : null},
+            :revision=>a[9]
+        };
+    }
+
+    function migrateV2ToV3(legacy as Lang.Dictionary) as Lang.Dictionary {
+        var state = ScheduleModel.defaultState();
+        state[:nextCycleId] = legacy[:nextCycleId];
+        state[:setupStep] = legacy[:setupStep];
+        state[:regimen] = legacy[:regimen];
+        state[:revision] = legacy[:revision];
+        state[:migrationNoticePending] = true;
+        var oldR = legacy[:reminders] as Lang.Dictionary;
+        state[:reminders] = {
+            :reminder1Hour=>oldR[:localHour], :reminder1Minute=>oldR[:localMinute],
+            :reminder2Hour=>20, :reminder2Minute=>0, :reminder2Enabled=>false,
+            :dayBeforeEnabled=>true, :overdueRepeatHours=>oldR[:overdueRepeatHours],
+            :vibrationEnabled=>oldR[:vibrationEnabled], :soundEnabled=>oldR[:soundEnabled],
+            :clockFormat=>oldR[:clockFormat]
+        };
+        var oldSync = legacy[:settingsSync] as Lang.Dictionary;
+        state[:settingsSync] = {
+            :lastSeenInsertionIso=>oldSync[:lastSeenInsertionIso],
+            :lastAcceptedInsertionIso=>oldSync[:lastAcceptedInsertionIso],
+            :lastWatchScheduleEditUtc=>oldSync[:lastWatchScheduleEditUtc],
+            :lastSettingsObservationUtc=>oldSync[:lastSettingsObservationUtc],
+            :pendingMirrorIso=>oldSync[:pendingMirrorIso],
+            :pendingSettingsError=>oldSync[:pendingSettingsError],
+            :configSnapshot=>migrateConfig(oldSync[:configSnapshot]),
+            :pendingConfigSnapshot=>migrateConfig(oldSync[:pendingConfigSnapshot])
+        };
+
+        var oldHistory = legacy[:history] as Lang.Array;
+        var history = [];
+        for (var h = 0; h < oldHistory.size(); h += 1) {
+            history.add(migrateHistory(oldHistory[h] as Lang.Dictionary));
+        }
+        state[:history] = history;
+        var oldActive = legacy[:active] as Lang.Dictionary?;
+        if (oldActive != null) { state[:active] = migrateActive(oldActive, state[:regimen] as Lang.Dictionary); }
+
+        // Stitch retained insertions only across an observed contiguous close.
+        for (var i = 1; i < history.size(); i += 1) {
+            stitchInsertion(history[i - 1] as Lang.Dictionary, history[i] as Lang.Dictionary);
+        }
+        if (history.size() > 0 && state[:active] != null) {
+            stitchInsertion(history[history.size() - 1] as Lang.Dictionary,
+                state[:active] as Lang.Dictionary);
+        }
+
+        var oldLedger = legacy[:reminderLedger] as Lang.Dictionary;
+        var ledger = ScheduleModel.defaultLedger();
+        ledger[:cycleId] = oldLedger[:cycleId];
+        ledger[:dayBeforeSent] = oldLedger[:dayBeforeSent];
+        ledger[:dayOf1Sent] = oldLedger[:dayOfSent];
+        ledger[:dayOf2Sent] = oldLedger[:dayOfSent];
+        ledger[:lastOverdueSlot] = oldLedger[:lastOverdueSlot];
+        ledger[:lastTempOutSlot] = oldLedger[:lastTempOutSlot];
+        ledger[:labelFourWeekSent] = oldLedger[:labelFourWeekSent];
+        ledger[:ringFreeExceededSent] = oldLedger[:ringFreeExceededSent];
+        if (state[:active] != null) {
+            var status = ScheduleModel.deriveStatus((state[:active] as Lang.Dictionary)[:insertionUtc],
+                state[:active] as Lang.Dictionary, state[:regimen] as Lang.Dictionary);
+            var newKey = ReminderPolicy.actionKey(status);
+            ledger[:actionKey] = newKey;
+            if (!(oldLedger[:actionKey] as Lang.String).equals(newKey)) {
+                ledger[:dayBeforeSent] = false; ledger[:dayOf1Sent] = false;
+                ledger[:dayOf2Sent] = false; ledger[:lastOverdueSlot] = null;
+            }
+        }
+        state[:reminderLedger] = ledger;
         return state;
     }
 
+    function migrateConfig(value) {
+        if (value == null) { return null; }
+        if (!(value instanceof Lang.Array) || (value as Lang.Array).size() != 8) {
+            throw new Lang.InvalidValueException("invalid v2 config");
+        }
+        var a = value as Lang.Array;
+        return [a[0], a[1], 20, 0, false, true, a[2], a[3], a[4], a[5], a[6], a[7]];
+    }
+
+    function migrateActive(old as Lang.Dictionary, regimen as Lang.Dictionary) as Lang.Dictionary {
+        var active = ScheduleModel.newCycle(old[:cycleId], old[:insertionUtc], regimen);
+        active[:insertionWall] = old[:insertionWall];
+        active[:removeDueUtc] = old[:scheduledRemovalUtc];
+        active[:removalUtc] = old[:removalUtc]; active[:removalWall] = old[:removalWall];
+        active[:temporaryOut] = old[:temporaryOut]; active[:temporaryOutSummary] = old[:temporaryOutSummary];
+        active[:dstAdjustment] = old[:dstAdjustment];
+        if (old[:removalUtc] != null) {
+            active[:removalDeltaSeconds] = old[:removalUtc] - active[:removeDueUtc];
+            active[:insertDueUtc] = CalendarMath.addLocalCalendarDays(old[:removalUtc], regimen[:daysOut])[:utc];
+            active[:ringFreeCeilingUtc] = CalendarMath.addLocalCalendarDays(old[:removalUtc], 7)[:utc];
+        }
+        return active;
+    }
+
+    function migrateHistory(old as Lang.Dictionary) as Lang.Dictionary {
+        var removeDue = CalendarMath.addLocalCalendarDays(old[:insertionUtc], old[:regimenDaysIn])[:utc];
+        var insertDue = old[:removalUtc] == null ? null
+            : CalendarMath.addLocalCalendarDays(old[:removalUtc], old[:regimenDaysOut])[:utc];
+        var expected = old[:removalUtc] == null ? removeDue : insertDue;
+        return {:cycleId=>old[:cycleId], :insertionUtc=>old[:insertionUtc],
+            :insertionPlanUtc=>null, :insertionDeltaSeconds=>null,
+            :removeDueUtc=>removeDue, :removalUtc=>old[:removalUtc],
+            :removalDeltaSeconds=>old[:removalUtc] == null ? null : old[:removalUtc] - removeDue,
+            :insertDueUtc=>insertDue, :nextInsertionUtc=>old[:nextInsertionUtc],
+            :nextInsertionDeltaSeconds=>old[:nextInsertionUtc] == null ? null : old[:nextInsertionUtc] - expected,
+            :closeReason=>old[:closeReason], :regimenDaysIn=>old[:regimenDaysIn],
+            :regimenDaysOut=>old[:regimenDaysOut], :temporaryOut=>old[:temporaryOut],
+            :temporaryOutSummary=>old[:temporaryOutSummary]};
+    }
+
+    function stitchInsertion(previous as Lang.Dictionary, current as Lang.Dictionary) as Void {
+        if (previous[:nextInsertionUtc] == current[:insertionUtc]) {
+            var due = previous[:removalUtc] == null ? previous[:removeDueUtc] : previous[:insertDueUtc];
+            current[:insertionPlanUtc] = due;
+            current[:insertionDeltaSeconds] = current[:insertionUtc] - due;
+        }
+    }
+
     function encodeLedger(l as Lang.Dictionary) as Lang.Array {
-        return [l[:cycleId], l[:actionKey], l[:dayBeforeSent], l[:dayOfSent],
+        return [l[:cycleId], l[:actionKey], l[:dayBeforeSent], l[:dayOf1Sent], l[:dayOf2Sent],
             l[:lastOverdueSlot], l[:lastTempOutSlot], l[:labelFourWeekSent], l[:ringFreeExceededSent]];
     }
 
     function decodeLedger(a as Lang.Array) as Lang.Dictionary {
-        if (a.size() != 8) { throw new Lang.InvalidValueException("invalid ledger"); }
-        return { :cycleId=>a[0], :actionKey=>a[1], :dayBeforeSent=>a[2], :dayOfSent=>a[3],
-            :lastOverdueSlot=>a[4], :lastTempOutSlot=>a[5], :labelFourWeekSent=>a[6],
-            :ringFreeExceededSent=>a[7] };
+        if (a.size() != 9) { throw new Lang.InvalidValueException("invalid ledger"); }
+        return { :cycleId=>a[0], :actionKey=>a[1], :dayBeforeSent=>a[2],
+            :dayOf1Sent=>a[3], :dayOf2Sent=>a[4], :lastOverdueSlot=>a[5],
+            :lastTempOutSlot=>a[6], :labelFourWeekSent=>a[7], :ringFreeExceededSent=>a[8] };
+    }
+
+    function decodeLegacyLedger(a as Lang.Array) as Lang.Dictionary {
+        if (a.size() != 8) { throw new Lang.InvalidValueException("invalid legacy ledger"); }
+        return {:cycleId=>a[0], :actionKey=>a[1], :dayBeforeSent=>a[2], :dayOfSent=>a[3],
+            :lastOverdueSlot=>a[4], :lastTempOutSlot=>a[5],
+            :labelFourWeekSent=>a[6], :ringFreeExceededSent=>a[7]};
+    }
+
+    function encodeReminders(r as Lang.Dictionary) as Lang.Array {
+        return [r[:reminder1Hour], r[:reminder1Minute], r[:reminder2Hour],
+            r[:reminder2Minute], r[:reminder2Enabled], r[:dayBeforeEnabled],
+            r[:overdueRepeatHours], r[:vibrationEnabled], r[:soundEnabled], r[:clockFormat]];
+    }
+
+    function decodeReminders(a as Lang.Array) as Lang.Dictionary {
+        return {:reminder1Hour=>a[0], :reminder1Minute=>a[1],
+            :reminder2Hour=>a[2], :reminder2Minute=>a[3], :reminder2Enabled=>a[4],
+            :dayBeforeEnabled=>a[5], :overdueRepeatHours=>a[6],
+            :vibrationEnabled=>a[7], :soundEnabled=>a[8], :clockFormat=>a[9]};
     }
 
     function encodeWall(value) {
@@ -565,31 +773,50 @@ module RingStore {
     function encodeActive(a as Lang.Dictionary) as Lang.Array {
         var summary = a[:temporaryOutSummary] as Lang.Dictionary;
         return [a[:cycleId], a[:insertionUtc], encodeWall(a[:insertionWall]),
-            a[:removalUtc], encodeWall(a[:removalWall]), a[:scheduledRemovalUtc],
-            a[:scheduledInsertionUtc], a[:labelFourWeekUtc], a[:ringFreeCeilingUtc],
-            a[:plannedOverrideUtc], a[:dstAdjustment], encodeIntervals(a[:temporaryOut] as Lang.Array),
-            a[:finalInsertionUtc], [summary[:shortIntervalCount], summary[:shortIntervalSeconds]]];
+            a[:insertionPlanUtc], a[:insertionDeltaSeconds], a[:removalUtc],
+            encodeWall(a[:removalWall]), a[:removeDueUtc], a[:removalDeltaSeconds],
+            a[:insertDueUtc], a[:labelFourWeekUtc], a[:ringFreeCeilingUtc],
+            a[:dstAdjustment], encodeIntervals(a[:temporaryOut] as Lang.Array),
+            [summary[:shortIntervalCount], summary[:shortIntervalSeconds]]];
     }
 
     function decodeActive(a as Lang.Array) as Lang.Dictionary {
-        if (a.size() < 12 || !(a[11] instanceof Lang.Array)) { throw new Lang.InvalidValueException("invalid active record"); }
-        var summary = a.size() > 13 && a[13] instanceof Lang.Array ? a[13] as Lang.Array : [0, 0];
+        if (a.size() != 15 || !(a[13] instanceof Lang.Array)
+            || !(a[14] instanceof Lang.Array) || (a[14] as Lang.Array).size() != 2) {
+            throw new Lang.InvalidValueException("invalid active record");
+        }
+        var summary = a[14] as Lang.Array;
         return {
             :cycleId=>a[0], :insertionUtc=>a[1], :insertionWall=>decodeWall(a[2]),
-            :removalUtc=>a[3], :removalWall=>decodeWall(a[4]), :scheduledRemovalUtc=>a[5],
-            :scheduledInsertionUtc=>a[6], :labelFourWeekUtc=>a[7], :ringFreeCeilingUtc=>a[8],
+            :insertionPlanUtc=>a[3], :insertionDeltaSeconds=>a[4],
+            :removalUtc=>a[5], :removalWall=>decodeWall(a[6]), :removeDueUtc=>a[7],
+            :removalDeltaSeconds=>a[8], :insertDueUtc=>a[9],
+            :labelFourWeekUtc=>a[10], :ringFreeCeilingUtc=>a[11], :dstAdjustment=>a[12],
+            :temporaryOut=>decodeIntervals(a[13] as Lang.Array),
+            :temporaryOutSummary=>{:shortIntervalCount=>summary[0], :shortIntervalSeconds=>summary[1]}
+        };
+    }
+
+    function decodeLegacyActive(a as Lang.Array) as Lang.Dictionary {
+        if (a.size() < 12 || !(a[11] instanceof Lang.Array)) {
+            throw new Lang.InvalidValueException("invalid legacy active record");
+        }
+        var summary = a.size() > 13 && a[13] instanceof Lang.Array ? a[13] as Lang.Array : [0, 0];
+        return {:cycleId=>a[0], :insertionUtc=>a[1], :insertionWall=>decodeWall(a[2]),
+            :removalUtc=>a[3], :removalWall=>decodeWall(a[4]),
+            :scheduledRemovalUtc=>a[5], :scheduledInsertionUtc=>a[6],
+            :labelFourWeekUtc=>a[7], :ringFreeCeilingUtc=>a[8],
             :plannedOverrideUtc=>a[9], :dstAdjustment=>a[10],
             :temporaryOut=>decodeIntervals(a[11] as Lang.Array),
             :finalInsertionUtc=>a.size() > 12 ? a[12] : null,
-            :temporaryOutSummary=>{:shortIntervalCount=>summary[0], :shortIntervalSeconds=>summary[1]}
-        };
+            :temporaryOutSummary=>{:shortIntervalCount=>summary[0], :shortIntervalSeconds=>summary[1]}};
     }
 
     function decodeReducedActive(a as Lang.Array) as Lang.Dictionary {
         var intervals = [];
         if (a[7] != null) { intervals.add({:outUtc=>a[7], :backInUtc=>null}); }
         return {:cycleId=>a[0], :insertionUtc=>a[1], :removalUtc=>a[2],
-            :scheduledRemovalUtc=>a[3], :finalInsertionUtc=>a[4], :labelFourWeekUtc=>a[5],
+            :removeDueUtc=>a[3], :insertDueUtc=>a[4], :labelFourWeekUtc=>a[5],
             :ringFreeCeilingUtc=>a[6], :temporaryOut=>intervals};
     }
 
@@ -618,15 +845,31 @@ module RingStore {
 
     function encodeHistory(h as Lang.Dictionary) as Lang.Array {
         var summary = h[:temporaryOutSummary] as Lang.Dictionary;
-        return [h[:cycleId], h[:insertionUtc], h[:removalUtc], h[:nextInsertionUtc],
-            h[:closeReason], h[:regimenDaysIn], h[:regimenDaysOut],
+        return [h[:cycleId], h[:insertionUtc], h[:insertionPlanUtc],
+            h[:insertionDeltaSeconds], h[:removeDueUtc], h[:removalUtc],
+            h[:removalDeltaSeconds], h[:insertDueUtc], h[:nextInsertionUtc],
+            h[:nextInsertionDeltaSeconds], h[:closeReason], h[:regimenDaysIn], h[:regimenDaysOut],
             encodeIntervals(h[:temporaryOut] as Lang.Array),
             [summary[:shortIntervalCount], summary[:shortIntervalSeconds]]];
     }
 
     function decodeHistory(h as Lang.Array) as Lang.Dictionary {
+        if (h.size() != 15 || !(h[13] instanceof Lang.Array) || !(h[14] instanceof Lang.Array)
+            || (h[14] as Lang.Array).size() != 2) { throw new Lang.InvalidValueException("invalid history record"); }
+        var summary = h[14] as Lang.Array;
+        return {:cycleId=>h[0], :insertionUtc=>h[1], :insertionPlanUtc=>h[2],
+            :insertionDeltaSeconds=>h[3], :removeDueUtc=>h[4], :removalUtc=>h[5],
+            :removalDeltaSeconds=>h[6], :insertDueUtc=>h[7], :nextInsertionUtc=>h[8],
+            :nextInsertionDeltaSeconds=>h[9], :closeReason=>h[10], :regimenDaysIn=>h[11],
+            :regimenDaysOut=>h[12], :temporaryOut=>decodeIntervals(h[13] as Lang.Array),
+            :temporaryOutSummary=>{:shortIntervalCount=>summary[0], :shortIntervalSeconds=>summary[1]}};
+    }
+
+    function decodeLegacyHistory(h as Lang.Array) as Lang.Dictionary {
         if (h.size() != 9 || !(h[7] instanceof Lang.Array) || !(h[8] instanceof Lang.Array)
-            || (h[8] as Lang.Array).size() != 2) { throw new Lang.InvalidValueException("invalid history record"); }
+            || (h[8] as Lang.Array).size() != 2) {
+            throw new Lang.InvalidValueException("invalid legacy history record");
+        }
         var summary = h[8] as Lang.Array;
         return {:cycleId=>h[0], :insertionUtc=>h[1], :removalUtc=>h[2],
             :nextInsertionUtc=>h[3], :closeReason=>h[4], :regimenDaysIn=>h[5],

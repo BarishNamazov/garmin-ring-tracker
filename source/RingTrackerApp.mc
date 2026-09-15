@@ -4,27 +4,57 @@ import Toybox.Background;
 import Toybox.Lang;
 import Toybox.System;
 import Toybox.Time;
+import Toybox.Timer;
 import Toybox.WatchUi;
 
-(:background, :glance)
 class RingTrackerApp extends Application.AppBase {
+    private var _startupState as Lang.Dictionary?;
+
+    function initialize() {
+        AppBase.initialize();
+        _startupState = null;
+    }
+
+    function onStart(state as Lang.Dictionary?) as Void { _startupState = state; }
+    (:typecheck(disableBackgroundCheck))
+    function getInitialView() { return [new ForegroundEntryView(_startupState)]; }
+    (:typecheck(disableBackgroundCheck))
+    function onSettingsChanged() as Void {
+        WatchUi.switchToView(new ForegroundSettingsEntryView(), null, WatchUi.SLIDE_IMMEDIATE);
+    }
+    (:typecheck(disableBackgroundCheck))
+    function onValidateProperty(key as Lang.String, value as Properties.ValueType) as Lang.Boolean or Lang.String {
+        return SettingsBridge.validate(key, value, currentUtc())
+            ? true : Ui.s(key.equals("insertionIso") ? Rez.Strings.InsertionDateTimeError : Rez.Strings.SettingValueError);
+    }
+
+    (:glance)
+    function getGlanceView() { return [new RingGlanceView()]; }
+
+    (:background)
+    function getServiceDelegate() as [System.ServiceDelegate] { return [new RingServiceDelegate()]; }
+
+}
+
+class ForegroundController {
     private var _state as Lang.Dictionary;
     private var _launchAlert as Lang.Boolean;
     private var _notificationData as Lang.Array?;
     private var _pendingSettings as Lang.Dictionary?;
     private var _backgroundWarning as Lang.Boolean;
     private var _alertContext as Lang.Dictionary?;
+    private var _deferredTimer as Timer.Timer?;
+    private var _deferredWork as Lang.Dictionary?;
 
     function initialize() {
-        AppBase.initialize();
-        // AppBase is also instantiated by the background VM. Keep the
-        // constructor free of foreground/domain reachability.
         _state = {};
         _launchAlert = false;
         _notificationData = null;
         _pendingSettings = null;
         _backgroundWarning = false;
         _alertContext = null;
+        _deferredTimer = null;
+        _deferredWork = null;
     }
 
     function onStart(state as Lang.Dictionary?) as Void {
@@ -50,6 +80,12 @@ class RingTrackerApp extends Application.AppBase {
         if (_state[:loadError] != null) {
             return [new InfoView(Rez.Strings.AppName, [Ui.s(Rez.Strings.RecoveredError)]), new ScrollDelegate()];
         }
+        if (_state[:migrationNoticePending] == true) {
+            _state[:migrationNoticePending] = false;
+            RingStore.save(_state);
+            return [new InfoView(Rez.Strings.MigrationTitle,
+                [Ui.s(Rez.Strings.MigrationBody)]), new ScrollDelegate()];
+        }
         if (_state[:setupStep] == 0) {
             return [new DisclaimerView(), new DisclaimerDelegate()];
         }
@@ -61,19 +97,14 @@ class RingTrackerApp extends Application.AppBase {
             return [new SettingsReviewView(), new SettingsReviewDelegate()];
         }
         if (_state[:active] == null) {
-            var menu = Menus.insertionMenu();
-            return [menu, new InsertionMenuDelegate()];
+            if (_state[:setupStep] == 2) {
+                var menu = Menus.insertionMenu();
+                return [menu, new InsertionMenuDelegate()];
+            }
+            return [new MainView(), new MainDelegate()];
         }
         if (_launchAlert) { return [new AlertView(), new AlertDelegate()]; }
         return [new MainView(), new MainDelegate()];
-    }
-
-    function getGlanceView() {
-        return [new RingGlanceView()];
-    }
-
-    function getServiceDelegate() as [System.ServiceDelegate] {
-        return [new RingServiceDelegate()];
     }
 
     function registerBackground() as Void {
@@ -88,6 +119,36 @@ class RingTrackerApp extends Application.AppBase {
     function getState() as Lang.Dictionary { return _state; }
     function getPendingSettings() as Lang.Dictionary? { return _pendingSettings; }
     function getAlertContext() as Lang.Dictionary? { return _alertContext; }
+
+    function deferAction(action as Lang.Symbol, atUtc as Lang.Number, data) as Void {
+        deferWork({ :kind=>:action, :action=>action, :atUtc=>atUtc, :data=>data });
+    }
+
+    function deferSettings(accept as Lang.Boolean) as Void {
+        deferWork({ :kind=>:settings, :accept=>accept });
+    }
+
+    private function deferWork(work as Lang.Dictionary) as Void {
+        if (_deferredTimer != null) { (_deferredTimer as Timer.Timer).stop(); }
+        _deferredWork = work;
+        _deferredTimer = new Timer.Timer();
+        (_deferredTimer as Timer.Timer).start(method(:applyDeferred), 1000, false);
+    }
+
+    function applyDeferred() as Void {
+        if (_deferredTimer != null) { (_deferredTimer as Timer.Timer).stop(); }
+        _deferredTimer = null;
+        var work = _deferredWork;
+        _deferredWork = null;
+        if (work == null) { return; }
+        if ((work as Lang.Dictionary)[:kind] == :settings) {
+            resolvePendingSettings((work as Lang.Dictionary)[:accept]);
+        } else {
+            performConfirmed((work as Lang.Dictionary)[:action],
+                (work as Lang.Dictionary)[:atUtc], (work as Lang.Dictionary)[:data]);
+        }
+    }
+
 
     function saveOrRecover() as Lang.Boolean {
         SettingsBridge.stageMirrors(_state);
@@ -122,7 +183,7 @@ class RingTrackerApp extends Application.AppBase {
 
     function showMainMenu() as Void {
         var menu = Menus.mainMenu(_state);
-        WatchUi.pushView(menu, new MainMenuDelegate(), WatchUi.SLIDE_UP);
+        WatchUi.switchToView(menu, new MainMenuDelegate(), WatchUi.SLIDE_UP);
     }
 
     function showAlertMenu() as Void {
@@ -133,15 +194,23 @@ class RingTrackerApp extends Application.AppBase {
             if (status[:nextAction] == :remove) { focus = 1; }
             else if (status[:nextAction] == :ringBackIn) { focus = 2; }
         }
-        WatchUi.pushView(Menus.mainMenuWithFocus(_state, focus), new MainMenuDelegate(), WatchUi.SLIDE_UP);
+        WatchUi.switchToView(Menus.mainMenuWithFocus(_state, focus), new MainMenuDelegate(), WatchUi.SLIDE_UP);
     }
 
-    function showSchedule() as Void {
-        WatchUi.pushView(new ScheduleView(), new PopDelegate(), WatchUi.SLIDE_UP);
+    function showUpcoming() as Void {
+        WatchUi.pushView(new UpcomingView(), new UpcomingDelegate(), WatchUi.SLIDE_DOWN);
+    }
+
+    function showHistory() as Void {
+        WatchUi.pushView(Menus.historyMenu(_state), new HistoryMenuDelegate(), WatchUi.SLIDE_UP);
     }
 
     function showAbout() as Void {
         WatchUi.pushView(new AboutView(), new ScrollDelegate(), WatchUi.SLIDE_UP);
+    }
+
+    function showSettingsMenu() as Void {
+        WatchUi.switchToView(Menus.settingsMenu(_state), new SettingsMenuDelegate(), WatchUi.SLIDE_RIGHT);
     }
 
     function showAlert() as Void {
@@ -221,7 +290,7 @@ class RingTrackerApp extends Application.AppBase {
                 return;
             }
             if (_state[:active] == null) {
-                WatchUi.switchToView(Menus.insertionMenu(), new InsertionMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
+                showMain();
             } else {
                 showMain();
                 if (dstNotice) { showDstAdjustment(); }
@@ -234,7 +303,7 @@ class RingTrackerApp extends Application.AppBase {
         if (_pendingSettings != null) {
             WatchUi.pushView(new SettingsReviewView(), new SettingsReviewDelegate(), WatchUi.SLIDE_UP);
         } else {
-            WatchUi.requestUpdate();
+            showMain();
         }
         registerBackground();
     }
@@ -259,19 +328,59 @@ class RingTrackerApp extends Application.AppBase {
         var whenParts = [Ui.dateOnly(atUtc), Ui.timeForUtc(atUtc, clock)];
         if (action == :acceptDisclaimer) { message = Ui.s(Rez.Strings.ContinueQuestion); }
         else if (action == :acceptRegimen) { message = Ui.s(Rez.Strings.ConfirmRegimenQuestion); }
-        else if (action == :insert) { message = Ui.fmt(Rez.Strings.RecordInsertionQuestion, whenParts); }
-        else if (action == :replace) { message = Ui.fmt(Rez.Strings.ReplaceRingQuestion, whenParts); }
-        else if (action == :remove) { message = Ui.fmt(Rez.Strings.RemoveRingQuestion, whenParts); }
+        else if (action == :insert) {
+            whenParts = [Ui.s(Rez.Strings.FirstCycle), whenParts[0], whenParts[1]];
+            message = Ui.fmt(Rez.Strings.RecordInsertionQuestion, whenParts);
+        }
+        else if (action == :replace) {
+            var replacing = _state[:active] as Lang.Dictionary;
+            var replaceDue = replacing[:removalUtc] == null ? replacing[:removeDueUtc] : replacing[:insertDueUtc];
+            whenParts = [Ui.eventDelta(atUtc - replaceDue, false), whenParts[0], whenParts[1]];
+            message = Ui.fmt(replacing[:removalUtc] == null
+                ? Rez.Strings.ReplaceRingQuestion : Rez.Strings.RecordInsertionQuestion, whenParts);
+        }
+        else if (action == :remove) {
+            var removing = _state[:active] as Lang.Dictionary;
+            whenParts = [Ui.eventDelta(atUtc - removing[:removeDueUtc], false), whenParts[0], whenParts[1]];
+            message = Ui.fmt(Rez.Strings.RemoveRingQuestion, whenParts);
+        }
         else if (action == :tempOut) { message = Ui.fmt(Rez.Strings.TempOutQuestion, whenParts); }
         else if (action == :backIn) { message = Ui.fmt(Rez.Strings.BackInQuestion, whenParts); }
         else if (action == :clearHistory) { message = Ui.s(Rez.Strings.ClearHistoryQuestion); }
         else if (action == :reset) { message = Ui.s(Rez.Strings.ResetQuestion); }
         else if (action == :setDaysIn || action == :setDaysOut) {
-            var notice = (action == :setDaysIn && data > 28) ? Ui.s(Rez.Strings.OutsideLabelNotice) : Ui.s(Rez.Strings.ExtendedUseNotice);
-            message = Ui.fmt(Rez.Strings.AcknowledgeDurationQuestion, [notice]);
+            var active = _state[:active] as Lang.Dictionary?;
+            if (active == null) {
+                var notice = (action == :setDaysIn && data > 28) ? Ui.s(Rez.Strings.OutsideLabelNotice) : Ui.s(Rez.Strings.ExtendedUseNotice);
+                message = Ui.fmt(Rez.Strings.AcknowledgeDurationQuestion, [notice]);
+            } else {
+                var regimen = _state[:regimen] as Lang.Dictionary;
+                var oldDaysOut = regimen[:daysOut];
+                var newDaysOut = action == :setDaysOut ? data : oldDaysOut;
+                var oldDue = (active as Lang.Dictionary)[:removalUtc] == null
+                    ? (active as Lang.Dictionary)[:removeDueUtc] : (active as Lang.Dictionary)[:insertDueUtc];
+                var newDue = oldDue;
+                if ((active as Lang.Dictionary)[:removalUtc] == null && action == :setDaysIn) {
+                    newDue = CalendarMath.addLocalCalendarDays((active as Lang.Dictionary)[:insertionUtc], data)[:utc];
+                } else if ((active as Lang.Dictionary)[:removalUtc] != null && action == :setDaysOut) {
+                    newDue = CalendarMath.addLocalCalendarDays((active as Lang.Dictionary)[:removalUtc], data)[:utc];
+                }
+                var oldAction = (active as Lang.Dictionary)[:removalUtc] != null ? :insert
+                    : (oldDaysOut == 0 ? :replace : :remove);
+                var newAction = (active as Lang.Dictionary)[:removalUtc] != null ? :insert
+                    : (newDaysOut == 0 ? :replace : :remove);
+                message = Ui.fmt(Rez.Strings.RegimenChangeQuestion,
+                    [actionTimestamp(oldAction, oldDue, clock), actionTimestamp(newAction, newDue, clock)]);
+            }
         }
         message = optionalActionMessage(action, message);
         WatchUi.pushView(new WatchUi.Confirmation(message), new ActionConfirmationDelegate(action, atUtc, data), WatchUi.SLIDE_UP);
+    }
+
+    private function actionTimestamp(action as Lang.Symbol, utc as Lang.Number, clock as Lang.Number) as Lang.String {
+        var id = action == :insert ? Rez.Strings.MainInsertDate
+            : (action == :replace ? Rez.Strings.MainReplaceDate : Rez.Strings.MainRemoveDate);
+        return Ui.fmt(id, [Ui.dateOnly(utc), Ui.timeForUtc(utc, clock)]);
     }
 
     function performConfirmed(action as Lang.Symbol, atUtc as Lang.Number, data) as Void {
@@ -282,7 +391,7 @@ class RingTrackerApp extends Application.AppBase {
             return;
         }
         if (action == :acceptRegimen) {
-            _state[:setupStep] = 2;
+            _state[:setupStep] = 3;
             if (saveOrRecover()) { WatchUi.switchToView(Menus.insertionMenu(), new InsertionMenuDelegate(), WatchUi.SLIDE_LEFT); }
             return;
         }
@@ -312,12 +421,77 @@ class RingTrackerApp extends Application.AppBase {
                 if (_state[:setupStep] == 1) {
                     WatchUi.switchToView(new RegimenView(), new RegimenDelegate(), WatchUi.SLIDE_RIGHT);
                 } else if (active == null) {
-                    WatchUi.switchToView(Menus.insertionMenu(), new InsertionMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
+                    showMain();
                 } else { showMain(); }
                 if (durationDstNotice) { showDstAdjustment(); }
             }
             return;
         }
+        if (action == :setReminder || action == :setReminder2 || action == :setRepeat
+            || action == :toggleReminder2 || action == :toggleDayBefore
+            || action == :toggleVibration || action == :toggleSound || action == :setClock) {
+            var settingReminders = _state[:reminders] as Lang.Dictionary;
+            if (action == :setReminder || action == :setReminder2) {
+                var timeValues = data as Lang.Array<Lang.Number>;
+                if (action == :setReminder) {
+                    settingReminders[:reminder1Hour] = timeValues[0];
+                    settingReminders[:reminder1Minute] = timeValues[1];
+                } else {
+                    settingReminders[:reminder2Hour] = timeValues[0];
+                    settingReminders[:reminder2Minute] = timeValues[1];
+                }
+            } else if (action == :setRepeat) {
+                settingReminders[:overdueRepeatHours] = data;
+            } else if (action == :toggleReminder2) {
+                settingReminders[:reminder2Enabled] = !settingReminders[:reminder2Enabled];
+            } else if (action == :toggleDayBefore) {
+                settingReminders[:dayBeforeEnabled] = !settingReminders[:dayBeforeEnabled];
+            } else if (action == :toggleVibration) {
+                settingReminders[:vibrationEnabled] = !settingReminders[:vibrationEnabled];
+            } else if (action == :toggleSound) {
+                settingReminders[:soundEnabled] = !settingReminders[:soundEnabled];
+            } else if (action == :setClock) {
+                settingReminders[:clockFormat] = data;
+            }
+            if (saveOrRecover()) { showMain(); }
+            return;
+        }
+
+        // State-level actions remain valid while no cycle is active.
+        if (action == :clearHistory) {
+            _state[:history] = [];
+            if (saveOrRecover()) { showMain(); }
+            return;
+        }
+        if (action == :reset) {
+            _state = ScheduleModel.defaultState();
+            if (saveOrRecover()) {
+                WatchUi.switchToView(new DisclaimerView(), new DisclaimerDelegate(), WatchUi.SLIDE_IMMEDIATE);
+            }
+            return;
+        }
+        var seededState = optionalSeedState(action, data, currentUtc());
+        if (seededState != null) {
+            _state = seededState as Lang.Dictionary;
+            if (isTransientOptionalSeed(action, data)) {
+                // The maximum-memory QA fixture is intentionally in-memory:
+                // constructing and serializing every retained object in the
+                // same callback can exceed the device watchdog, while normal
+                // user growth is spread across many confirmed actions.
+                showMain();
+                return;
+            }
+            if (saveOrRecover()) {
+                if (isFreshOptionalSeed(action, data)) {
+                    WatchUi.switchToView(new DisclaimerView(), new DisclaimerDelegate(), WatchUi.SLIDE_IMMEDIATE);
+                } else {
+                    showMain();
+                    previewOptionalNotification(data, _state, currentUtc());
+                }
+            }
+            return;
+        }
+
         if (active == null) { return; }
         if ((action == :remove || action == :tempOut || action == :backIn
             || action == :adjustInsertion || action == :adjustRemoval)
@@ -355,38 +529,10 @@ class RingTrackerApp extends Application.AppBase {
         } else if (action == :adjustRemoval) {
             if (!ScheduleModel.recordRemoval(active, atUtc, regimen)) { showInfo(Rez.Strings.AdjustDates, [Ui.s(Rez.Strings.InvalidEventOrder)]); return; }
             dstNotice = active[:dstAdjustment] != null;
-        } else if (action == :adjustPlanned) {
-            ScheduleModel.setPlannedOverride(active, atUtc, regimen);
-        } else if (action == :setReminder) {
-            var reminders = _state[:reminders] as Lang.Dictionary;
-            var timeValues = data as Lang.Array<Lang.Number>;
-            reminders[:localHour] = timeValues[0];
-            reminders[:localMinute] = timeValues[1];
-        } else if (action == :setRepeat) {
-            var rr = _state[:reminders] as Lang.Dictionary;
-            rr[:overdueRepeatHours] = data;
-        } else if (action == :toggleVibration) {
-            var rv = _state[:reminders] as Lang.Dictionary;
-            rv[:vibrationEnabled] = !rv[:vibrationEnabled];
-        } else if (action == :toggleSound) {
-            var rs = _state[:reminders] as Lang.Dictionary;
-            rs[:soundEnabled] = !rs[:soundEnabled];
-        } else if (action == :setClock) {
-            var rc = _state[:reminders] as Lang.Dictionary;
-            rc[:clockFormat] = data;
-        } else if (action == :clearHistory) {
-            _state[:history] = [];
-        } else if (action == :reset) {
-            _state = ScheduleModel.defaultState();
         }
 
-        var seededState = optionalSeedState(action, data, currentUtc());
-        if (seededState != null) { _state = seededState as Lang.Dictionary; }
-
         if (saveOrRecover()) {
-            if (action == :reset) { WatchUi.switchToView(new DisclaimerView(), new DisclaimerDelegate(), WatchUi.SLIDE_IMMEDIATE); }
-            else if (isFreshOptionalSeed(action, data)) { WatchUi.switchToView(new DisclaimerView(), new DisclaimerDelegate(), WatchUi.SLIDE_IMMEDIATE); }
-            else if (action == :backIn && closedAlertInterval != null) {
+            if (action == :backIn && closedAlertInterval != null) {
                 showTemporaryAlert(closedAlertInterval as Lang.Dictionary);
             }
             else {
@@ -397,17 +543,7 @@ class RingTrackerApp extends Application.AppBase {
     }
 
     private function recomputeDeadlines(active as Lang.Dictionary, regimen as Lang.Dictionary) as Lang.Boolean {
-        var removal = CalendarMath.addLocalCalendarDays(active[:insertionUtc], regimen[:daysIn]);
-        var insertion = CalendarMath.addLocalCalendarDays(active[:insertionUtc], regimen[:daysIn] + regimen[:daysOut]);
-        var label = regimen[:daysIn] + regimen[:daysOut] == 28
-            ? insertion : CalendarMath.addLocalCalendarDays(active[:insertionUtc], 28);
-        active[:scheduledRemovalUtc] = removal[:utc];
-        active[:scheduledInsertionUtc] = insertion[:utc];
-        active[:labelFourWeekUtc] = label[:utc];
-        var adjusted = removal[:adjusted] || insertion[:adjusted] || label[:adjusted];
-        active[:dstAdjustment] = adjusted ? "advancedToValidLocalTime" : null;
-        ScheduleModel.refreshFinalInsertionUtc(active, regimen);
-        return adjusted;
+        return ScheduleModel.recomputeForRegimen(active, regimen);
     }
 
     private function showDstAdjustment() as Void {
@@ -421,6 +557,35 @@ class RingTrackerApp extends Application.AppBase {
     }
 }
 
-function getApp() as RingTrackerApp {
-    return Application.getApp() as RingTrackerApp;
+module ForegroundRuntime {
+    var instance as ForegroundController? = null;
+
+    function controller() as ForegroundController {
+        if (instance == null) { instance = new ForegroundController(); }
+        return instance as ForegroundController;
+    }
 }
+
+class ForegroundEntryView extends WatchUi.View {
+    private var _startupState as Lang.Dictionary?;
+
+    function initialize(state as Lang.Dictionary?) {
+        View.initialize();
+        _startupState = state;
+    }
+
+    function onShow() as Void {
+        var controller = ForegroundRuntime.controller();
+        controller.onStart(_startupState);
+        var initial = controller.getInitialView() as Lang.Array;
+        var delegate = initial.size() > 1 ? initial[1] : null;
+        WatchUi.switchToView(initial[0] as WatchUi.View, delegate as WatchUi.InputDelegate?, WatchUi.SLIDE_IMMEDIATE);
+    }
+}
+
+class ForegroundSettingsEntryView extends WatchUi.View {
+    function initialize() { View.initialize(); }
+    function onShow() as Void { ForegroundRuntime.controller().onSettingsChanged(); }
+}
+
+function getApp() as ForegroundController { return ForegroundRuntime.controller(); }

@@ -5,6 +5,10 @@
         <property id="insertionIso" type="string"></property>
         <property id="reminderHour" type="number">9</property>
         <property id="reminderMinute" type="number">0</property>
+        <property id="reminder2Enabled" type="boolean">false</property>
+        <property id="reminder2Hour" type="number">20</property>
+        <property id="reminder2Minute" type="number">0</property>
+        <property id="dayBeforeEnabled" type="boolean">true</property>
         <property id="daysIn" type="number">21</property>
         <property id="daysOut" type="number">7</property>
         <property id="overdueRepeatHours" type="number">6</property>

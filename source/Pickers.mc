@@ -118,7 +118,7 @@ class RingNumberDelegate extends WatchUi.PickerDelegate {
 class RingDatePicker extends WatchUi.Picker {
     function initialize(action as Lang.Symbol, initialUtc as Lang.Number) {
         var f = CalendarMath.localFields(initialUtc);
-        var titleId = action == :adjustRemoval ? Rez.Strings.RemovalDate : (action == :adjustPlanned ? Rez.Strings.PlannedDate : Rez.Strings.InsertionDate);
+        var titleId = action == :adjustRemoval ? Rez.Strings.RemovalDate : Rez.Strings.InsertionDate;
         var title = new WatchUi.Text({:text=>titleId, :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_BOTTOM,
                                       :font=>Graphics.FONT_SYSTEM_XTINY, :color=>Ui.PRIMARY});
         var year = CalendarMath.localFields(currentUtc())[:year];
@@ -161,7 +161,8 @@ class RingTimePicker extends WatchUi.Picker {
         var state = getApp().getState();
         var reminders = state[:reminders] as Lang.Dictionary;
         var f = CalendarMath.localFields(initialUtc);
-        if (action == :setReminder) { f[:hour] = reminders[:localHour]; f[:minute] = reminders[:localMinute]; }
+        if (action == :setReminder) { f[:hour] = reminders[:reminder1Hour]; f[:minute] = reminders[:reminder1Minute]; }
+        else if (action == :setReminder2) { f[:hour] = reminders[:reminder2Hour]; f[:minute] = reminders[:reminder2Minute]; }
         var use24 = reminders[:clockFormat] == 24 || (reminders[:clockFormat] == 0 && Toybox.System.getDeviceSettings().is24Hour);
         var title = new WatchUi.Text({:text=>Rez.Strings.TimeTitle, :locX=>WatchUi.LAYOUT_HALIGN_CENTER,
                                       :locY=>WatchUi.LAYOUT_VALIGN_BOTTOM, :font=>Graphics.FONT_SYSTEM_XTINY, :color=>Ui.PRIMARY});
@@ -186,9 +187,9 @@ class RingTimeDelegate extends WatchUi.PickerDelegate {
         var minuteOfDay = values[0] as Lang.Number;
         var hour = minuteOfDay / 60;
         var minute = minuteOfDay % 60;
-        if (_action == :setReminder) {
+        if (_action == :setReminder || _action == :setReminder2) {
             WatchUi.popView(WatchUi.SLIDE_RIGHT);
-            getApp().confirmAction(:setReminder, currentUtc(), [hour, minute]);
+            getApp().confirmAction(_action, currentUtc(), [hour, minute]);
             return true;
         }
         var fields = _dateFields == null ? CalendarMath.localFields(_initialUtc) : _dateFields as Lang.Dictionary;

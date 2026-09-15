@@ -73,7 +73,7 @@ module Ui {
         var xLeft = px(dc, 66);
         var xRight = dc.getWidth() - px(dc, 66);
         var width = xRight - xLeft;
-        var labelWidth = (width * 46) / 100;
+        var labelWidth = (width * 52) / 100;
         dc.setColor(SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY,
                     ellipsize(dc, label, Graphics.FONT_SYSTEM_XTINY, labelWidth),
@@ -89,7 +89,7 @@ module Ui {
         var xLeft = px(dc, 66);
         var xRight = dc.getWidth() - px(dc, 66);
         var width = xRight - xLeft;
-        var labelWidth = (width * 46) / 100;
+        var labelWidth = (width * 52) / 100;
         dc.setColor(SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY,
                     ellipsize(dc, label, Graphics.FONT_SYSTEM_XTINY, labelWidth),
@@ -156,6 +156,26 @@ module Ui {
         if (c[:days] > 0) { return c[:days].toString() + s(Rez.Strings.DayUnit) + "  " + c[:hours].toString() + s(Rez.Strings.HourUnit); }
         if (c[:hours] > 0) { return c[:hours].toString() + s(Rez.Strings.HourUnit) + "  " + c[:minutes].toString() + s(Rez.Strings.MinuteUnit); }
         return c[:minutes].toString() + s(Rez.Strings.MinuteUnit);
+    }
+
+    function compactElapsed(seconds as Lang.Number) as Lang.String {
+        var c = CalendarMath.countdown(seconds.abs());
+        if (c[:days] > 0) {
+            var dayText = c[:days].toString() + s(Rez.Strings.DayUnit);
+            return c[:hours] > 0 ? dayText + " " + c[:hours].toString() + s(Rez.Strings.HourUnit) : dayText;
+        }
+        if (c[:hours] > 0) {
+            var hourText = c[:hours].toString() + s(Rez.Strings.HourUnit);
+            return c[:minutes] > 0 ? hourText + " " + c[:minutes].toString() + s(Rez.Strings.MinuteUnit) : hourText;
+        }
+        return c[:minutes].toString() + s(Rez.Strings.MinuteUnit);
+    }
+
+    function eventDelta(delta, firstCycle as Lang.Boolean) as Lang.String {
+        if (delta == null) { return firstCycle ? s(Rez.Strings.FirstCycle) : ""; }
+        if ((delta as Lang.Number).abs() < 60) { return s(Rez.Strings.OnTime); }
+        var value = compactElapsed(delta as Lang.Number);
+        return fmt((delta as Lang.Number) < 0 ? Rez.Strings.EarlyTemplate : Rez.Strings.LateTemplate, [value]);
     }
 
     function drawCountdown(dc as Graphics.Dc, centerY as Lang.Number, delta as Lang.Number, color as Lang.Number) as Void {

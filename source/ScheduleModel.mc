@@ -4,7 +4,7 @@ import Toybox.Lang;
 // State transition and derivation logic. It is storage-agnostic and receives
 // nowUtc explicitly so tests and debug scenarios never depend on wall time.
 module ScheduleModel {
-    const SCHEMA_VERSION = 2;
+    const SCHEMA_VERSION = 3;
     const MAX_HISTORY = 24;
     const MAX_TEMP_INTERVALS = 32;
     const TEMP_LIMIT_SECONDS = 10800;
@@ -15,8 +15,12 @@ module ScheduleModel {
 
     function defaultReminders() as Lang.Dictionary {
         return {
-            :localHour => 9,
-            :localMinute => 0,
+            :reminder1Hour => 9,
+            :reminder1Minute => 0,
+            :reminder2Hour => 20,
+            :reminder2Minute => 0,
+            :reminder2Enabled => false,
+            :dayBeforeEnabled => true,
             :overdueRepeatHours => 6,
             :vibrationEnabled => true,
             :soundEnabled => false,
@@ -29,7 +33,8 @@ module ScheduleModel {
             :cycleId => 0,
             :actionKey => "",
             :dayBeforeSent => false,
-            :dayOfSent => false,
+            :dayOf1Sent => false,
+            :dayOf2Sent => false,
             :lastOverdueSlot => null,
             :lastTempOutSlot => null,
             :labelFourWeekSent => false,
@@ -57,7 +62,8 @@ module ScheduleModel {
                 :configSnapshot => null,
                 :pendingConfigSnapshot => null
             },
-            :revision => 0
+            :revision => 0,
+            :migrationNoticePending => false
         };
     }
 
@@ -71,23 +77,22 @@ module ScheduleModel {
 
     function newCycle(cycleId as Lang.Number, insertionUtc as Lang.Number, regimen as Lang.Dictionary) as Lang.Dictionary {
         var removal = CalendarMath.addLocalCalendarDays(insertionUtc, regimen[:daysIn]);
-        var insertion = CalendarMath.addLocalCalendarDays(insertionUtc, regimen[:daysIn] + regimen[:daysOut]);
-        var label = regimen[:daysIn] + regimen[:daysOut] == 28
-            ? insertion : CalendarMath.addLocalCalendarDays(insertionUtc, 28);
+        var label = CalendarMath.addLocalCalendarDays(insertionUtc, 28);
         var wall = CalendarMath.localFields(insertionUtc);
         return {
             :cycleId => cycleId,
             :insertionUtc => insertionUtc,
             :insertionWall => wall,
+            :insertionPlanUtc => null,
+            :insertionDeltaSeconds => null,
             :removalUtc => null,
             :removalWall => null,
-            :scheduledRemovalUtc => removal[:utc],
-            :scheduledInsertionUtc => insertion[:utc],
+            :removeDueUtc => removal[:utc],
+            :removalDeltaSeconds => null,
+            :insertDueUtc => null,
             :labelFourWeekUtc => label[:utc],
             :ringFreeCeilingUtc => null,
-            :plannedOverrideUtc => null,
-            :finalInsertionUtc => insertion[:utc],
-            :dstAdjustment => (removal[:adjusted] || insertion[:adjusted] || label[:adjusted]) ? "advancedToValidLocalTime" : null,
+            :dstAdjustment => (removal[:adjusted] || label[:adjusted]) ? "advancedToValidLocalTime" : null,
             :temporaryOut => [],
             :temporaryOutSummary => { :shortIntervalCount => 0, :shortIntervalSeconds => 0 }
         };
@@ -100,34 +105,6 @@ module ScheduleModel {
         return last[:backInUtc] == null ? last : null;
     }
 
-    function nextInsertUtc(active as Lang.Dictionary, regimen as Lang.Dictionary) as Lang.Number {
-        if (active[:removalUtc] == null) { return active[:scheduledInsertionUtc]; }
-        if (active[:finalInsertionUtc] instanceof Lang.Number) { return active[:finalInsertionUtc]; }
-        return computeFinalInsertionUtc(active, regimen);
-    }
-
-    function computeFinalInsertionUtc(active as Lang.Dictionary, regimen as Lang.Dictionary) as Lang.Number {
-        if (regimen[:daysOut] == 0) { return active[:removalUtc]; }
-        var actualPlan = CalendarMath.addLocalCalendarDays(active[:removalUtc], regimen[:daysOut])[:utc];
-        var deadline = active[:scheduledInsertionUtc] < actualPlan ? active[:scheduledInsertionUtc] : actualPlan;
-        deadline = deadline < active[:ringFreeCeilingUtc] ? deadline : active[:ringFreeCeilingUtc];
-        if (active[:plannedOverrideUtc] != null && active[:plannedOverrideUtc] < deadline) {
-            deadline = active[:plannedOverrideUtc];
-        }
-        return deadline;
-    }
-
-    function refreshFinalInsertionUtc(active as Lang.Dictionary, regimen as Lang.Dictionary) as Void {
-        active[:finalInsertionUtc] = active[:removalUtc] == null
-            ? active[:scheduledInsertionUtc] : computeFinalInsertionUtc(active, regimen);
-    }
-
-    function setPlannedOverride(active as Lang.Dictionary, plannedUtc as Lang.Number,
-                                regimen as Lang.Dictionary) as Void {
-        active[:plannedOverrideUtc] = plannedUtc;
-        refreshFinalInsertionUtc(active, regimen);
-    }
-
     function deriveStatus(nowUtc as Lang.Number, active as Lang.Dictionary?, regimen as Lang.Dictionary) as Lang.Dictionary {
         if (active == null) {
             return {
@@ -136,13 +113,13 @@ module ScheduleModel {
                 :temporaryOutOpen => false,
                 :dayOfCycle => null,
                 :nextAction => :setUp,
+                :actionDueUtc => null,
                 :nextActionUtc => null,
                 :secondsRemaining => null,
                 :displayDays => 0,
                 :displayHours => 0,
-                :ringFreeLimitExceeded => false,
-                :ringFreeLimitReached => false,
-                :beyondLabelFourWeeks => false,
+                :ringFreeOverSevenDays => false,
+                :ringInOverFourWeeks => false,
                 :clockBeforeInsertion => false,
                 :tempElapsed => null,
                 :tempBoundary => null,
@@ -153,7 +130,7 @@ module ScheduleModel {
         }
 
         var removed = active[:removalUtc] != null;
-        var deadline = removed ? nextInsertUtc(active, regimen) : active[:scheduledRemovalUtc];
+        var deadline = removed ? active[:insertDueUtc] : active[:removeDueUtc];
         var action = removed ? :insert : (regimen[:daysOut] == 0 ? :replace : :remove);
         var underlyingDeadline = deadline;
         var underlyingAction = action;
@@ -180,13 +157,13 @@ module ScheduleModel {
             :temporaryOutOpen => open != null,
             :dayOfCycle => CalendarMath.dayOfCycle(nowUtc, active[:insertionUtc]),
             :nextAction => action,
+            :actionDueUtc => deadline,
             :nextActionUtc => deadline,
             :secondsRemaining => delta,
             :displayDays => cd[:days],
             :displayHours => cd[:hours],
-            :ringFreeLimitExceeded => removed && active[:ringFreeCeilingUtc] != null && nowUtc > active[:ringFreeCeilingUtc],
-            :ringFreeLimitReached => removed && active[:ringFreeCeilingUtc] != null && nowUtc == active[:ringFreeCeilingUtc],
-            :beyondLabelFourWeeks => !removed && nowUtc > active[:labelFourWeekUtc],
+            :ringFreeOverSevenDays => removed && active[:ringFreeCeilingUtc] != null && nowUtc > active[:ringFreeCeilingUtc],
+            :ringInOverFourWeeks => !removed && nowUtc > active[:labelFourWeekUtc],
             :clockBeforeInsertion => nowUtc < active[:insertionUtc],
             :tempElapsed => tempElapsed,
             :tempBoundary => tempBoundary,
@@ -214,11 +191,36 @@ module ScheduleModel {
         }
         active[:removalUtc] = removalUtc;
         active[:removalWall] = CalendarMath.localFields(removalUtc);
+        active[:removalDeltaSeconds] = removalUtc - active[:removeDueUtc];
+        var insertion = CalendarMath.addLocalCalendarDays(removalUtc, regimen[:daysOut]);
+        active[:insertDueUtc] = insertion[:utc];
         var ceiling = CalendarMath.addLocalCalendarDays(removalUtc, 7);
         active[:ringFreeCeilingUtc] = ceiling[:utc];
-        active[:dstAdjustment] = ceiling[:adjusted] ? "advancedToValidLocalTime" : null;
-        refreshFinalInsertionUtc(active, regimen);
+        active[:dstAdjustment] = (insertion[:adjusted] || ceiling[:adjusted])
+            ? "advancedToValidLocalTime" : null;
         return true;
+    }
+
+    function recomputeForRegimen(active as Lang.Dictionary, regimen as Lang.Dictionary) as Lang.Boolean {
+        var removal = CalendarMath.addLocalCalendarDays(active[:insertionUtc], regimen[:daysIn]);
+        var label = CalendarMath.addLocalCalendarDays(active[:insertionUtc], 28);
+        active[:removeDueUtc] = removal[:utc];
+        active[:labelFourWeekUtc] = label[:utc];
+        var adjusted = removal[:adjusted] || label[:adjusted];
+        if (active[:removalUtc] == null) {
+            active[:removalDeltaSeconds] = null;
+            active[:insertDueUtc] = null;
+            active[:ringFreeCeilingUtc] = null;
+        } else {
+            active[:removalDeltaSeconds] = active[:removalUtc] - active[:removeDueUtc];
+            var insertion = CalendarMath.addLocalCalendarDays(active[:removalUtc], regimen[:daysOut]);
+            var ceiling = CalendarMath.addLocalCalendarDays(active[:removalUtc], 7);
+            active[:insertDueUtc] = insertion[:utc];
+            active[:ringFreeCeilingUtc] = ceiling[:utc];
+            adjusted = adjusted || insertion[:adjusted] || ceiling[:adjusted];
+        }
+        active[:dstAdjustment] = adjusted ? "advancedToValidLocalTime" : null;
+        return adjusted;
     }
 
     function startTemporaryOut(active as Lang.Dictionary, outUtc as Lang.Number) as Lang.Boolean {
@@ -282,11 +284,18 @@ module ScheduleModel {
         var regimen = state[:regimen] as Lang.Dictionary;
         var compact = compactIntervals(active[:temporaryOut] as Lang.Array);
         var activeSummary = active[:temporaryOutSummary] as Lang.Dictionary;
+        var expected = active[:removalUtc] == null ? active[:removeDueUtc] : active[:insertDueUtc];
         history.add({
             :cycleId => active[:cycleId],
             :insertionUtc => active[:insertionUtc],
+            :insertionPlanUtc => active[:insertionPlanUtc],
+            :insertionDeltaSeconds => active[:insertionDeltaSeconds],
+            :removeDueUtc => active[:removeDueUtc],
             :removalUtc => active[:removalUtc],
+            :removalDeltaSeconds => active[:removalDeltaSeconds],
+            :insertDueUtc => active[:insertDueUtc],
             :nextInsertionUtc => nextInsertionUtc,
+            :nextInsertionDeltaSeconds => nextInsertionUtc - expected,
             :closeReason => reason,
             :regimenDaysIn => regimen[:daysIn],
             :regimenDaysOut => regimen[:daysOut],
@@ -330,22 +339,29 @@ module ScheduleModel {
     }
 
     function insertOrReplace(state as Lang.Dictionary, insertionUtc as Lang.Number) as Lang.Dictionary {
+        var insertionPlan = null;
         if (state[:active] != null) {
             var previous = state[:active] as Lang.Dictionary;
             var open = tempOpen(previous);
             if (open != null && insertionUtc >= open[:outUtc]) {
                 endTemporaryOut(previous, insertionUtc);
             }
+            insertionPlan = previous[:removalUtc] == null
+                ? previous[:removeDueUtc] : previous[:insertDueUtc];
             archiveCycle(state, insertionUtc, "replaced");
         }
         var id = state[:nextCycleId];
         state[:nextCycleId] = id + 1;
         state[:active] = newCycle(id, insertionUtc, state[:regimen] as Lang.Dictionary);
+        var created = state[:active] as Lang.Dictionary;
+        created[:insertionPlanUtc] = insertionPlan;
+        created[:insertionDeltaSeconds] = insertionPlan == null
+            ? null : insertionUtc - (insertionPlan as Lang.Number);
         var ledger = defaultLedger();
         ledger[:cycleId] = id;
         state[:reminderLedger] = ledger;
         state[:setupStep] = 3;
-        return state[:active];
+        return created;
     }
 
     function validInsertionEdit(active as Lang.Dictionary, insertionUtc as Lang.Number) as Lang.Boolean {
@@ -386,18 +402,46 @@ module ScheduleModel {
                                  regimen as Lang.Dictionary) as Lang.Dictionary? {
         if (!validInsertionEdit(active, insertionUtc)) { return null; }
         var rebuilt = newCycle(active[:cycleId], insertionUtc, regimen);
+        rebuilt[:insertionPlanUtc] = active[:insertionPlanUtc];
+        rebuilt[:insertionDeltaSeconds] = active[:insertionPlanUtc] == null
+            ? null : insertionUtc - active[:insertionPlanUtc];
         rebuilt[:removalUtc] = active[:removalUtc];
         rebuilt[:removalWall] = active[:removalWall];
         rebuilt[:temporaryOut] = active[:temporaryOut];
         rebuilt[:temporaryOutSummary] = active[:temporaryOutSummary];
-        rebuilt[:plannedOverrideUtc] = active[:plannedOverrideUtc];
         if (active[:removalUtc] != null) {
+            rebuilt[:removalDeltaSeconds] = active[:removalUtc] - rebuilt[:removeDueUtc];
+            var insertion = CalendarMath.addLocalCalendarDays(active[:removalUtc], regimen[:daysOut]);
+            rebuilt[:insertDueUtc] = insertion[:utc];
             var ceiling = CalendarMath.addLocalCalendarDays(active[:removalUtc], 7);
             rebuilt[:ringFreeCeilingUtc] = ceiling[:utc];
-            if (ceiling[:adjusted]) { rebuilt[:dstAdjustment] = "advancedToValidLocalTime"; }
+            if (insertion[:adjusted] || ceiling[:adjusted]) {
+                rebuilt[:dstAdjustment] = "advancedToValidLocalTime";
+            }
         }
-        refreshFinalInsertionUtc(rebuilt, regimen);
         return rebuilt;
+    }
+
+    // Future rows are derived on demand. Actual events remain authoritative
+    // for the current row and every later row follows the latest actual anchor.
+    function projectUpcoming(active as Lang.Dictionary, regimen as Lang.Dictionary,
+                             count as Lang.Number) as Lang.Array {
+        var rows = [];
+        if (count <= 0) { return rows; }
+        var currentOut = active[:removalUtc] == null ? active[:removeDueUtc] : active[:removalUtc];
+        rows.add({ :cycleId=>active[:cycleId], :inUtc=>active[:insertionUtc],
+            :outUtc=>currentOut, :inActual=>true,
+            :outActual=>active[:removalUtc] != null, :isCurrent=>true });
+        var nextIn = active[:removalUtc] != null
+            ? active[:insertDueUtc]
+            : CalendarMath.addLocalCalendarDays(active[:removeDueUtc], regimen[:daysOut])[:utc];
+        for (var i = 1; i < count; i += 1) {
+            var nextOut = CalendarMath.addLocalCalendarDays(nextIn, regimen[:daysIn])[:utc];
+            rows.add({ :cycleId=>active[:cycleId] + i, :inUtc=>nextIn,
+                :outUtc=>nextOut, :inActual=>false, :outActual=>false, :isCurrent=>false });
+            nextIn = CalendarMath.addLocalCalendarDays(nextOut, regimen[:daysOut])[:utc];
+        }
+        return rows;
     }
 
     function validNotificationData(value, activeCycleId as Lang.Number) as Lang.Boolean {
@@ -429,32 +473,39 @@ module ScheduleModel {
         if (!(state[:nextCycleId] instanceof Lang.Number) || state[:nextCycleId] < 1
             || !(state[:setupStep] instanceof Lang.Number) || state[:setupStep] < 0 || state[:setupStep] > 3
             || !(state[:revision] instanceof Lang.Number) || state[:revision] < 0
+            || !(state[:migrationNoticePending] instanceof Lang.Boolean)
             || !validReminders(state[:reminders]) || !validLedger(state[:reminderLedger])
             || !validSettingsSync(state[:settingsSync])) { return false; }
         if (!(state[:history] instanceof Lang.Array) || state[:history].size() > MAX_HISTORY) { return false; }
         var history = state[:history] as Lang.Array;
+        var largestId = 0;
+        var seenIds = {};
         for (var h = 0; h < history.size(); h += 1) {
             if (!validHistory(history[h])) { return false; }
+            var historyId = (history[h] as Lang.Dictionary)[:cycleId];
+            if (seenIds[historyId] == true) { return false; }
+            seenIds[historyId] = true;
+            if (historyId > largestId) { largestId = historyId; }
         }
         var active = state[:active];
-        if (active == null) { return true; }
-        if (!validActive(active)) { return false; }
-        var a = active as Lang.Dictionary;
-        if (a[:removalUtc] != null) {
-            if (a[:finalInsertionUtc] > a[:scheduledInsertionUtc]
-                || a[:finalInsertionUtc] > a[:ringFreeCeilingUtc]
-                || (a[:plannedOverrideUtc] != null && a[:finalInsertionUtc] > a[:plannedOverrideUtc])) {
-                return false;
-            }
+        if (active != null) {
+            if (!validActive(active, state[:regimen] as Lang.Dictionary)) { return false; }
+            var activeId = (active as Lang.Dictionary)[:cycleId];
+            if (activeId > largestId) { largestId = activeId; }
+            if (seenIds[activeId] == true) { return false; }
         }
-        return true;
+        return state[:nextCycleId] > largestId;
     }
 
     function validReminders(value) as Lang.Boolean {
         if (!(value instanceof Lang.Dictionary)) { return false; }
         var r = value as Lang.Dictionary;
-        return numberBetween(r[:localHour], 0, 23)
-            && numberBetween(r[:localMinute], 0, 59)
+        return numberBetween(r[:reminder1Hour], 0, 23)
+            && numberBetween(r[:reminder1Minute], 0, 59)
+            && numberBetween(r[:reminder2Hour], 0, 23)
+            && numberBetween(r[:reminder2Minute], 0, 59)
+            && r[:reminder2Enabled] instanceof Lang.Boolean
+            && r[:dayBeforeEnabled] instanceof Lang.Boolean
             && (r[:overdueRepeatHours] == 1 || r[:overdueRepeatHours] == 3
                 || r[:overdueRepeatHours] == 6 || r[:overdueRepeatHours] == 12
                 || r[:overdueRepeatHours] == 24)
@@ -468,7 +519,8 @@ module ScheduleModel {
         var l = value as Lang.Dictionary;
         return numberBetween(l[:cycleId], 0, 2147483647)
             && l[:actionKey] instanceof Lang.String && (l[:actionKey] as Lang.String).length() <= 64
-            && l[:dayBeforeSent] instanceof Lang.Boolean && l[:dayOfSent] instanceof Lang.Boolean
+            && l[:dayBeforeSent] instanceof Lang.Boolean
+            && l[:dayOf1Sent] instanceof Lang.Boolean && l[:dayOf2Sent] instanceof Lang.Boolean
             && nullableNonnegative(l[:lastOverdueSlot]) && nullableNonnegative(l[:lastTempOutSlot])
             && l[:labelFourWeekSent] instanceof Lang.Boolean
             && l[:ringFreeExceededSent] instanceof Lang.Boolean;
@@ -488,40 +540,49 @@ module ScheduleModel {
     }
 
     function validConfigArray(value) as Lang.Boolean {
-        if (!(value instanceof Lang.Array) || (value as Lang.Array).size() != 8) { return false; }
+        if (!(value instanceof Lang.Array) || (value as Lang.Array).size() != 12) { return false; }
         var a = value as Lang.Array;
         return numberBetween(a[0], 0, 23) && numberBetween(a[1], 0, 59)
-            && numberBetween(a[2], 21, 35) && numberBetween(a[3], 0, 7)
-            && (a[4] == 1 || a[4] == 3 || a[4] == 6 || a[4] == 12 || a[4] == 24)
-            && a[5] instanceof Lang.Boolean && a[6] instanceof Lang.Boolean
-            && (a[7] == 0 || a[7] == 12 || a[7] == 24);
+            && numberBetween(a[2], 0, 23) && numberBetween(a[3], 0, 59)
+            && a[4] instanceof Lang.Boolean && a[5] instanceof Lang.Boolean
+            && numberBetween(a[6], 21, 35) && numberBetween(a[7], 0, 7)
+            && (a[8] == 1 || a[8] == 3 || a[8] == 6 || a[8] == 12 || a[8] == 24)
+            && a[9] instanceof Lang.Boolean && a[10] instanceof Lang.Boolean
+            && (a[11] == 0 || a[11] == 12 || a[11] == 24);
     }
 
-    function validActive(value) as Lang.Boolean {
+    function validActive(value, regimen as Lang.Dictionary) as Lang.Boolean {
         if (!(value instanceof Lang.Dictionary)) { return false; }
         var a = value as Lang.Dictionary;
         if (!numberBetween(a[:cycleId], 1, 2147483647)
             || !(a[:insertionUtc] instanceof Lang.Number) || !validWall(a[:insertionWall])
-            || !(a[:scheduledRemovalUtc] instanceof Lang.Number)
-            || !(a[:scheduledInsertionUtc] instanceof Lang.Number)
+            || !nullableNumber(a[:insertionPlanUtc]) || !nullableNumber(a[:insertionDeltaSeconds])
+            || !(a[:removeDueUtc] instanceof Lang.Number)
             || !(a[:labelFourWeekUtc] instanceof Lang.Number)
-            || a[:scheduledRemovalUtc] < a[:insertionUtc]
-            || a[:scheduledInsertionUtc] < a[:scheduledRemovalUtc]
+            || a[:removeDueUtc] < a[:insertionUtc]
             || a[:labelFourWeekUtc] < a[:insertionUtc]
-            || (a[:plannedOverrideUtc] != null && !(a[:plannedOverrideUtc] instanceof Lang.Number))
             || (a[:dstAdjustment] != null && (!(a[:dstAdjustment] instanceof Lang.String)
                 || !(a[:dstAdjustment] as Lang.String).equals("advancedToValidLocalTime")))
             || !(a[:temporaryOut] instanceof Lang.Array)
             || (a[:temporaryOut] as Lang.Array).size() > MAX_TEMP_INTERVALS
             || !validSummary(a[:temporaryOutSummary])) { return false; }
+        if ((a[:insertionPlanUtc] == null) != (a[:insertionDeltaSeconds] == null)
+            || (a[:insertionPlanUtc] != null
+                && a[:insertionDeltaSeconds] != a[:insertionUtc] - a[:insertionPlanUtc])) { return false; }
+        if (!CalendarMath.isExactLocalCalendarAddition(a[:insertionUtc], regimen[:daysIn], a[:removeDueUtc])
+            || !CalendarMath.isExactLocalCalendarAddition(a[:insertionUtc], 28, a[:labelFourWeekUtc])) { return false; }
         var removed = a[:removalUtc];
         if (removed == null) {
             if (a[:removalWall] != null || a[:ringFreeCeilingUtc] != null
-                || a[:finalInsertionUtc] != a[:scheduledInsertionUtc]) { return false; }
+                || a[:removalDeltaSeconds] != null || a[:insertDueUtc] != null) { return false; }
         } else if (!(removed instanceof Lang.Number) || removed < a[:insertionUtc]
             || !validWall(a[:removalWall]) || !(a[:ringFreeCeilingUtc] instanceof Lang.Number)
-            || a[:ringFreeCeilingUtc] <= removed || !(a[:finalInsertionUtc] instanceof Lang.Number)) {
+            || !(a[:insertDueUtc] instanceof Lang.Number) || !(a[:removalDeltaSeconds] instanceof Lang.Number)) {
             return false;
+        } else {
+            if (a[:removalDeltaSeconds] != removed - a[:removeDueUtc]
+                || !CalendarMath.isExactLocalCalendarAddition(removed, regimen[:daysOut], a[:insertDueUtc])
+                || !CalendarMath.isExactLocalCalendarAddition(removed, 7, a[:ringFreeCeilingUtc])) { return false; }
         }
         var intervals = a[:temporaryOut] as Lang.Array;
         var previousEnd = a[:insertionUtc];
@@ -538,11 +599,29 @@ module ScheduleModel {
         var h = value as Lang.Dictionary;
         if (!numberBetween(h[:cycleId], 1, 2147483647)
             || !(h[:insertionUtc] instanceof Lang.Number)
+            || !nullableNumber(h[:insertionPlanUtc]) || !nullableNumber(h[:insertionDeltaSeconds])
+            || !(h[:removeDueUtc] instanceof Lang.Number)
             || (h[:removalUtc] != null && (!(h[:removalUtc] instanceof Lang.Number) || h[:removalUtc] < h[:insertionUtc]))
+            || !nullableNumber(h[:removalDeltaSeconds]) || !nullableNumber(h[:insertDueUtc])
             || (h[:nextInsertionUtc] != null && (!(h[:nextInsertionUtc] instanceof Lang.Number) || h[:nextInsertionUtc] < h[:insertionUtc]))
-            || !(h[:closeReason] instanceof Lang.String) || (h[:closeReason] as Lang.String).length() > 24
+            || !nullableNumber(h[:nextInsertionDeltaSeconds])
+            || !(h[:closeReason] instanceof Lang.String) || !(h[:closeReason] as Lang.String).equals("replaced")
             || !numberBetween(h[:regimenDaysIn], 21, 35) || !numberBetween(h[:regimenDaysOut], 0, 7)
             || !(h[:temporaryOut] instanceof Lang.Array) || !validSummary(h[:temporaryOutSummary])) { return false; }
+        if ((h[:insertionPlanUtc] == null) != (h[:insertionDeltaSeconds] == null)
+            || (h[:insertionPlanUtc] != null
+                && h[:insertionDeltaSeconds] != h[:insertionUtc] - h[:insertionPlanUtc])) { return false; }
+        if (!CalendarMath.isExactLocalCalendarAddition(h[:insertionUtc], h[:regimenDaysIn], h[:removeDueUtc])) { return false; }
+        if (h[:removalUtc] == null) {
+            if (h[:removalDeltaSeconds] != null || h[:insertDueUtc] != null) { return false; }
+        } else {
+            if (h[:removalDeltaSeconds] != h[:removalUtc] - h[:removeDueUtc]
+                || !CalendarMath.isExactLocalCalendarAddition(h[:removalUtc], h[:regimenDaysOut], h[:insertDueUtc])) { return false; }
+        }
+        var expectedNext = h[:removalUtc] == null ? h[:removeDueUtc] : h[:insertDueUtc];
+        if ((h[:nextInsertionUtc] == null) != (h[:nextInsertionDeltaSeconds] == null)
+            || (h[:nextInsertionUtc] != null
+                && h[:nextInsertionDeltaSeconds] != h[:nextInsertionUtc] - expectedNext)) { return false; }
         var intervals = h[:temporaryOut] as Lang.Array;
         if (intervals.size() > MAX_TEMP_INTERVALS) { return false; }
         var previousEnd = h[:insertionUtc];
@@ -589,6 +668,10 @@ module ScheduleModel {
 
     function nullableNonnegative(value) as Lang.Boolean {
         return value == null || (value instanceof Lang.Number && value >= 0);
+    }
+
+    function nullableNumber(value) as Lang.Boolean {
+        return value == null || value instanceof Lang.Number;
     }
 
     function boundedString(value, maxLength as Lang.Number) as Lang.Boolean {

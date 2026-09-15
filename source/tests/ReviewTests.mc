@@ -36,18 +36,6 @@ function reviewDayOfCycleUsesLocalDateAcrossDst(logger as Test.Logger) as Boolea
 }
 
 (:test)
-function reviewPlannedOverrideCannotPostponeEarlierDeadline(logger as Test.Logger) as Boolean {
-    var regimen = {:daysIn=>21, :daysOut=>3};
-    var start = testWall(2026, 9, 1, 9, 0);
-    var cycle = ScheduleModel.newCycle(1, start, regimen);
-    Test.assert(ScheduleModel.recordRemoval(cycle, cycle[:scheduledRemovalUtc], regimen));
-    var earlier = cycle[:scheduledInsertionUtc];
-    cycle[:plannedOverrideUtc] = CalendarMath.addLocalCalendarDays(start, 25)[:utc];
-    Test.assertEqual(earlier, ScheduleModel.nextInsertUtc(cycle, regimen));
-    return true;
-}
-
-(:test)
 function reviewSettingsRejectFutureActualInsertion(logger as Test.Logger) as Boolean {
     var now = testWall(2026, 9, 14, 9, 0);
     Test.assert(SettingsBridge.parseInsertion("2026-09-15T09:00", now) == null);
@@ -91,7 +79,7 @@ function reviewTemporaryOutBeforeLimitDoesNotCreateScheduleReminder(logger as Te
 function reviewExactThreeHoursIsNotGenericActionOverdue(logger as Test.Logger) as Boolean {
     var regimen = ScheduleModel.defaultRegimen();
     var reminders = ScheduleModel.defaultReminders();
-    reminders[:localHour] = 23;
+    reminders[:reminder1Hour] = 23;
     var start = testWall(2026, 9, 1, 9, 0);
     var out = testWall(2026, 9, 5, 8, 0);
     var cycle = ScheduleModel.newCycle(1, start, regimen);
@@ -127,11 +115,9 @@ function reviewWorstCaseHistoryFitsStorageValueLimit(logger as Test.Logger) as B
             intervals.add({:outUtc=>out, :backInUtc=>out + 10900,
                 :phaseWeekAtStart=>1, :phaseWeekAtEnd=>1, :thresholdCode=>"over3h"});
         }
-        history.add({:cycleId=>cycle + 1, :insertionUtc=>1700000000 + (cycle * 100000),
-            :removalUtc=>1700700000 + (cycle * 100000),
-            :nextInsertionUtc=>1700800000 + (cycle * 100000), :closeReason=>"replaced",
-            :regimenDaysIn=>21, :regimenDaysOut=>7, :temporaryOut=>intervals,
-            :temporaryOutSummary=>{:shortIntervalCount=>0, :shortIntervalSeconds=>0}});
+        var inserted = 1700000000 + (cycle * 100000);
+        history.add(testHistoryCycle(cycle + 1, inserted,
+            inserted + 700000, inserted + 800000, intervals));
     }
     state[:history] = history;
     var active = ScheduleModel.newCycle(25, 1800000000, state[:regimen] as Dictionary);
@@ -141,6 +127,7 @@ function reviewWorstCaseHistoryFitsStorageValueLimit(logger as Test.Logger) as B
         Test.assert(ScheduleModel.endTemporaryOut(active, activeOut + 10900));
     }
     state[:active] = active;
+    state[:nextCycleId] = 26;
     var estimate = RingStore.stateSizeEstimate(state);
     var saved = RingStore.save(state);
     Toybox.Application.Storage.deleteValue(RingStore.STATE_KEY);
@@ -211,7 +198,7 @@ function reviewEmptySettingsInsertionDoesNotClearActiveCycle(logger as Test.Logg
 function reviewLoadRecoversSemanticallyInvalidReminderConfig(logger as Test.Logger) as Boolean {
     var raw = RingStore.encodeState(ScheduleModel.defaultState());
     var rawReminders = raw[5] as Array;
-    rawReminders[2] = 0;
+    rawReminders[6] = 0;
     Toybox.Application.Storage.setValue(RingStore.STATE_KEY, raw);
     var loaded = RingStore.load();
     Toybox.Application.Storage.deleteValue(RingStore.STATE_KEY);

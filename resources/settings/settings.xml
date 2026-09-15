@@ -11,6 +11,18 @@
         <setting propertyKey="@Properties.reminderMinute" title="@Strings.ReminderMinuteTitle">
             <settingConfig type="numeric" min="0" max="59" />
         </setting>
+        <setting propertyKey="@Properties.reminder2Enabled" title="@Strings.Reminder2EnabledTitle">
+            <settingConfig type="boolean" />
+        </setting>
+        <setting propertyKey="@Properties.reminder2Hour" title="@Strings.Reminder2HourTitle">
+            <settingConfig type="numeric" min="0" max="23" />
+        </setting>
+        <setting propertyKey="@Properties.reminder2Minute" title="@Strings.Reminder2MinuteTitle">
+            <settingConfig type="numeric" min="0" max="59" />
+        </setting>
+        <setting propertyKey="@Properties.dayBeforeEnabled" title="@Strings.DayBeforeReminder">
+            <settingConfig type="boolean" />
+        </setting>
         <setting propertyKey="@Properties.daysIn" title="@Strings.DaysInTitle" prompt="@Strings.DaysInPrompt">
             <settingConfig type="numeric" min="21" max="35" />
         </setting>

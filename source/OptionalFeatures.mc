@@ -14,5 +14,11 @@ function optionalSeedState(action as Lang.Symbol, data, nowUtc as Lang.Number) a
 (:production)
 function isFreshOptionalSeed(action as Lang.Symbol, data) as Lang.Boolean { return false; }
 
+(:production)
+function isTransientOptionalSeed(action as Lang.Symbol, data) as Lang.Boolean { return false; }
+
+(:production)
+function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as Lang.Number) as Void { }
+
 (:production, :background)
 function reportOptionalServiceMemory() as Void { }

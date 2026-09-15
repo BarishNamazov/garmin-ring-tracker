@@ -20,27 +20,13 @@ function exactSevenDayLimitReachedIsDistinct(logger as Test.Logger) as Boolean {
     var regimen = ScheduleModel.defaultRegimen();
     var start = testWall(2026, 9, 1, 9, 0);
     var active = ScheduleModel.newCycle(1, start, regimen);
-    Test.assert(ScheduleModel.recordRemoval(active, active[:scheduledRemovalUtc], regimen));
+    Test.assert(ScheduleModel.recordRemoval(active, active[:removeDueUtc], regimen));
     var status = ScheduleModel.deriveStatus(active[:ringFreeCeilingUtc], active, regimen);
-    Test.assert(status[:ringFreeLimitReached]);
-    Test.assert(!status[:ringFreeLimitExceeded]);
+    Test.assert(!status[:ringFreeOverSevenDays]);
     Test.assertEqual(:overdue, status[:phase]);
     Test.assertEqual(0, status[:secondsRemaining]);
-    return true;
-}
-
-(:test)
-function plannedOverrideParticipatesInMinimum(logger as Test.Logger) as Boolean {
-    var regimen = {:daysIn=>21, :daysOut=>3};
-    var start = testWall(2026, 9, 1, 9, 0);
-    var active = ScheduleModel.newCycle(1, start, regimen);
-    Test.assert(ScheduleModel.recordRemoval(active, active[:scheduledRemovalUtc], regimen));
-    var scheduled = active[:scheduledInsertionUtc];
-    ScheduleModel.setPlannedOverride(active, CalendarMath.addLocalCalendarDays(start, 25)[:utc], regimen);
-    Test.assertEqual(scheduled, active[:finalInsertionUtc]);
-    var earlier = CalendarMath.addLocalCalendarDays(start, 22)[:utc];
-    ScheduleModel.setPlannedOverride(active, earlier, regimen);
-    Test.assertEqual(earlier, ScheduleModel.nextInsertUtc(active, regimen));
+    Test.assert(ScheduleModel.deriveStatus(active[:ringFreeCeilingUtc] + 1,
+        active, regimen)[:ringFreeOverSevenDays]);
     return true;
 }
 
@@ -62,7 +48,7 @@ function temporaryAndScheduleRemindersStayIndependent(logger as Test.Logger) as 
 }
 
 (:test)
-function dayOfConsumesDayBeforeLedger(logger as Test.Logger) as Boolean {
+function dayOfKeepsIndependentDayBeforeLedger(logger as Test.Logger) as Boolean {
     var regimen = ScheduleModel.defaultRegimen();
     var reminders = ScheduleModel.defaultReminders();
     var start = testWall(2026, 9, 1, 12, 0);
@@ -72,8 +58,8 @@ function dayOfConsumesDayBeforeLedger(logger as Test.Logger) as Boolean {
         regimen, reminders, ledger);
     Test.assertEqual(:dayOf, candidate[:kind]);
     ReminderPolicy.markSent(ledger, candidate);
-    Test.assert(ledger[:dayOfSent]);
-    Test.assert(ledger[:dayBeforeSent]);
+    Test.assert(ledger[:dayOf1Sent]);
+    Test.assert(!ledger[:dayBeforeSent]);
     return true;
 }
 
@@ -123,7 +109,7 @@ function settingsConfigurationMirrorIsDurablyPending(logger as Test.Logger) as B
     var state = ScheduleModel.defaultState();
     SettingsBridge.mirrorAll(state);
     var reminders = state[:reminders] as Lang.Dictionary;
-    reminders[:localHour] = 17;
+    reminders[:reminder1Hour] = 17;
     SettingsBridge.stageMirrors(state);
     Test.assert((state[:settingsSync] as Lang.Dictionary)[:pendingConfigSnapshot] instanceof Lang.Array);
     Test.assert(RingStore.save(state));
@@ -196,10 +182,14 @@ function notificationLaunchRequiresKnownTypedKind(logger as Test.Logger) as Bool
 (:test)
 function replacementReminderUsesReplacementCopy(logger as Test.Logger) as Boolean {
     var service = new RingServiceDelegate();
-    Test.assertEqual(Rez.Strings.NotificationReplaceTomorrow,
-        service.notificationIds(5, 2)[1]);
-    Test.assertEqual(Rez.Strings.NotificationReplaceToday,
-        service.notificationIds(4, 2)[1]);
+    var due = testWall(2026, 9, 2, 9, 0);
+    Test.assertEqual(Ui.s(Rez.Strings.NotificationReplaceTomorrow),
+        service.notificationIds(5, 2, due, 24, due - 3600)[0]);
+    Test.assertEqual(Ui.s(Rez.Strings.NotificationReplaceToday),
+        service.notificationIds(4, 2, due, 24, due - 3600)[0]);
+    Test.assertEqual(Lang.format(Ui.s(Rez.Strings.NotificationScheduled), ["09:00"]),
+        service.notificationIds(4, 2, due, 24, due - 3600)[1]);
+    Test.assert(service.notificationIds(4, 2, due, 24, due - 3600)[2] == null);
     return true;
 }
 
@@ -211,7 +201,7 @@ function constrainedMirrorValidationFailsInertAndMarksError(logger as Test.Logge
     Test.assert(RingStore.save(state));
     var raw = Storage.getValue(RingStore.BACKGROUND_KEY) as Lang.Array;
     var reminders = raw[5] as Lang.Array;
-    reminders[2] = 0;
+    reminders[6] = 0;
     Storage.setValue(RingStore.BACKGROUND_KEY, raw);
     Test.assert(BackgroundRuntime.load() == null);
     Test.assert(Storage.getValue(RingStore.MIRROR_ERROR_KEY) instanceof Lang.String);
@@ -232,11 +222,8 @@ function splitHistoryValuesRemainUnderBudgetAndRoundTrip(logger as Test.Logger) 
             intervals.add({:outUtc=>out, :backInUtc=>out + 10900,
                 :phaseWeekAtStart=>1, :phaseWeekAtEnd=>1, :thresholdCode=>"over3h"});
         }
-        history.add({:cycleId=>c + 1, :insertionUtc=>inserted,
-            :removalUtc=>inserted + 500000, :nextInsertionUtc=>inserted + 600000,
-            :closeReason=>"replaced", :regimenDaysIn=>21, :regimenDaysOut=>7,
-            :temporaryOut=>intervals,
-            :temporaryOutSummary=>{:shortIntervalCount=>0, :shortIntervalSeconds=>0}});
+        history.add(testHistoryCycle(c + 1, inserted,
+            inserted + 500000, inserted + 600000, intervals));
     }
     state[:history] = history;
     state[:nextCycleId] = 25;
@@ -264,9 +251,12 @@ function copyAndFormattingContractsMatchRegimen(logger as Test.Logger) as Boolea
     var disclaimer = Ui.s(Rez.Strings.DisclaimerLine1) + " "
         + Ui.s(Rez.Strings.DisclaimerLine2) + " "
         + Ui.s(Rez.Strings.DisclaimerLine3);
-    Test.assertEqual("This app is a scheduling aid, not medical advice. It cannot determine whether contraception is effective. Follow the instructions supplied with your ring and contact a qualified clinician or pharmacist if a ring is late, has been out too long, or pregnancy is possible.", disclaimer);
-    Test.assertEqual("3-hour limit reached; reinsert now and follow product instructions.",
+    Test.assertEqual("Schedule aid, not medical advice. Cannot determine contraceptive effectiveness. Follow NuvaRing instructions. Ask a clinician or pharmacist if a ring is late, out too long, or pregnancy is possible.", disclaimer);
+    Test.assertEqual("3h reached. Put it back in.",
         Ui.s(Rez.Strings.ThreeHourReached));
+    Test.assertEqual("Out over 3h. Reinsert now. Use backup 7 days.", Ui.s(Rez.Strings.TempOverBody12));
+    Test.assertEqual("Insert now. Use backup 7 days.", Ui.s(Rez.Strings.RingFreeExceededBody));
+    Test.assertEqual("Ring in over 4 weeks. Replace now.", Ui.s(Rez.Strings.ExtendedBody));
     Test.assertEqual("Mon 5 Oct", Ui.shortDate(testWall(2026, 10, 5, 17, 6)));
     Test.assertEqual("5:06 PM", Ui.timeOnly(17, 6, 12));
     Test.assertEqual("17:06", Ui.timeOnly(17, 6, 24));

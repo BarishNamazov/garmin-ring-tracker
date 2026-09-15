@@ -1,12 +1,13 @@
 import Toybox.Application.Storage;
 import Toybox.Lang;
+import Toybox.Notifications;
 
 import Toybox.WatchUi;
 
 (:debug)
 function openOptionalMenu(id) as Lang.Boolean {
     if (id != :demo) { return false; }
-    WatchUi.pushView(Menus.demoMenu(), new DemoMenuDelegate(), WatchUi.SLIDE_LEFT);
+    WatchUi.switchToView(Menus.demoMenu(), new DemoMenuDelegate(), WatchUi.SLIDE_LEFT);
     return true;
 }
 
@@ -25,6 +26,47 @@ function isFreshOptionalSeed(action as Lang.Symbol, data) as Lang.Boolean {
     return action == :demo && data == :fresh;
 }
 
+(:debug)
+function isTransientOptionalSeed(action as Lang.Symbol, data) as Lang.Boolean {
+    return action == :demo && data == :maximumState;
+}
+
+(:debug)
+function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as Lang.Number) as Void {
+    var scenario = data as Lang.Symbol;
+    var title = null;
+    var subtitle = null;
+    var body = null;
+    if (scenario == :notificationDayBefore) {
+        title = "Remove ring tomorrow";
+        subtitle = "Due " + Ui.timeForUtc(((state[:active] as Lang.Dictionary)[:removeDueUtc]),
+            (state[:reminders] as Lang.Dictionary)[:clockFormat]);
+    } else if (scenario == :notificationReminder1 || scenario == :notificationReminder2) {
+        title = "Remove ring today";
+        subtitle = "Due " + Ui.timeForUtc(((state[:active] as Lang.Dictionary)[:removeDueUtc]),
+            (state[:reminders] as Lang.Dictionary)[:clockFormat]);
+    } else if (scenario == :notificationOverdue) {
+        title = "Ring overdue 1d 4h";
+        subtitle = "Remove ring";
+    } else if (scenario == :notificationTemp) {
+        title = "Out over 3h";
+        subtitle = "Reinsert now";
+        body = "Use backup 7 days.";
+    } else if (scenario == :notificationFree) {
+        title = "Insert now";
+        subtitle = "Ring out over 7d";
+        body = "Use backup 7 days.";
+    } else if (scenario == :notificationFourWeeks) {
+        title = "Replace now";
+        subtitle = "Ring in over 4 weeks";
+    }
+    if (title == null) { return; }
+    var options = { :data => [((state[:active] as Lang.Dictionary)[:cycleId]), 0],
+        :dismissPrevious => true };
+    if (body != null) { options[:body] = body; }
+    Notifications.showNotification(title as Lang.String, subtitle as Lang.String, options);
+}
+
 (:debug, :background)
 function reportOptionalServiceMemory() as Void {
     var stats = Toybox.System.getSystemStats();
@@ -36,28 +78,76 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     Storage.setValue("debugNowUtc", nowUtc);
     var state = ScheduleModel.defaultState();
     if (scenario == :fresh) { return state; }
+    if (scenario == :noCycle) { state[:setupStep] = 3; return state; }
     if (scenario == :maximumState) { return maximumDemoState(state, nowUtc); }
     state[:setupStep] = 3;
     var regimen = state[:regimen] as Lang.Dictionary;
     var insertion = nowUtc - (4 * CalendarMath.SECONDS_PER_DAY);
     if (scenario == :day5) { insertion = nowUtc - (4 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :beforeRemoval) { insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :beforeRemoval) { insertion = nowUtc - (19 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :overdueRemoval) { insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :overdueLarge) {
         insertion = nowUtc - (33 * CalendarMath.SECONDS_PER_DAY) - (23 * CalendarMath.SECONDS_PER_HOUR);
     }
-    else if (scenario == :freeDay3) { insertion = nowUtc - (24 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :freeExceeded) { insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :temp250 || scenario == :temp310) { insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :extended35) {
+    else if (scenario == :ringFree) { insertion = nowUtc - (23 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :freeDay3) {
+        regimen[:daysOut] = 3;
+        insertion = nowUtc - (28 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR);
+    }
+    else if (scenario == :freeExceeded || scenario == :notificationFree) { insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :temp250 || scenario == :temp310 || scenario == :notificationTemp || scenario == :reminder2) { insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :extended35 || scenario == :notificationFourWeeks || scenario == :largestCountdown) {
         regimen[:daysIn] = 35;
-        insertion = nowUtc - (29 * CalendarMath.SECONDS_PER_DAY);
+        insertion = (scenario == :extended35 || scenario == :notificationFourWeeks)
+            ? nowUtc - (29 * CalendarMath.SECONDS_PER_DAY) : nowUtc;
+    }
+    else if (scenario == :clock12Long || scenario == :clock24) {
+        var targetWall = CalendarMath.localFields(nowUtc - (4 * CalendarMath.SECONDS_PER_DAY));
+        targetWall[:hour] = 23;
+        targetWall[:minute] = 59;
+        targetWall[:second] = 0;
+        var target = CalendarMath.wallToUtcUsingDevice(targetWall);
+        if (target != null) { insertion = target[:utc]; }
+    }
+    else if (scenario == :notificationDayBefore) {
+        insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY);
+    }
+    else if (scenario == :notificationReminder1 || scenario == :notificationReminder2) {
+        insertion = nowUtc - (21 * CalendarMath.SECONDS_PER_DAY);
+    }
+    else if (scenario == :notificationOverdue) {
+        insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY) - (4 * CalendarMath.SECONDS_PER_HOUR);
     }
     var active = ScheduleModel.insertOrReplace(state, insertion);
-    if (scenario == :freeDay3) { ScheduleModel.recordRemoval(active, nowUtc - (3 * CalendarMath.SECONDS_PER_DAY), regimen); }
-    else if (scenario == :freeExceeded) { ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen); }
+    if (scenario == :ringFree) { ScheduleModel.recordRemoval(active, nowUtc - (2 * CalendarMath.SECONDS_PER_DAY), regimen); }
+    else if (scenario == :freeDay3) { ScheduleModel.recordRemoval(active, nowUtc - (3 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR), regimen); }
+    else if (scenario == :freeExceeded || scenario == :notificationFree) { ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen); }
     else if (scenario == :temp250) { ScheduleModel.startTemporaryOut(active, nowUtc - (2 * 3600) - (50 * 60)); }
-    else if (scenario == :temp310) { ScheduleModel.startTemporaryOut(active, nowUtc - (3 * 3600) - (10 * 60)); }
+    else if (scenario == :temp310 || scenario == :notificationTemp) { ScheduleModel.startTemporaryOut(active, nowUtc - (3 * 3600) - (10 * 60)); }
+    else if (scenario == :reminder2) {
+        var demoReminders = state[:reminders] as Lang.Dictionary;
+        demoReminders[:reminder2Enabled] = true;
+    }
+    var scenarioReminders = state[:reminders] as Lang.Dictionary;
+    if (scenario == :notificationDayBefore || scenario == :notificationReminder1) {
+        var reminderNow = CalendarMath.localFields(nowUtc);
+        scenarioReminders[:reminder1Hour] = reminderNow[:hour];
+        scenarioReminders[:reminder1Minute] = reminderNow[:minute];
+    }
+    if (scenario == :clock12Long) { scenarioReminders[:clockFormat] = 12; }
+    else if (scenario == :clock24) { scenarioReminders[:clockFormat] = 24; }
+    else if (scenario == :migration) { state[:migrationNoticePending] = true; }
+    else if (scenario == :notificationReminder2) {
+        var nowFields = CalendarMath.localFields(nowUtc);
+        scenarioReminders[:reminder2Enabled] = true;
+        scenarioReminders[:reminder2Hour] = nowFields[:hour];
+        scenarioReminders[:reminder2Minute] = nowFields[:minute];
+        var notificationLedger = state[:reminderLedger] as Lang.Dictionary;
+        var notificationStatus = ScheduleModel.deriveStatus(nowUtc, active, regimen);
+        notificationLedger[:cycleId] = active[:cycleId];
+        notificationLedger[:actionKey] = ReminderPolicy.actionKey(notificationStatus);
+        notificationLedger[:dayOf1Sent] = true;
+    }
     return state;
 }
 
@@ -76,9 +166,15 @@ function maximumDemoState(state as Lang.Dictionary, nowUtc as Lang.Number) as La
             intervals.add({:outUtc=>out, :backInUtc=>out + 10801,
                 :phaseWeekAtStart=>1, :phaseWeekAtEnd=>1, :thresholdCode=>"over3h"});
         }
+        var removed = inserted + (6 * CalendarMath.SECONDS_PER_DAY);
+        var removeDue = CalendarMath.addLocalCalendarDays(inserted, 21)[:utc];
+        var insertDue = CalendarMath.addLocalCalendarDays(removed, 7)[:utc];
+        var nextInserted = inserted + (28 * CalendarMath.SECONDS_PER_DAY);
         history.add({:cycleId=>c + 1, :insertionUtc=>inserted,
-            :removalUtc=>inserted + (6 * CalendarMath.SECONDS_PER_DAY),
-            :nextInsertionUtc=>inserted + (28 * CalendarMath.SECONDS_PER_DAY),
+            :insertionPlanUtc=>null, :insertionDeltaSeconds=>null,
+            :removeDueUtc=>removeDue, :removalUtc=>removed,
+            :removalDeltaSeconds=>removed - removeDue, :insertDueUtc=>insertDue,
+            :nextInsertionUtc=>nextInserted, :nextInsertionDeltaSeconds=>nextInserted - insertDue,
             :closeReason=>"replaced", :regimenDaysIn=>21, :regimenDaysOut=>7,
             :temporaryOut=>intervals,
             :temporaryOutSummary=>{:shortIntervalCount=>0, :shortIntervalSeconds=>0}});

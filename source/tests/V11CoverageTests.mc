@@ -1,0 +1,215 @@
+import Toybox.Application.Storage;
+import Toybox.Lang;
+import Toybox.Test;
+
+(:test)
+function v11EarlyOnTimeLateInsertionsAnchorRemoval(logger as Test.Logger) as Boolean {
+    var state = ScheduleModel.defaultState();
+    var first = ScheduleModel.insertOrReplace(state, testWall(2026, 1, 1, 9, 0));
+    Test.assert(ScheduleModel.recordRemoval(first, first[:removeDueUtc], state[:regimen]));
+    var due = first[:insertDueUtc];
+    var offsets = [-86400, 0, 2 * 86400];
+    for (var i = 0; i < offsets.size(); i += 1) {
+        var copy = ScheduleModel.defaultState();
+        var prior = ScheduleModel.insertOrReplace(copy, testWall(2026, 1, 1, 9, 0));
+        Test.assert(ScheduleModel.recordRemoval(prior, prior[:removeDueUtc], copy[:regimen]));
+        var actual = due + offsets[i];
+        var active = ScheduleModel.insertOrReplace(copy, actual);
+        Test.assertEqual(actual + offsets[i] - offsets[i], active[:insertionUtc]);
+        Test.assertEqual(CalendarMath.addLocalCalendarDays(actual, 21)[:utc], active[:removeDueUtc]);
+        Test.assertEqual(offsets[i], active[:insertionDeltaSeconds]);
+    }
+    return true;
+}
+
+(:test)
+function v11EventDeltaFormattingCoversMinuteHourDayAndOnTime(logger as Test.Logger) as Boolean {
+    Test.assertEqual(Ui.s(Rez.Strings.OnTime), Ui.eventDelta(59, false));
+    Test.assertEqual("1m early", Ui.eventDelta(-60, false));
+    Test.assertEqual("5h 10m late", Ui.eventDelta((5 * 3600) + 600, false));
+    Test.assertEqual("2d 3h early", Ui.eventDelta(-((2 * 86400) + (3 * 3600)), false));
+    Test.assertEqual(Ui.s(Rez.Strings.FirstCycle), Ui.eventDelta(null, true));
+    return true;
+}
+
+(:test)
+function v11HistoryPrependsActiveAndClearPreservesIt(logger as Test.Logger) as Boolean {
+    var state = ScheduleModel.defaultState();
+    var first = ScheduleModel.insertOrReplace(state, testWall(2026, 2, 1, 9, 0));
+    ScheduleModel.insertOrReplace(state, first[:removeDueUtc] + 3600);
+    var entries = HistoryUi.entries(state);
+    Test.assertEqual(2, entries.size());
+    Test.assert((entries[0] as Lang.Dictionary)[:active]);
+    Test.assertEqual((state[:active] as Lang.Dictionary)[:cycleId],
+        ((entries[0] as Lang.Dictionary)[:cycle] as Lang.Dictionary)[:cycleId]);
+    var active = state[:active];
+    state[:history] = [];
+    Test.assertEqual(active, state[:active]);
+    Test.assertEqual(1, HistoryUi.entries(state).size());
+    return true;
+}
+
+(:test)
+function v11UpcomingRingInRingFreeZeroDayAndScrollBounds(logger as Test.Logger) as Boolean {
+    var start = testWall(2026, 2, 1, 9, 0);
+    var regimen = ScheduleModel.defaultRegimen();
+    var ringIn = ScheduleModel.newCycle(4, start, regimen);
+    var rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6);
+    Test.assertEqual(CalendarMath.addLocalCalendarDays(ringIn[:removeDueUtc], 7)[:utc],
+        (rows[1] as Lang.Dictionary)[:inUtc]);
+    var removed = ringIn[:removeDueUtc] - 86400;
+    Test.assert(ScheduleModel.recordRemoval(ringIn, removed, regimen));
+    rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6);
+    Test.assertEqual(removed, (rows[0] as Lang.Dictionary)[:outUtc]);
+    Test.assertEqual(ringIn[:insertDueUtc], (rows[1] as Lang.Dictionary)[:inUtc]);
+    regimen[:daysOut] = 0;
+    ScheduleModel.recomputeForRegimen(ringIn, regimen);
+    rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6);
+    Test.assertEqual(removed, (rows[1] as Lang.Dictionary)[:inUtc]);
+    Test.assertEqual(0, UpcomingUi.boundedTopIndex(-9));
+    Test.assertEqual(3, UpcomingUi.boundedTopIndex(9));
+    return true;
+}
+
+(:test)
+function v11UpcomingUpdatesAfterEditsAndDurationChanges(logger as Test.Logger) as Boolean {
+    var regimen = ScheduleModel.defaultRegimen();
+    var active = ScheduleModel.newCycle(1, testWall(2026, 4, 1, 9, 0), regimen);
+    var original = ScheduleModel.projectUpcoming(active, regimen, 6);
+    regimen[:daysIn] = 28;
+    ScheduleModel.recomputeForRegimen(active, regimen);
+    var longer = ScheduleModel.projectUpcoming(active, regimen, 6);
+    Test.assert((original[1] as Lang.Dictionary)[:inUtc] != (longer[1] as Lang.Dictionary)[:inUtc]);
+    var edited = ScheduleModel.rebuildForInsertion(active, active[:insertionUtc] + 3600, regimen) as Lang.Dictionary;
+    var shifted = ScheduleModel.projectUpcoming(edited, regimen, 6);
+    Test.assertEqual((longer[1] as Lang.Dictionary)[:inUtc] + 3600,
+        (shifted[1] as Lang.Dictionary)[:inUtc]);
+    var removal = edited[:removeDueUtc] - 7200;
+    Test.assert(ScheduleModel.recordRemoval(edited, removal, regimen));
+    var removedRows = ScheduleModel.projectUpcoming(edited, regimen, 6);
+    Test.assertEqual(CalendarMath.addLocalCalendarDays(removal, regimen[:daysOut])[:utc],
+        (removedRows[1] as Lang.Dictionary)[:inUtc]);
+    return true;
+}
+
+(:test)
+function v11UpcomingCalendarBoundariesStayLocal(logger as Test.Logger) as Boolean {
+    var regimen = ScheduleModel.defaultRegimen();
+    var leap = ScheduleModel.newCycle(1, testWall(2028, 2, 8, 23, 59), regimen);
+    assertLocalDateTime(leap[:removeDueUtc], 2028, 2, 29, 23, 59);
+    var year = ScheduleModel.newCycle(2, testWall(2026, 12, 20, 9, 0), regimen);
+    assertLocalDateTime(year[:removeDueUtc], 2027, 1, 10, 9, 0);
+    return true;
+}
+
+(:test)
+function v11ReminderDefaultsAndIndependentTimes(logger as Test.Logger) as Boolean {
+    var reminders = ScheduleModel.defaultReminders();
+    Test.assertEqual(9, reminders[:reminder1Hour]);
+    Test.assertEqual(20, reminders[:reminder2Hour]);
+    Test.assert(!reminders[:reminder2Enabled]);
+    Test.assert(reminders[:dayBeforeEnabled]);
+    var due = testWall(2026, 6, 22, 9, 0);
+    var before = ReminderPolicy.reminderAt(due, -1, reminders[:reminder1Hour], reminders[:reminder1Minute]);
+    reminders[:reminder2Hour] = 17;
+    Test.assertEqual(before, ReminderPolicy.reminderAt(due, -1, reminders[:reminder1Hour], reminders[:reminder1Minute]));
+    reminders[:reminder1Hour] = 7;
+    Test.assert(before != ReminderPolicy.reminderAt(due, -1, reminders[:reminder1Hour], reminders[:reminder1Minute]));
+    return true;
+}
+
+(:test)
+function v11Reminder2OffSuppressesOnlySecondSlot(logger as Test.Logger) as Boolean {
+    var regimen = ScheduleModel.defaultRegimen();
+    var reminders = ScheduleModel.defaultReminders();
+    var active = ScheduleModel.newCycle(1, testWall(2026, 6, 1, 9, 0), regimen);
+    var ledger = v11LedgerFor(active, "remove", active[:removeDueUtc]);
+    ledger[:dayOf1Sent] = true;
+    var atSecond = testWall(2026, 6, 22, 21, 0);
+    var off = ReminderPolicy.evaluate(atSecond, active, regimen, reminders, ledger);
+    Test.assertEqual(:overdue, off[:kind]);
+    reminders[:reminder2Enabled] = true;
+    var on = ReminderPolicy.evaluate(atSecond, active, regimen, reminders, ledger);
+    Test.assertEqual(:dayOf, on[:kind]);
+    Test.assertEqual(2, on[:reminderSlot]);
+    return true;
+}
+
+(:test)
+function v11Reminder2DoesNotRepeatAfterDisableEnable(logger as Test.Logger) as Boolean {
+    var regimen = ScheduleModel.defaultRegimen();
+    var reminders = ScheduleModel.defaultReminders();
+    reminders[:reminder2Enabled] = true;
+    var active = ScheduleModel.newCycle(1, testWall(2026, 6, 1, 9, 0), regimen);
+    var ledger = v11LedgerFor(active, "remove", active[:removeDueUtc]);
+    ledger[:dayOf1Sent] = true;
+    var now = testWall(2026, 6, 22, 21, 0);
+    var selected = ReminderPolicy.evaluate(now, active, regimen, reminders, ledger);
+    ReminderPolicy.markSent(ledger, selected);
+    reminders[:reminder2Enabled] = false;
+    reminders[:reminder2Enabled] = true;
+    Test.assertEqual(:overdue, ReminderPolicy.evaluate(now + 60, active, regimen, reminders, ledger)[:kind]);
+    return true;
+}
+
+(:test)
+function v11ThresholdThenDayOfThenOverdueProgression(logger as Test.Logger) as Boolean {
+    var regimen = {:daysIn=>35, :daysOut=>7};
+    var reminders = ScheduleModel.defaultReminders();
+    reminders[:reminder1Hour] = 8;
+    var active = ScheduleModel.newCycle(1, testWall(2026, 5, 1, 9, 0), regimen);
+    var now = active[:removeDueUtc] + 3600;
+    var ledger = v11LedgerFor(active, "remove", active[:removeDueUtc]);
+    var warning = ReminderPolicy.evaluate(now, active, regimen, reminders, ledger);
+    Test.assertEqual(:beyondFourWeeks, warning[:kind]);
+    ReminderPolicy.markSent(ledger, warning);
+    var dayOf = ReminderPolicy.evaluate(now, active, regimen, reminders, ledger);
+    Test.assertEqual(:dayOf, dayOf[:kind]);
+    ReminderPolicy.markSent(ledger, dayOf);
+    Test.assertEqual(:overdue, ReminderPolicy.evaluate(now, active, regimen, reminders, ledger)[:kind]);
+    return true;
+}
+
+(:test)
+function v11NotificationCopyCoversEveryKindAndBody(logger as Test.Logger) as Boolean {
+    var service = new RingServiceDelegate();
+    var due = testWall(2026, 9, 2, 9, 0);
+    var tomorrow = ["Remove ring tomorrow", "Insert ring tomorrow", "Replace ring tomorrow"];
+    var today = ["Remove ring today", "Insert ring today", "Replace ring today"];
+    var action = ["Remove ring", "Insert ring", "Replace ring"];
+    for (var i = 0; i < 3; i += 1) {
+        var before = service.notificationIds(5, i, due, 24, due - 1);
+        var dayOf = service.notificationIds(4, i, due, 24, due - 1);
+        var overdue = service.notificationIds(3, i, due, 24, due + 100800);
+        Test.assertEqual(tomorrow[i], before[0]); Test.assertEqual("Due 09:00", before[1]); Test.assert(before[2] == null);
+        Test.assertEqual(today[i], dayOf[0]); Test.assertEqual("Due 09:00", dayOf[1]); Test.assert(dayOf[2] == null);
+        Test.assertEqual("Ring overdue 1d 4h", overdue[0]); Test.assertEqual(action[i], overdue[1]); Test.assert(overdue[2] == null);
+    }
+    var temp = service.notificationIds(1, 0, due, 24, due);
+    Test.assertEqual("Out over 3h", temp[0]); Test.assertEqual("Reinsert now", temp[1]); Test.assertEqual("Use backup 7 days.", temp[2]);
+    var free = service.notificationIds(0, 1, due, 24, due);
+    Test.assertEqual("Insert now", free[0]); Test.assertEqual("Ring out over 7d", free[1]); Test.assertEqual("Use backup 7 days.", free[2]);
+    var longIn = service.notificationIds(2, 0, due, 24, due);
+    Test.assertEqual("Replace now", longIn[0]); Test.assertEqual("Ring in over 4 weeks", longIn[1]); Test.assert(longIn[2] == null);
+    return true;
+}
+
+(:test)
+function v11V1AndV2MigrationProduceEquivalentV3(logger as Test.Logger) as Boolean {
+    clearRound2Storage();
+    var state = ScheduleModel.defaultState();
+    ScheduleModel.insertOrReplace(state, testWall(2026, 7, 1, 9, 0));
+    var v2 = legacyV2Fixture(state);
+    Storage.setValue(RingStore.STATE_KEY, v2);
+    var fromV2 = RingStore.load();
+    clearRound2Storage();
+    var v1 = [1];
+    for (var i = 1; i <= 8; i += 1) { v1.add(v2[i]); }
+    Storage.setValue(RingStore.STATE_KEY, v1);
+    var fromV1 = RingStore.load();
+    Test.assertEqual((fromV2[:active] as Lang.Dictionary)[:removeDueUtc],
+        (fromV1[:active] as Lang.Dictionary)[:removeDueUtc]);
+    Test.assertEqual(SettingsBridge.configFromState(fromV2).toString(), SettingsBridge.configFromState(fromV1).toString());
+    clearRound2Storage();
+    return true;
+}
