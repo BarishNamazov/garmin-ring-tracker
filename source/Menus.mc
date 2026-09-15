@@ -14,10 +14,17 @@ module Menus {
     }
 
     function mainMenu(state as Lang.Dictionary) as WatchUi.Menu2 {
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.MenuTitle});
+        return mainMenuWithFocus(state, 0);
+    }
+
+    function mainMenuWithFocus(state as Lang.Dictionary, focus as Lang.Number) as WatchUi.Menu2 {
+        var menu = new WatchUi.Menu2({:title => Rez.Strings.MenuTitle, :focus => focus});
         var active = state[:active] as Lang.Dictionary?;
         if (active == null) {
-            menu.addItem(item(Rez.Strings.RingInsertedNow, Rez.Strings.NoCycleReason, :insertNow));
+            menu.addItem(item(Rez.Strings.RingInsertedNow, null, :insertNow));
+            menu.addItem(item(Rez.Strings.RingRemovedNow, Rez.Strings.NoCycleReason, :disabledRemove));
+            menu.addItem(item(Rez.Strings.RingOutTemporarily, Rez.Strings.NoCycleReason, :disabledTemporary));
+            menu.addItem(item(Rez.Strings.AdjustDates, Rez.Strings.NoCycleReason, :disabledAdjust));
         } else {
             var replace = active[:removalUtc] == null;
             menu.addItem(item(replace ? Rez.Strings.RingReplacedNow : Rez.Strings.RingInsertedNow, null, :insertNow));
@@ -26,6 +33,9 @@ module Menus {
                 var open = ScheduleModel.tempOpen(active);
                 menu.addItem(item(open == null ? Rez.Strings.RingOutTemporarily : Rez.Strings.RingBackIn, null,
                                   open == null ? :tempOut : :backIn));
+            } else {
+                menu.addItem(item(Rez.Strings.RingRemovedNow, Rez.Strings.AlreadyRemovedReason, :disabledRemove));
+                menu.addItem(item(Rez.Strings.RingOutTemporarily, Rez.Strings.AlreadyRemovedReason, :disabledTemporary));
             }
             menu.addItem(item(Rez.Strings.AdjustDates, null, :adjust));
         }
@@ -113,6 +123,7 @@ module Menus {
         menu.addItem(item(Rez.Strings.DemoDay5, null, :day5));
         menu.addItem(item(Rez.Strings.DemoBeforeRemoval, null, :beforeRemoval));
         menu.addItem(item(Rez.Strings.DemoOverdueRemoval, null, :overdueRemoval));
+        menu.addItem(item(Rez.Strings.DemoOverdueLarge, null, :overdueLarge));
         menu.addItem(item(Rez.Strings.DemoFreeDay3, null, :freeDay3));
         menu.addItem(item(Rez.Strings.DemoFreeExceeded, null, :freeExceeded));
         menu.addItem(item(Rez.Strings.DemoTemp250, null, :temp250));

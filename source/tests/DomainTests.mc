@@ -372,6 +372,55 @@ function calendarFallBackTieChoosesEarlierInstant(logger as Test.Logger) as Bool
 }
 
 (:test)
+function compactBackgroundOverdueDeduplicates(logger as Test.Logger) as Boolean {
+    var state = ScheduleModel.defaultState();
+    var start = testWall(2026, 9, 1, 9, 0);
+    var active = ScheduleModel.insertOrReplace(state, start);
+    Test.assert(RingStore.save(state));
+    var compact = BackgroundRuntime.load();
+    Test.assert(compact != null);
+    var due = active[:scheduledRemovalUtc];
+    var first = BackgroundRuntime.evaluate(due, compact as Array);
+    Test.assertEqual(3, first[0]);
+    Test.assertEqual(0, first[2]);
+    BackgroundRuntime.markSent(compact as Array, first);
+    Test.assert(BackgroundRuntime.evaluate(due + 1, compact as Array) == null);
+    var repeated = BackgroundRuntime.evaluate(due + (6 * 3600), compact as Array);
+    Test.assertEqual(3, repeated[0]);
+    Test.assertEqual(1, repeated[2]);
+    return true;
+}
+
+(:test)
+function compactBackgroundTemporaryOutPriority(logger as Test.Logger) as Boolean {
+    var state = ScheduleModel.defaultState();
+    var start = testWall(2026, 9, 1, 9, 0);
+    var active = ScheduleModel.insertOrReplace(state, start);
+    Test.assert(ScheduleModel.startTemporaryOut(active, start));
+    Test.assert(RingStore.save(state));
+    var compact = BackgroundRuntime.load();
+    var selected = BackgroundRuntime.evaluate(start + 10801, compact as Array);
+    Test.assertEqual(1, selected[0]);
+    Test.assertEqual(3, selected[1]);
+    return true;
+}
+
+(:test)
+function compactBackgroundLedgerMergesIntoForeground(logger as Test.Logger) as Boolean {
+    var state = ScheduleModel.defaultState();
+    var start = testWall(2026, 9, 1, 9, 0);
+    var active = ScheduleModel.insertOrReplace(state, start);
+    Test.assert(RingStore.save(state));
+    var compact = BackgroundRuntime.load() as Array;
+    var selected = BackgroundRuntime.evaluate(active[:scheduledRemovalUtc], compact);
+    BackgroundRuntime.markSent(compact, selected);
+    BackgroundRuntime.save(compact);
+    var restored = RingStore.load();
+    Test.assertEqual(0, (restored[:reminderLedger] as Dictionary)[:lastOverdueSlot]);
+    return true;
+}
+
+(:test)
 function backgroundMirrorStaysReducedAtLimits(logger as Test.Logger) as Boolean {
     var state = ScheduleModel.defaultState();
     var start = testWall(2026, 1, 1, 9, 0);

@@ -42,6 +42,9 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     if (scenario == :day5) { insertion = nowUtc - (4 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :beforeRemoval) { insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :overdueRemoval) { insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :overdueLarge) {
+        insertion = nowUtc - (33 * CalendarMath.SECONDS_PER_DAY) - (23 * CalendarMath.SECONDS_PER_HOUR);
+    }
     else if (scenario == :freeDay3) { insertion = nowUtc - (24 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :freeExceeded) { insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :temp250 || scenario == :temp310) { insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY); }

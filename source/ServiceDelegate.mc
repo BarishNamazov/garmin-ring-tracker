@@ -1,9 +1,7 @@
-import Toybox.Application;
 import Toybox.Background;
 import Toybox.Lang;
 import Toybox.Notifications;
 import Toybox.System;
-import Toybox.Time;
 
 // This class and every domain/storage dependency it reaches are scoped for the
 // 64 KiB background process. It has no reference to a view or UI delegate.
@@ -15,27 +13,21 @@ class RingServiceDelegate extends System.ServiceDelegate {
 
     function onTemporalEvent() as Void {
         try {
-            var state = RingStore.loadBackground();
-            var active = state[:active] as Lang.Dictionary?;
-            if (active != null) {
-                var nowUtc = Time.now().value();
-                var selected = ReminderPolicy.evaluate(nowUtc, active,
-                    state[:regimen] as Lang.Dictionary,
-                    state[:reminders] as Lang.Dictionary,
-                    state[:reminderLedger] as Lang.Dictionary);
+            var state = BackgroundRuntime.load();
+            if (state != null) {
+                var active = state[1] as Lang.Array?;
+                var selected = BackgroundRuntime.evaluate(currentUtc(), state);
                 if (selected != null) {
-                    var status = ScheduleModel.deriveStatus(nowUtc, active,
-                        state[:regimen] as Lang.Dictionary);
-                    var ids = notificationIds(selected[:kind] as Lang.Symbol, status[:nextAction] as Lang.Symbol);
+                    var ids = notificationIds(selected[0], selected[1]);
                     var options = {
                         :body => ids[2],
                         :icon => Rez.Drawables.NotificationIcon,
-                        :data => [active[:cycleId], selected[:kind].toString()],
+                        :data => [active[0], selected[0]],
                         :dismissPrevious => true
                     };
                     Notifications.showNotification(ids[0], ids[1], options);
-                    ReminderPolicy.markSent(state[:reminderLedger] as Lang.Dictionary, selected);
-                    RingStore.saveBackgroundLedger(state);
+                    BackgroundRuntime.markSent(state, selected);
+                    BackgroundRuntime.save(state);
                 }
             }
         } catch (ignored) {
@@ -45,26 +37,26 @@ class RingServiceDelegate extends System.ServiceDelegate {
         Background.exit(null);
     }
 
-    function notificationIds(kind as Lang.Symbol, action as Lang.Symbol) as Lang.Array {
+    function notificationIds(kind as Lang.Number, action as Lang.Number) as Lang.Array {
         var title = Rez.Strings.NotificationTitle;
-        var subtitle = action == :remove ? Rez.Strings.NotificationRemove
-            : (action == :replace ? Rez.Strings.NotificationReplace : Rez.Strings.NotificationInsert);
+        var subtitle = action == 0 ? Rez.Strings.NotificationRemove
+            : (action == 2 ? Rez.Strings.NotificationReplace : Rez.Strings.NotificationInsert);
         var body = Rez.Strings.NotificationScheduled;
-        if (kind == :dayBefore) {
-            subtitle = action == :remove ? Rez.Strings.NotificationRemoveTomorrow : Rez.Strings.NotificationInsertTomorrow;
-        } else if (kind == :dayOf) {
-            subtitle = action == :remove ? Rez.Strings.NotificationRemoveToday : Rez.Strings.NotificationInsertToday;
-        } else if (kind == :overdue) {
+        if (kind == 5) {
+            subtitle = action == 0 ? Rez.Strings.NotificationRemoveTomorrow : Rez.Strings.NotificationInsertTomorrow;
+        } else if (kind == 4) {
+            subtitle = action == 0 ? Rez.Strings.NotificationRemoveToday : Rez.Strings.NotificationInsertToday;
+        } else if (kind == 3) {
             title = Rez.Strings.NotificationOverdueTitle;
-        } else if (kind == :tempOver3h) {
+        } else if (kind == 1) {
             title = Rez.Strings.NotificationWarningTitle;
             subtitle = Rez.Strings.NotificationTemp;
             body = Rez.Strings.NotificationLabelInfo;
-        } else if (kind == :ringFreeExceeded) {
+        } else if (kind == 0) {
             title = Rez.Strings.NotificationWarningTitle;
             subtitle = Rez.Strings.NotificationFree;
             body = Rez.Strings.NotificationLabelInfo;
-        } else if (kind == :beyondFourWeeks) {
+        } else if (kind == 2) {
             title = Rez.Strings.NotificationWarningTitle;
             subtitle = Rez.Strings.NotificationFourWeeks;
             body = Rez.Strings.NotificationLabelInfo;

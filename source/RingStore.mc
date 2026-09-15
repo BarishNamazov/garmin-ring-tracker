@@ -4,7 +4,6 @@ import Toybox.Lang;
 // The in-memory domain model deliberately uses Symbol keys for readable,
 // type-safe access. Connect IQ Storage does not support Symbol values, so the
 // persistence boundary encodes the model as versioned, positional arrays.
-(:background, :glance)
 module RingStore {
     const STATE_KEY = "ringTrackerState";
     const GLANCE_KEY = "ringTrackerGlance";
@@ -52,11 +51,14 @@ module RingStore {
         }
         try {
             var a = raw as Lang.Array;
-            if (a[0] != ScheduleModel.SCHEMA_VERSION) {
-                return { :active => null, :regimen => ScheduleModel.defaultRegimen() };
+            if (a.size() < 4 || a[0] != 2) { return { :active => null, :regimen => ScheduleModel.defaultRegimen() }; }
+            var compactActive = a[1] as Lang.Array?;
+            var intervals = [];
+            if (compactActive != null && compactActive[6] != null) {
+                intervals.add({ :outUtc => compactActive[6], :backInUtc => null });
             }
             return {
-                :active => a[1] == null ? null : decodeActive(a[1] as Lang.Array),
+                :active => compactActive == null ? null : { :temporaryOut => intervals },
                 :regimen => { :daysIn => a[2], :daysOut => a[3] }
             };
         } catch (ex) {
@@ -115,16 +117,39 @@ module RingStore {
 
     function encodeGlance(state as Lang.Dictionary) as Lang.Array {
         var regimen = state[:regimen] as Lang.Dictionary;
-        return [ScheduleModel.SCHEMA_VERSION,
-            state[:active] == null ? null : encodeReducedActive(state[:active] as Lang.Dictionary),
-            regimen[:daysIn], regimen[:daysOut]];
+        var compact = null;
+        if (state[:active] != null) {
+            var active = state[:active] as Lang.Dictionary;
+            var open = ScheduleModel.tempOpen(active);
+            var deadline = active[:removalUtc] == null
+                ? active[:scheduledRemovalUtc] : ScheduleModel.nextInsertUtc(active, regimen);
+            compact = [active[:insertionUtc], active[:removalUtc], deadline,
+                active[:scheduledInsertionUtc], active[:labelFourWeekUtc],
+                active[:ringFreeCeilingUtc], open == null ? null : open[:outUtc]];
+        }
+        return [2, compact, regimen[:daysIn], regimen[:daysOut]];
     }
 
     function encodeBackground(state as Lang.Dictionary) as Lang.Array {
         var regimen = state[:regimen] as Lang.Dictionary;
         var reminders = state[:reminders] as Lang.Dictionary;
+        var reduced = null;
+        if (state[:active] != null) {
+            var active = state[:active] as Lang.Dictionary;
+            var open = ScheduleModel.tempOpen(active);
+            var action = active[:removalUtc] != null ? 1 : (regimen[:daysOut] == 0 ? 2 : 0);
+            var deadline = active[:removalUtc] == null
+                ? active[:scheduledRemovalUtc] : ScheduleModel.nextInsertUtc(active, regimen);
+            if (open != null) {
+                action = 3;
+                deadline = open[:outUtc] + ScheduleModel.TEMP_LIMIT_SECONDS;
+            }
+            reduced = encodeReducedActive(active);
+            (reduced as Lang.Array).add(deadline);
+            (reduced as Lang.Array).add(action);
+        }
         return [ScheduleModel.SCHEMA_VERSION,
-            state[:active] == null ? null : encodeReducedActive(state[:active] as Lang.Dictionary),
+            reduced,
             regimen[:daysIn], regimen[:daysOut],
             [reminders[:localHour], reminders[:localMinute], reminders[:overdueRepeatHours],
                 reminders[:vibrationEnabled], reminders[:soundEnabled], reminders[:clockFormat]],

@@ -30,8 +30,8 @@ class InfoView extends WatchUi.View {
         Ui.clear(dc);
         var titleText = _title instanceof Lang.ResourceId ? Ui.s(_title) : _title as Lang.String;
         Ui.centered(dc, Ui.px(dc, 66), titleText, Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        _lineCount = Ui.drawParagraphs(dc, _paragraphs, Ui.px(dc, 112), Ui.px(dc, 326), _scroll);
-        Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.BackHint), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 240));
+        _lineCount = Ui.drawParagraphs(dc, _paragraphs, Ui.px(dc, 112), Ui.px(dc, 316), _scroll);
+        Ui.centered(dc, Ui.px(dc, 356), Ui.s(Rez.Strings.BackHint), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 240));
     }
 }
 
@@ -129,22 +129,21 @@ class AboutView extends InfoView {
     }
 }
 
-class AlertView extends InfoView {
+class AlertView extends WatchUi.View {
     private var _attentionPlayed as Lang.Boolean;
+    private var _detail as Lang.Boolean;
 
     function initialize() {
-        var paragraphs = [Ui.s(Rez.Strings.ActionDueBody)];
-        var state = getApp().getState();
-        var active = state[:active] as Lang.Dictionary;
-        var status = ScheduleModel.deriveStatus(currentUtc(), active, state[:regimen] as Lang.Dictionary);
-        if (status[:ringFreeLimitExceeded]) { paragraphs = [Ui.s(Rez.Strings.RingFreeExceededBody)]; }
-        else if (status[:temporaryOutOpen] && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
-            var open = ScheduleModel.tempOpen(active) as Lang.Dictionary;
-            paragraphs = [Ui.s(open[:phaseWeekAtStart] == 3 ? Rez.Strings.TempOverBody3 : Rez.Strings.TempOverBody12)];
-        } else if (status[:beyondLabelFourWeeks]) { paragraphs = [Ui.s(Rez.Strings.ExtendedBody)]; }
-        InfoView.initialize(Rez.Strings.ActionDueTitle, paragraphs);
+        View.initialize();
         _attentionPlayed = false;
+        _detail = false;
     }
+
+    function scroll(delta as Lang.Number) as Void {
+        _detail = delta > 0;
+        WatchUi.requestUpdate();
+    }
+
     function onShow() as Void {
         if (_attentionPlayed) { return; }
         _attentionPlayed = true;
@@ -158,8 +157,81 @@ class AlertView extends InfoView {
         }
     }
     function onUpdate(dc as Graphics.Dc) as Void {
-        InfoView.onUpdate(dc);
-        Ui.centered(dc, Ui.px(dc, 337), Ui.s(Rez.Strings.StartOpenActions), Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 280));
+        Ui.clear(dc);
+        var state = getApp().getState();
+        var active = state[:active] as Lang.Dictionary?;
+        if (active == null) {
+            Ui.centered(dc, dc.getHeight() / 2, Ui.s(Rez.Strings.SetupNeeded),
+                        Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 280));
+            return;
+        }
+        var nowUtc = currentUtc();
+        var status = ScheduleModel.deriveStatus(nowUtc, active, state[:regimen] as Lang.Dictionary);
+        var title = Rez.Strings.ActionDueTitle;
+        var color = Ui.AMBER;
+        var detail = Rez.Strings.ActionDueBody;
+        var hint = Rez.Strings.AlertRecordHint;
+        if (status[:ringFreeLimitExceeded]) {
+            title = Rez.Strings.AlertRingFreeTitle;
+            color = Ui.RED;
+            detail = Rez.Strings.RingFreeExceededBody;
+            hint = Rez.Strings.AlertLabelHint;
+        } else if (status[:temporaryOutOpen] && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
+            title = Rez.Strings.AlertTemporaryTitle;
+            color = Ui.RED;
+            var open = ScheduleModel.tempOpen(active) as Lang.Dictionary;
+            detail = open[:phaseWeekAtStart] == 3 ? Rez.Strings.TempOverBody3 : Rez.Strings.TempOverBody12;
+            hint = Rez.Strings.AlertLabelHint;
+        } else if (status[:beyondLabelFourWeeks]) {
+            title = Rez.Strings.AlertDurationTitle;
+            detail = Rez.Strings.ExtendedBody;
+            hint = Rez.Strings.AlertLabelHint;
+        } else if (status[:clockBeforeInsertion]) {
+            title = Rez.Strings.AlertDateReviewTitle;
+            color = Ui.RED;
+            hint = Rez.Strings.AlertReviewDateHint;
+        } else if (status[:secondsRemaining] <= 0) {
+            title = Rez.Strings.AlertOverdueTitle;
+        }
+
+        if (_detail) {
+            Ui.centered(dc, Ui.px(dc, 62), Ui.s(Rez.Strings.LabelInformationTitle),
+                        Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 280));
+            Ui.drawParagraphs(dc, [Ui.s(detail), Ui.s(Rez.Strings.AboutSourcesHint)],
+                              Ui.px(dc, 108), Ui.px(dc, 310), 0);
+            Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.AlertActionsHint),
+                        Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
+            return;
+        }
+
+        var action = Ui.s(Rez.Strings.RemoveRing);
+        if (status[:nextAction] == :insert) { action = Ui.s(Rez.Strings.InsertRing); }
+        else if (status[:nextAction] == :replace) { action = Ui.s(Rez.Strings.ReplaceRing); }
+        else if (status[:nextAction] == :ringBackIn) { action = Ui.s(Rez.Strings.RingBackInAction); }
+        var timing = Ui.s(Rez.Strings.DueNow);
+        if (status[:temporaryOutOpen]) {
+            timing = Ui.fmt(Rez.Strings.AlertOutFor, [Ui.countdownText(status[:tempElapsed])]);
+        } else if (status[:secondsRemaining] < 0) {
+            timing = Ui.fmt(Rez.Strings.AlertOverdueBy, [Ui.countdownText(status[:secondsRemaining])]);
+        } else if (CalendarMath.dateOrdinal(nowUtc) == CalendarMath.dateOrdinal(status[:nextActionUtc])) {
+            timing = Ui.fmt(Rez.Strings.AlertDueTodayAt,
+                            [Ui.timeForUtc(status[:nextActionUtc], (state[:reminders] as Lang.Dictionary)[:clockFormat])]);
+        } else {
+            timing = Ui.fmt(Rez.Strings.AlertDueIn, [Ui.countdownText(status[:secondsRemaining])]);
+        }
+        var clock = (state[:reminders] as Lang.Dictionary)[:clockFormat];
+        Ui.centered(dc, Ui.px(dc, 58), Ui.s(title), Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 286));
+        Ui.centered(dc, Ui.px(dc, 112), action, Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 164), timing, Graphics.FONT_SYSTEM_TINY, color, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 213), Ui.s(Rez.Strings.NextActionLabel),
+                    Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
+        Ui.centered(dc, Ui.px(dc, 246), Ui.dateOnly(status[:nextActionUtc]),
+                    Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 277), Ui.timeForUtc(status[:nextActionUtc], clock),
+                    Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
+        Ui.centered(dc, Ui.px(dc, 316), Ui.s(hint), Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.AlertActionsHint),
+                    Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
     }
 }
 
@@ -177,9 +249,13 @@ class PopDelegate extends WatchUi.BehaviorDelegate {
     function onPreviousPage() as Boolean { WatchUi.popView(WatchUi.SLIDE_UP); return true; }
 }
 
-class AlertDelegate extends ScrollDelegate {
-    function initialize() { ScrollDelegate.initialize(); }
-    function onSelect() as Boolean { getApp().showMainMenu(); return true; }
+class AlertDelegate extends WatchUi.BehaviorDelegate {
+    function initialize() { BehaviorDelegate.initialize(); }
+    private function view() as AlertView { return WatchUi.getCurrentView()[0] as AlertView; }
+    function onSelect() as Boolean { getApp().showAlertMenu(); return true; }
+    function onNextPage() as Boolean { view().scroll(1); return true; }
+    function onPreviousPage() as Boolean { view().scroll(-1); return true; }
+    function onBack() as Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
 }
 
 class SettingsReviewView extends InfoView {
@@ -190,9 +266,12 @@ class SettingsReviewView extends InfoView {
         InfoView.initialize(Rez.Strings.SettingsReviewTitle, [Ui.s(body)]);
     }
     function onUpdate(dc as Graphics.Dc) as Void {
-        InfoView.onUpdate(dc);
-        Ui.centered(dc, Ui.px(dc, 326), Ui.s(Rez.Strings.StartReview),
-            Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 280));
+        Ui.clear(dc);
+        var titleText = _title instanceof Lang.ResourceId ? Ui.s(_title) : _title as Lang.String;
+        Ui.centered(dc, Ui.px(dc, 66), titleText, Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
+        _lineCount = Ui.drawParagraphs(dc, _paragraphs, Ui.px(dc, 112), Ui.px(dc, 292), _scroll);
+        Ui.centered(dc, Ui.px(dc, 350), Ui.s(Rez.Strings.SettingsReviewActionsHint),
+                    Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
     }
 }
 

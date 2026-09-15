@@ -3,7 +3,6 @@ import Toybox.Lang;
 
 // State transition and derivation logic. It is storage-agnostic and receives
 // nowUtc explicitly so tests and debug scenarios never depend on wall time.
-(:background, :glance)
 module ScheduleModel {
     const SCHEMA_VERSION = 1;
     const MAX_HISTORY = 24;

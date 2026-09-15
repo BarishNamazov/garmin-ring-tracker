@@ -3,7 +3,6 @@ import Toybox.Lang;
 
 // Reminder evaluation is pure. The service posts at most the one returned
 // candidate, then calls markSent only after posting succeeds.
-(:background)
 module ReminderPolicy {
     function actionKey(status as Lang.Dictionary) as Lang.String {
         return status[:nextAction].toString() + ":" + status[:nextActionUtc].toString();

@@ -6,7 +6,6 @@ import Toybox.Time.Gregorian;
 
 // Pure calendar helpers. Public time-dependent functions always receive UTC
 // epoch seconds; none of this module reads Time.now().
-(:background, :glance)
 module CalendarMath {
     const SECONDS_PER_MINUTE = 60;
     const SECONDS_PER_HOUR = 3600;
@@ -30,6 +29,7 @@ module CalendarMath {
             :year => info.year,
             :month => info.month,
             :day => info.day,
+            :weekday => info.day_of_week,
             :hour => info.hour,
             :minute => info.min,
             :second => info.sec

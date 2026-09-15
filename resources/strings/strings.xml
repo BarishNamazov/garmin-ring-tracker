@@ -107,6 +107,9 @@
     <string id="Apr">Apr</string><string id="May">May</string><string id="Jun">Jun</string>
     <string id="Jul">Jul</string><string id="Aug">Aug</string><string id="Sep">Sep</string>
     <string id="Oct">Oct</string><string id="Nov">Nov</string><string id="Dec">Dec</string>
+    <string id="Sun">Sun</string><string id="Mon">Mon</string><string id="Tue">Tue</string>
+    <string id="Wed">Wed</string><string id="Thu">Thu</string><string id="Fri">Fri</string>
+    <string id="Sat">Sat</string>
     <string id="ThreeHourInTemplate">3-hour boundary in $1$m</string>
     <string id="ThreeHourReached">3-hour limit reached</string>
     <string id="RecordedOutOver3h">Recorded out over 3 hours</string>
@@ -183,6 +186,23 @@
     <string id="TempOverBody3">For a week-3 interval over 3 hours, the label describes either inserting a new ring immediately or inserting no later than 7 days after removal when prior continuous use conditions are met. Use label-directed backup; record what actually happened.</string>
     <string id="ExtendedBody">The ring is recorded in beyond the FDA-labelled 4-week duration. Follow the product label and your clinician's plan.</string>
     <string id="StartOpenActions">START  Open actions</string>
+    <string id="AlertOverdueTitle">Action overdue</string>
+    <string id="AlertRingFreeTitle">Ring-free warning</string>
+    <string id="AlertTemporaryTitle">Temporary-out warning</string>
+    <string id="AlertDurationTitle">Duration warning</string>
+    <string id="AlertDateReviewTitle">Date review needed</string>
+    <string id="RingBackInAction">RING BACK IN</string>
+    <string id="AlertOverdueBy">Overdue by $1$</string>
+    <string id="AlertOutFor">Out for $1$</string>
+    <string id="AlertDueTodayAt">Due today at $1$</string>
+    <string id="AlertDueIn">Due in $1$</string>
+    <string id="NextActionLabel">NEXT ACTION</string>
+    <string id="AlertRecordHint">Record it in Actions</string>
+    <string id="AlertLabelHint">DOWN  Label details</string>
+    <string id="AlertReviewDateHint">Review insertion date</string>
+    <string id="LabelInformationTitle">Label information</string>
+    <string id="AboutSourcesHint">Source details: About › Sources</string>
+    <string id="AlertActionsHint">BACK  •  START Actions</string>
     <string id="SetupNeeded">Setup needed</string>
     <string id="StorageError">The schedule could not be saved. No change was applied.</string>
     <string id="ReminderRegistrationError">Hourly reminder checks could not be registered. Reopen the app to retry.</string>
@@ -193,6 +213,7 @@
     <string id="SettingsReviewBody">A schedule-affecting change arrived from Garmin App Settings. Review it on the watch before it is applied.</string>
     <string id="InvalidSettingsBody">An invalid Garmin App Settings value was ignored. Confirm to keep the watch schedule.</string>
     <string id="StartReview">START  Review</string>
+    <string id="SettingsReviewActionsHint">BACK  •  START Review</string>
     <string id="SettingsReviewQuestion">Apply the reviewed Garmin App Settings changes?</string>
     <string id="RemoteInsertionQuestion">Replace watch insertion $1$ with settings insertion $2$?</string>
     <string id="InvalidSettingsQuestion">Keep the watch schedule and replace the invalid setting?</string>
@@ -209,6 +230,19 @@
     <string id="GlanceMinuteUnit" scope="glance">$1$m</string>
     <string id="GlanceDayCount" scope="glance">$1$ / $2$</string>
     <string id="GlanceEllipsis" scope="glance">…</string>
+    <string id="GlanceRemovePrefix" scope="glance">Ring: remove in </string>
+    <string id="GlanceInsertPrefix" scope="glance">Ring: insert in </string>
+    <string id="GlanceReplacePrefix" scope="glance">Ring: replace in </string>
+    <string id="GlanceOverduePrefix" scope="glance">Ring: overdue </string>
+    <string id="GlanceOutPrefix" scope="glance">Ring: out </string>
+    <string id="GlanceOneDaySuffix" scope="glance"> day</string>
+    <string id="GlanceDaysSuffix" scope="glance"> days</string>
+    <string id="GlanceOneHourSuffix" scope="glance"> hr</string>
+    <string id="GlanceHoursSuffix" scope="glance"> hrs</string>
+    <string id="GlanceOneMinuteSuffix" scope="glance"> min</string>
+    <string id="GlanceMinutesSuffix" scope="glance"> mins</string>
+    <string id="GlanceShortHourSuffix" scope="glance">h </string>
+    <string id="GlanceShortMinuteSuffix" scope="glance">m</string>
     <string id="NotificationTitle" scope="background">Ring reminder</string>
     <string id="NotificationOverdueTitle" scope="background">Ring action overdue</string>
     <string id="NotificationWarningTitle" scope="background">Ring timing warning</string>

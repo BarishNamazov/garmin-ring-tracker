@@ -122,34 +122,33 @@ class MainView extends WatchUi.View {
             phaseText = Ui.s(Rez.Strings.PhaseOverdue);
             phaseColor = status[:ringFreeLimitExceeded] ? Ui.RED : Ui.AMBER;
         }
-        Ui.centered(dc, Ui.px(dc, 80), phaseText, Graphics.FONT_SYSTEM_XTINY, phaseColor, Ui.px(dc, 280));
-        Ui.centered(dc, Ui.px(dc, 108), Ui.fmt(Rez.Strings.DayTemplate, [status[:dayOfCycle]]),
-                    Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
+        var overdue = status[:phase] == :overdue;
+        Ui.centered(dc, Ui.px(dc, overdue ? 68 : 80), phaseText,
+                    Graphics.FONT_SYSTEM_XTINY, phaseColor, Ui.px(dc, 280));
+        if (!overdue) {
+            Ui.centered(dc, Ui.px(dc, 108), Ui.fmt(Rez.Strings.DayTemplate, [status[:dayOfCycle]]),
+                        Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
+        }
 
         var heading = Ui.s(Rez.Strings.RemoveIn);
         if (status[:nextAction] == :insert) { heading = status[:phase] == :overdue ? Ui.s(Rez.Strings.InsertRing) : Ui.s(Rez.Strings.InsertIn); }
         else if (status[:nextAction] == :replace) { heading = status[:phase] == :overdue ? Ui.s(Rez.Strings.ReplaceRing) : Ui.s(Rez.Strings.ReplaceIn); }
         else if (status[:phase] == :overdue) { heading = Ui.s(Rez.Strings.RemoveRing); }
-        Ui.centered(dc, Ui.px(dc, 148), heading, Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 280));
+        Ui.centered(dc, Ui.px(dc, overdue ? 112 : 148), heading,
+                    Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 280));
 
         var countdownColor = phaseColor;
         if (status[:secondsRemaining] > 0 && status[:secondsRemaining] < CalendarMath.SECONDS_PER_DAY) { countdownColor = Ui.AMBER; }
-        Ui.drawCountdown(dc, Ui.px(dc, 212), status[:secondsRemaining], countdownColor);
-        if (status[:secondsRemaining] < 0) {
-            Ui.centered(dc, Ui.px(dc, 258), Ui.s(Rez.Strings.OverdueBy), Graphics.FONT_SYSTEM_XTINY, countdownColor, Ui.px(dc, 260));
+        if (overdue) {
+            Ui.centered(dc, Ui.px(dc, 154), Ui.s(Rez.Strings.OverdueBy),
+                        Graphics.FONT_SYSTEM_XTINY, countdownColor, Ui.px(dc, 260));
         }
-        var stamp = Ui.timestamp(status[:nextActionUtc], reminders[:clockFormat]);
-        if (dc.getTextWidthInPixels(stamp, Graphics.FONT_SYSTEM_SMALL) > Ui.px(dc, 300)) {
-            var dateY = status[:secondsRemaining] < 0 ? 286 : 274;
-            var timeY = status[:secondsRemaining] < 0 ? 312 : 304;
-            Ui.centered(dc, Ui.px(dc, dateY), Ui.dateOnly(status[:nextActionUtc]),
-                        Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
-            Ui.centered(dc, Ui.px(dc, timeY), Ui.timeForUtc(status[:nextActionUtc], reminders[:clockFormat]),
-                        Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
-        } else {
-            Ui.centered(dc, Ui.px(dc, 282), stamp,
-                        Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
-        }
+        Ui.drawCountdown(dc, Ui.px(dc, overdue ? 211 : 212), status[:secondsRemaining], countdownColor);
+        Ui.centered(dc, Ui.px(dc, overdue ? 270 : 276), Ui.dateOnly(status[:nextActionUtc]),
+                    Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, overdue ? 300 : 307),
+                    Ui.timeForUtc(status[:nextActionUtc], reminders[:clockFormat]),
+                    Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
 
         var hint = Ui.s(Rez.Strings.MenuStartHint);
         var hintColor = Ui.SECONDARY;

@@ -21,16 +21,18 @@ class RingNumberFactory extends WatchUi.PickerFactory {
     private var _start as Lang.Number;
     private var _stop as Lang.Number;
     private var _format as Lang.String;
-    function initialize(start as Lang.Number, stop as Lang.Number, format as Lang.String) {
+    private var _prefix as Lang.String;
+    function initialize(start as Lang.Number, stop as Lang.Number, format as Lang.String, prefix as Lang.String) {
         PickerFactory.initialize();
         _start = start;
         _stop = stop;
         _format = format;
+        _prefix = prefix;
     }
     function getSize() as Lang.Number { return _stop - _start + 1; }
     function getValue(index as Lang.Number) { return _start + index; }
     function getDrawable(index as Lang.Number, selected as Lang.Boolean) as WatchUi.Drawable? {
-        var value = (_start + index).format(_format);
+        var value = _prefix + (_start + index).format(_format);
         return new WatchUi.Text({:text=>value, :font=>Graphics.FONT_SYSTEM_LARGE, :color=>selected ? Ui.PRIMARY : Ui.SECONDARY,
                                  :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_CENTER});
     }
@@ -53,7 +55,7 @@ class RingNumberPicker extends WatchUi.Picker {
                                                :locY=>WatchUi.LAYOUT_VALIGN_BOTTOM, :color=>Ui.PRIMARY,
                                                :font=>Graphics.FONT_SYSTEM_XTINY});
         var pattern = new Lang.Array<WatchUi.PickerFactory or WatchUi.Text>[1];
-        pattern[0] = new RingNumberFactory(start, stop, "%d");
+        pattern[0] = new RingNumberFactory(start, stop, "%d", "");
         var defaults = new Lang.Array<Lang.Number>[1];
         defaults[0] = initial - start;
         Picker.initialize({:title=>titleDrawable, :pattern=>pattern, :defaults=>defaults});
@@ -78,19 +80,16 @@ class RingDatePicker extends WatchUi.Picker {
         var titleId = action == :adjustRemoval ? Rez.Strings.RemovalDate : (action == :adjustPlanned ? Rez.Strings.PlannedDate : Rez.Strings.InsertionDate);
         var title = new WatchUi.Text({:text=>titleId, :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_BOTTOM,
                                       :font=>Graphics.FONT_SYSTEM_XTINY, :color=>Ui.PRIMARY});
-        var separator = new WatchUi.Text({:text=>Rez.Strings.DateSeparator, :font=>Graphics.FONT_SYSTEM_SMALL,
-                                          :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_CENTER, :color=>Ui.SECONDARY});
         var year = CalendarMath.localFields(currentUtc())[:year];
-        var pattern = new Lang.Array<WatchUi.PickerFactory or WatchUi.Text>[5];
-        pattern[0] = new RingNumberFactory(year - 2, year + 2, "%04d");
-        pattern[1] = separator;
-        pattern[2] = new RingNumberFactory(1, 12, "%02d");
-        pattern[3] = separator;
-        pattern[4] = new RingNumberFactory(1, 31, "%02d");
-        var defaults = new Lang.Array<Lang.Number>[5];
+        var separator = Ui.s(Rez.Strings.DateSeparator);
+        var pattern = new Lang.Array<WatchUi.PickerFactory>[3];
+        pattern[0] = new RingNumberFactory(year - 2, year + 2, "%04d", "");
+        pattern[1] = new RingNumberFactory(1, 12, "%02d", separator);
+        pattern[2] = new RingNumberFactory(1, 31, "%02d", separator);
+        var defaults = new Lang.Array<Lang.Number>[3];
         defaults[0] = f[:year] - (year - 2);
-        defaults[2] = f[:month] - 1;
-        defaults[4] = f[:day] - 1;
+        defaults[1] = f[:month] - 1;
+        defaults[2] = f[:day] - 1;
         Picker.initialize({:title=>title, :pattern=>pattern, :defaults=>defaults});
     }
     function onUpdate(dc as Graphics.Dc) as Void { Ui.clear(dc); Picker.onUpdate(dc); }
@@ -105,7 +104,7 @@ class RingDateDelegate extends WatchUi.PickerDelegate {
     function onCancel() as Lang.Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
     function onAccept(values as Lang.Array) as Lang.Boolean {
         var original = CalendarMath.localFields(_initialUtc);
-        var fields = {:year=>values[0], :month=>values[2], :day=>values[4], :hour=>original[:hour], :minute=>original[:minute], :second=>0};
+        var fields = {:year=>values[0], :month=>values[1], :day=>values[2], :hour=>original[:hour], :minute=>original[:minute], :second=>0};
         if (!CalendarMath.validWall(fields)) {
             getApp().showInfo(Rez.Strings.AdjustDates, [Ui.s(Rez.Strings.InvalidDate)]);
             return true;
@@ -125,22 +124,21 @@ class RingTimePicker extends WatchUi.Picker {
         var use24 = reminders[:clockFormat] == 24 || (reminders[:clockFormat] == 0 && Toybox.System.getDeviceSettings().is24Hour);
         var title = new WatchUi.Text({:text=>Rez.Strings.TimeTitle, :locX=>WatchUi.LAYOUT_HALIGN_CENTER,
                                       :locY=>WatchUi.LAYOUT_VALIGN_BOTTOM, :font=>Graphics.FONT_SYSTEM_XTINY, :color=>Ui.PRIMARY});
-        var separator = new WatchUi.Text({:text=>Rez.Strings.TimeSeparator, :font=>Graphics.FONT_SYSTEM_LARGE,
-                                          :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_CENTER, :color=>Ui.SECONDARY});
+        var separator = Ui.s(Rez.Strings.TimeSeparator);
         if (use24) {
-            var pattern24 = new Lang.Array<WatchUi.PickerFactory or WatchUi.Text>[3];
-            pattern24[0] = new RingNumberFactory(0, 23, "%02d"); pattern24[1] = separator;
-            pattern24[2] = new RingNumberFactory(0, 59, "%02d");
-            var defaults24 = new Lang.Array<Lang.Number>[3]; defaults24[0] = f[:hour]; defaults24[2] = f[:minute];
+            var pattern24 = new Lang.Array<WatchUi.PickerFactory>[2];
+            pattern24[0] = new RingNumberFactory(0, 23, "%02d", "");
+            pattern24[1] = new RingNumberFactory(0, 59, "%02d", separator);
+            var defaults24 = new Lang.Array<Lang.Number>[2]; defaults24[0] = f[:hour]; defaults24[1] = f[:minute];
             Picker.initialize({:title=>title, :pattern=>pattern24, :defaults=>defaults24});
         } else {
             var hour = f[:hour] % 12; if (hour == 0) { hour = 12; }
-            var pattern12 = new Lang.Array<WatchUi.PickerFactory or WatchUi.Text>[4];
-            pattern12[0] = new RingNumberFactory(1, 12, "%d"); pattern12[1] = separator;
-            pattern12[2] = new RingNumberFactory(0, 59, "%02d");
-            pattern12[3] = new RingWordFactory([Ui.s(Rez.Strings.Am), Ui.s(Rez.Strings.Pm)]);
-            var defaults12 = new Lang.Array<Lang.Number>[4];
-            defaults12[0] = hour - 1; defaults12[2] = f[:minute]; defaults12[3] = f[:hour] < 12 ? 0 : 1;
+            var pattern12 = new Lang.Array<WatchUi.PickerFactory>[3];
+            pattern12[0] = new RingNumberFactory(1, 12, "%d", "");
+            pattern12[1] = new RingNumberFactory(0, 59, "%02d", separator);
+            pattern12[2] = new RingWordFactory([Ui.s(Rez.Strings.Am), Ui.s(Rez.Strings.Pm)]);
+            var defaults12 = new Lang.Array<Lang.Number>[3];
+            defaults12[0] = hour - 1; defaults12[1] = f[:minute]; defaults12[2] = f[:hour] < 12 ? 0 : 1;
             Picker.initialize({:title=>title, :pattern=>pattern12, :defaults=>defaults12});
         }
     }
@@ -157,10 +155,10 @@ class RingTimeDelegate extends WatchUi.PickerDelegate {
     function onCancel() as Lang.Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
     function onAccept(values as Lang.Array) as Lang.Boolean {
         var hour = values[0] as Lang.Number;
-        var minute = values[2] as Lang.Number;
-        if (values.size() == 4) {
+        var minute = values[1] as Lang.Number;
+        if (values.size() == 3) {
             if (hour == 12) { hour = 0; }
-            if ((values[3] as Lang.String).equals(Ui.s(Rez.Strings.Pm))) { hour += 12; }
+            if ((values[2] as Lang.String).equals(Ui.s(Rez.Strings.Pm))) { hour += 12; }
         }
         WatchUi.popView(WatchUi.SLIDE_RIGHT);
         if (_action == :setReminder) {

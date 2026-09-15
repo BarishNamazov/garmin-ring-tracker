@@ -73,7 +73,7 @@ module Ui {
         var xLeft = px(dc, 66);
         var xRight = dc.getWidth() - px(dc, 66);
         var width = xRight - xLeft;
-        var labelWidth = (width * 34) / 100;
+        var labelWidth = (width * 29) / 100;
         dc.setColor(SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY,
                     ellipsize(dc, label, Graphics.FONT_SYSTEM_XTINY, labelWidth),
@@ -89,29 +89,16 @@ module Ui {
     }
 
     function timestamp(utcSeconds as Lang.Number, clockFormat as Lang.Number) as Lang.String {
-        var f = CalendarMath.localFields(utcSeconds);
-        var time = "";
-        var use24 = clockFormat == 24 || (clockFormat == 0 && System.getDeviceSettings().is24Hour);
-        if (use24) {
-            time = twoDigits(f[:hour]) + s(Rez.Strings.TimeSeparator) + twoDigits(f[:minute]);
-        } else {
-            var h = f[:hour] % 12;
-            if (h == 0) { h = 12; }
-            time = h.toString() + s(Rez.Strings.TimeSeparator) + twoDigits(f[:minute]) + " " + (f[:hour] < 12 ? s(Rez.Strings.Am) : s(Rez.Strings.Pm));
-        }
-        return f[:year].toString() + s(Rez.Strings.DateSeparator) + twoDigits(f[:month])
-            + s(Rez.Strings.DateSeparator) + twoDigits(f[:day]) + s(Rez.Strings.DateTimeSeparator) + time;
+        return shortDate(utcSeconds) + "\n" + timeForUtc(utcSeconds, clockFormat);
     }
 
     function dateOnly(utcSeconds as Lang.Number) as Lang.String {
-        var f = CalendarMath.localFields(utcSeconds);
-        return f[:year].toString() + s(Rez.Strings.DateSeparator) + twoDigits(f[:month])
-            + s(Rez.Strings.DateSeparator) + twoDigits(f[:day]);
+        return shortDate(utcSeconds);
     }
 
     function shortDate(utcSeconds as Lang.Number) as Lang.String {
         var f = CalendarMath.localFields(utcSeconds);
-        return twoDigits(f[:day]) + " " + monthName(f[:month]);
+        return weekdayName(f[:weekday]) + " " + f[:day].toString() + " " + monthName(f[:month]);
     }
 
     function shortTimestamp(utcSeconds as Lang.Number, clockFormat as Lang.Number) as Lang.String {
@@ -122,6 +109,12 @@ module Ui {
         var ids = [Rez.Strings.Jan, Rez.Strings.Feb, Rez.Strings.Mar, Rez.Strings.Apr, Rez.Strings.May, Rez.Strings.Jun,
                    Rez.Strings.Jul, Rez.Strings.Aug, Rez.Strings.Sep, Rez.Strings.Oct, Rez.Strings.Nov, Rez.Strings.Dec];
         return s(ids[month - 1]);
+    }
+
+    function weekdayName(weekday as Lang.Number) as Lang.String {
+        var ids = [Rez.Strings.Sun, Rez.Strings.Mon, Rez.Strings.Tue, Rez.Strings.Wed,
+                   Rez.Strings.Thu, Rez.Strings.Fri, Rez.Strings.Sat];
+        return s(ids[weekday - 1]);
     }
 
     function timeOnly(hour as Lang.Number, minute as Lang.Number, clockFormat as Lang.Number) as Lang.String {

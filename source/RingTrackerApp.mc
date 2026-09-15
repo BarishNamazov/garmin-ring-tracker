@@ -10,6 +10,7 @@ import Toybox.WatchUi;
 class RingTrackerApp extends Application.AppBase {
     private var _state as Lang.Dictionary;
     private var _launchAlert as Lang.Boolean;
+    private var _notificationData as Lang.Array?;
     private var _pendingSettings as Lang.Dictionary?;
     private var _backgroundWarning as Lang.Boolean;
 
@@ -19,22 +20,25 @@ class RingTrackerApp extends Application.AppBase {
         // constructor free of foreground/domain reachability.
         _state = {};
         _launchAlert = false;
+        _notificationData = null;
         _pendingSettings = null;
         _backgroundWarning = false;
     }
 
     function onStart(state as Lang.Dictionary?) as Void {
-        _state = RingStore.load();
         if (state != null && state[:launchedFromNotification] instanceof Lang.Array) {
-            var notificationData = state[:launchedFromNotification] as Lang.Array;
-            var active = _state[:active] as Lang.Dictionary?;
-            _launchAlert = notificationData.size() >= 2 && active != null
-                && notificationData[0] == active[:cycleId];
+            _notificationData = state[:launchedFromNotification] as Lang.Array;
         }
     }
 
     (:typecheck(disableBackgroundCheck))
     function getInitialView() {
+        _state = RingStore.load();
+        if (_notificationData != null) {
+            var active = _state[:active] as Lang.Dictionary?;
+            _launchAlert = (_notificationData as Lang.Array).size() >= 2 && active != null
+                && (_notificationData as Lang.Array)[0] == active[:cycleId];
+        }
         registerBackground();
         if (_backgroundWarning) {
             return [new InfoView(Rez.Strings.Settings, [Ui.s(Rez.Strings.ReminderRegistrationError)]), new ScrollDelegate()];
@@ -112,6 +116,17 @@ class RingTrackerApp extends Application.AppBase {
         WatchUi.pushView(menu, new MainMenuDelegate(), WatchUi.SLIDE_UP);
     }
 
+    function showAlertMenu() as Void {
+        var focus = 0;
+        var active = _state[:active] as Lang.Dictionary?;
+        if (active != null) {
+            var status = ScheduleModel.deriveStatus(currentUtc(), active, _state[:regimen] as Lang.Dictionary);
+            if (status[:nextAction] == :remove) { focus = 1; }
+            else if (status[:nextAction] == :ringBackIn) { focus = 2; }
+        }
+        WatchUi.pushView(Menus.mainMenuWithFocus(_state, focus), new MainMenuDelegate(), WatchUi.SLIDE_UP);
+    }
+
     function showSchedule() as Void {
         WatchUi.pushView(new ScheduleView(), new PopDelegate(), WatchUi.SLIDE_UP);
     }
@@ -129,8 +144,8 @@ class RingTrackerApp extends Application.AppBase {
         var message = Ui.s(Rez.Strings.SettingsReviewQuestion);
         if ((_pendingSettings as Lang.Dictionary)[:insertionUtc] != null && _state[:active] != null) {
             var clock = (_state[:reminders] as Lang.Dictionary)[:clockFormat];
-            var watchTime = Ui.timestamp((_state[:active] as Lang.Dictionary)[:insertionUtc], clock);
-            var phoneTime = Ui.timestamp((_pendingSettings as Lang.Dictionary)[:insertionUtc], clock);
+            var watchTime = Ui.shortTimestamp((_state[:active] as Lang.Dictionary)[:insertionUtc], clock);
+            var phoneTime = Ui.shortTimestamp((_pendingSettings as Lang.Dictionary)[:insertionUtc], clock);
             message = Ui.fmt(Rez.Strings.RemoteInsertionQuestion, [watchTime, phoneTime]);
         } else if ((_pendingSettings as Lang.Dictionary)[:invalid] == true) {
             message = Ui.s(Rez.Strings.InvalidSettingsQuestion);
@@ -217,7 +232,7 @@ class RingTrackerApp extends Application.AppBase {
 
     function confirmAction(action as Lang.Symbol, atUtc as Lang.Number, data) as Void {
         var message = Ui.s(Rez.Strings.SaveChangeQuestion);
-        var when = Ui.shortTimestamp(atUtc, (_state[:reminders] as Lang.Dictionary)[:clockFormat]);
+        var when = Ui.timestamp(atUtc, (_state[:reminders] as Lang.Dictionary)[:clockFormat]);
         if (action == :acceptDisclaimer) { message = Ui.s(Rez.Strings.ContinueQuestion); }
         else if (action == :acceptRegimen) { message = Ui.s(Rez.Strings.ConfirmRegimenQuestion); }
         else if (action == :insert) { message = Ui.fmt(Rez.Strings.RecordInsertionQuestion, [when]); }

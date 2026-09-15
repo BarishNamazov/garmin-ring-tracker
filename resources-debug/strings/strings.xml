@@ -5,6 +5,7 @@
     <string id="DemoDay5">Day 5 ring-in</string>
     <string id="DemoBeforeRemoval">Day before removal</string>
     <string id="DemoOverdueRemoval">Overdue removal</string>
+    <string id="DemoOverdueLarge">Overdue 12d 23h</string>
     <string id="DemoFreeDay3">Ring-free day 3</string>
     <string id="DemoFreeExceeded">Ring-free ceiling exceeded</string>
     <string id="DemoTemp250">Temporary-out 2h50m</string>
