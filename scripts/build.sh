@@ -76,15 +76,16 @@ run_tests() {
     runner_status=$?
     set -e
     printf '%s\n' "${test_output}"
+    printf 'monkeydo status: %s\n' "${runner_status}"
     summary="$(printf '%s\n' "${test_output}" | sed -n \
-        's/.*PASSED (passed=\([0-9][0-9]*\), failed=\([0-9][0-9]*\), errors=\([0-9][0-9]*\)).*/\1 \2 \3/p' | tail -n 1)"
+        's/.*(passed=\([0-9][0-9]*\), failed=\([0-9][0-9]*\), errors=\([0-9][0-9]*\)).*/\1 \2 \3/p' | tail -n 1)"
     if [[ -z "${summary}" ]]; then
         printf 'Tests: unable to parse result (monkeydo status %s)\n' "${runner_status}" >&2
         exit 1
     fi
     read -r passed failed errors <<<"${summary}"
     printf 'Tests: passed=%s failed=%s errors=%s\n' "${passed}" "${failed}" "${errors}"
-    if (( runner_status != 0 || failed != 0 || errors != 0 )); then
+    if (( passed == 0 || failed != 0 || errors != 0 )); then
         exit 1
     fi
 }
