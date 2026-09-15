@@ -5,3 +5,7 @@ bin/
 *.key
 .vscode/
 sdk/
+
+# Keep generated build output private, but ship the curated release bundle.
+!release/
+!release/*.prg
