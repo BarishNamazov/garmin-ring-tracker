@@ -73,7 +73,7 @@ module Ui {
         var xLeft = px(dc, 66);
         var xRight = dc.getWidth() - px(dc, 66);
         var width = xRight - xLeft;
-        var labelWidth = (width * 29) / 100;
+        var labelWidth = (width * 46) / 100;
         dc.setColor(SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY,
                     ellipsize(dc, label, Graphics.FONT_SYSTEM_XTINY, labelWidth),
@@ -81,6 +81,26 @@ module Ui {
         dc.setColor(PRIMARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xRight, y, Graphics.FONT_SYSTEM_XTINY,
                     ellipsize(dc, value, Graphics.FONT_SYSTEM_XTINY, width - labelWidth),
+                    Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    function dateTimeRow(dc as Graphics.Dc, y as Lang.Number, label as Lang.String,
+                         utcSeconds as Lang.Number, clockFormat as Lang.Number) as Void {
+        var xLeft = px(dc, 66);
+        var xRight = dc.getWidth() - px(dc, 66);
+        var width = xRight - xLeft;
+        var labelWidth = (width * 46) / 100;
+        dc.setColor(SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY,
+                    ellipsize(dc, label, Graphics.FONT_SYSTEM_XTINY, labelWidth),
+                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(PRIMARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(xRight, y - px(dc, 10), Graphics.FONT_SYSTEM_XTINY,
+                    ellipsize(dc, shortDate(utcSeconds), Graphics.FONT_SYSTEM_XTINY, width - labelWidth),
+                    Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(xRight, y + px(dc, 12), Graphics.FONT_SYSTEM_XTINY,
+                    timeForUtc(utcSeconds, clockFormat),
                     Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 

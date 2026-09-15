@@ -36,6 +36,7 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     Storage.setValue("debugNowUtc", nowUtc);
     var state = ScheduleModel.defaultState();
     if (scenario == :fresh) { return state; }
+    if (scenario == :maximumState) { return maximumDemoState(state, nowUtc); }
     state[:setupStep] = 3;
     var regimen = state[:regimen] as Lang.Dictionary;
     var insertion = nowUtc - (4 * CalendarMath.SECONDS_PER_DAY);
@@ -57,5 +58,42 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     else if (scenario == :freeExceeded) { ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen); }
     else if (scenario == :temp250) { ScheduleModel.startTemporaryOut(active, nowUtc - (2 * 3600) - (50 * 60)); }
     else if (scenario == :temp310) { ScheduleModel.startTemporaryOut(active, nowUtc - (3 * 3600) - (10 * 60)); }
+    return state;
+}
+
+(:debug)
+function maximumDemoState(state as Lang.Dictionary, nowUtc as Lang.Number) as Lang.Dictionary {
+    state[:setupStep] = 3;
+    var history = [];
+    for (var c = 0; c < ScheduleModel.MAX_HISTORY; c += 1) {
+        var inserted = nowUtc - ((ScheduleModel.MAX_HISTORY - c) * 40 * CalendarMath.SECONDS_PER_DAY);
+        var intervals = [];
+        // Thirty-two archived intervals plus thirty-two active intervals meet
+        // the SPEC memory fixture while retaining the maximum 24 cycles.
+        var intervalCount = c < 8 ? 2 : 1;
+        for (var i = 0; i < intervalCount; i += 1) {
+            var out = inserted + 100 + (i * 11000);
+            intervals.add({:outUtc=>out, :backInUtc=>out + 10801,
+                :phaseWeekAtStart=>1, :phaseWeekAtEnd=>1, :thresholdCode=>"over3h"});
+        }
+        history.add({:cycleId=>c + 1, :insertionUtc=>inserted,
+            :removalUtc=>inserted + (6 * CalendarMath.SECONDS_PER_DAY),
+            :nextInsertionUtc=>inserted + (28 * CalendarMath.SECONDS_PER_DAY),
+            :closeReason=>"replaced", :regimenDaysIn=>21, :regimenDaysOut=>7,
+            :temporaryOut=>intervals,
+            :temporaryOutSummary=>{:shortIntervalCount=>0, :shortIntervalSeconds=>0}});
+    }
+    state[:history] = history;
+    state[:nextCycleId] = ScheduleModel.MAX_HISTORY + 1;
+    var active = ScheduleModel.insertOrReplace(state, nowUtc - (6 * CalendarMath.SECONDS_PER_DAY));
+    var activeIntervals = active[:temporaryOut] as Lang.Array;
+    for (var j = 0; j < ScheduleModel.MAX_TEMP_INTERVALS - 1; j += 1) {
+        var activeOut = active[:insertionUtc] + 100 + (j * 11000);
+        activeIntervals.add({:outUtc=>activeOut, :backInUtc=>activeOut + 10801,
+            :phaseWeekAtStart=>1, :phaseWeekAtEnd=>1, :thresholdCode=>"over3h"});
+    }
+    activeIntervals.add({:outUtc=>active[:insertionUtc] + 100
+        + ((ScheduleModel.MAX_TEMP_INTERVALS - 1) * 11000), :backInUtc=>null,
+        :phaseWeekAtStart=>1, :phaseWeekAtEnd=>null, :thresholdCode=>null});
     return state;
 }

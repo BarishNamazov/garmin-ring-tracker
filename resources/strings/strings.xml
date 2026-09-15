@@ -33,8 +33,7 @@
     <string id="ScheduleAidTitle">Schedule aid</string>
     <string id="DisclaimerLine1">This app is a scheduling aid, not medical advice.</string>
     <string id="DisclaimerLine2">It cannot determine whether contraception is effective.</string>
-    <string id="DisclaimerLine3">Follow the instructions supplied with your ring.</string>
-    <string id="DisclaimerLine4">Contact a clinician or pharmacist if a ring is late, has been out too long, or pregnancy is possible.</string>
+    <string id="DisclaimerLine3">Follow the instructions supplied with your ring and contact a qualified clinician or pharmacist if a ring is late, has been out too long, or pregnancy is possible.</string>
     <string id="ReviewDetails">Review details</string>
     <string id="StartContinue">START  Continue</string>
     <string id="ContinueQuestion">Continue to regimen setup?</string>
@@ -51,11 +50,16 @@
     <string id="InitialInsertionTitle">Initial insertion</string>
     <string id="InsertedNow">Inserted now</string>
     <string id="ChooseDateTime">Choose date &amp; time</string>
-    <string id="RecordInsertionQuestion">Insert ring at $1$? Starts a new cycle.</string>
-    <string id="ReplaceRingQuestion">Replace ring at $1$? Archives current cycle and starts a new one.</string>
-    <string id="RemoveRingQuestion">Remove ring at $1$? Starts the ring-free interval.</string>
-    <string id="TempOutQuestion">Record ring out at $1$? Starts the temporary-out timer.</string>
-    <string id="BackInQuestion">Record ring back in at $1$? Closes the temporary-out interval.</string>
+    <string id="RecordInsertionQuestion">Insert · $1$
+$2$ · New cycle</string>
+    <string id="ReplaceRingQuestion">Replace · $1$
+$2$ · New cycle</string>
+    <string id="RemoveRingQuestion">Remove · $1$
+$2$ · Ring-free starts</string>
+    <string id="TempOutQuestion">Temp out · $1$
+$2$ · Timer starts</string>
+    <string id="BackInQuestion">Back in · $1$
+$2$ · Interval closes</string>
     <string id="SaveChangeQuestion">Save this change?</string>
     <string id="ClearHistoryQuestion">Clear all recorded history?</string>
     <string id="ResetQuestion">Reset the schedule and settings?</string>
@@ -111,12 +115,16 @@
     <string id="Wed">Wed</string><string id="Thu">Thu</string><string id="Fri">Fri</string>
     <string id="Sat">Sat</string>
     <string id="ThreeHourInTemplate">3-hour boundary in $1$m</string>
-    <string id="ThreeHourReached">3-hour limit reached</string>
+    <string id="ThreeHourReached">3-hour limit reached; reinsert now and follow product instructions.</string>
     <string id="RecordedOutOver3h">Recorded out over 3 hours</string>
     <string id="ReinsertSoon">Reinsert as soon as possible; follow product instructions.</string>
     <string id="RingFreeLimitPassed">Ring-free limit passed</string>
+    <string id="RingFreeLimitReached">7-day limit reached</string>
+    <string id="InsertNow">INSERT NOW</string>
     <string id="TapLabelInfo">Tap for label information</string>
     <string id="BeyondFourWeeks">Beyond FDA-labelled 4 weeks</string>
+    <string id="BeyondFourWeeksLine1">Beyond the FDA-labelled</string>
+    <string id="BeyondFourWeeksLine2">4-week duration</string>
     <string id="WatchBeforeInsertion">Watch time is before recorded insertion</string>
     <string id="AdjustedBadge">Adjusted</string>
     <string id="AdjustTitle">Adjust dates</string>
@@ -153,18 +161,20 @@
     <string id="ResetApp">Reset app</string>
     <string id="ExtendedUseNotice">Use only if this matches your product instructions or clinician's plan.</string>
     <string id="OutsideLabelNotice">Outside FDA-labelled duration. Use only if this matches your clinician's plan.</string>
+    <string id="OutsideLabelBadge">Outside FDA-labelled duration</string>
     <string id="AcknowledgeDurationQuestion">$1$ Save this duration?</string>
     <string id="RegimenChangeQuestion">Change plan from $1$ to $2$? Future deadlines will be recomputed.</string>
     <string id="RepeatTitle">Repeat overdue</string>
     <string id="ClockTitle">Clock format</string>
     <string id="HistoryEmpty">No completed cycles</string>
     <string id="HistoryCountTemplate">$1$ recorded</string>
+    <string id="HistoryEndTemplate">to $1$</string>
     <string id="ClearHistory">Clear history</string>
     <string id="CycleDetailTitle">Cycle detail</string>
     <string id="RemovedLabel">Removed</string>
-    <string id="NextInsertedLabel">Next inserted</string>
+    <string id="NextInsertedLabel">Next in</string>
     <string id="RegimenLabel">Regimen</string>
-    <string id="TemporaryOutLabel">Temporary out</string>
+    <string id="TemporaryOutLabel">Temp out</string>
     <string id="EventsTemplate">$1$ events</string>
     <string id="EventTemplate">$1$ event</string>
     <string id="SummarizedBadge">+ summarized</string>
@@ -178,12 +188,15 @@
     <string id="SourcesTitle">Sources</string>
     <string id="SourcesLine1">NuvaRing and EluRyng prescribing information</string>
     <string id="SourcesLine2">FDA NuvaRing label (2019); NHS ring guide</string>
-    <string id="ReviewDate">Medical copy review required before release</string>
+    <string id="SourcesLine3">Planned Parenthood ring guidance; Annovera FDA label (unsupported product)</string>
     <string id="ActionDueTitle">Action due</string>
     <string id="ActionDueBody">Open actions to record what actually happened.</string>
     <string id="RingFreeExceededBody">The recorded ring-free interval exceeded 7 days. Follow the product label; consider pregnancy and use label-directed backup until the new ring has been used continuously for 7 days.</string>
+    <string id="RingFreeReachedBody">The recorded ring-free interval has reached 7 days. Insert now and follow your product instructions.</string>
     <string id="TempOverBody12">Ring recorded out for more than 3 hours. Reinsert as soon as possible and use label-directed backup for 7 continuous days after reinsertion.</string>
     <string id="TempOverBody3">For a week-3 interval over 3 hours, the label describes either inserting a new ring immediately or inserting no later than 7 days after removal when prior continuous use conditions are met. Use label-directed backup; record what actually happened.</string>
+    <string id="TempOverBodyOutside">This interval began outside cycle days 1–21. The app does not assign standard week-specific instructions. Follow your product instructions or clinician's plan.</string>
+    <string id="TempOverBodyUnknown">The interval's standard schedule week is unknown. Review the recorded dates and follow your product instructions or contact a clinician or pharmacist.</string>
     <string id="ExtendedBody">The ring is recorded in beyond the FDA-labelled 4-week duration. Follow the product label and your clinician's plan.</string>
     <string id="StartOpenActions">START  Open actions</string>
     <string id="AlertOverdueTitle">Action overdue</string>
@@ -205,6 +218,8 @@
     <string id="AlertActionsHint">BACK  •  START Actions</string>
     <string id="SetupNeeded">Setup needed</string>
     <string id="StorageError">The schedule could not be saved. No change was applied.</string>
+    <string id="SettingsMirrorRetry">The schedule was saved, but its Garmin App Settings mirror could not be finalized. The app will retry next time it opens.</string>
+    <string id="TemporaryOutStorageError">No eligible short interval could be summarized. The temporary-out event was not recorded.</string>
     <string id="ReminderRegistrationError">Hourly reminder checks could not be registered. Reopen the app to retry.</string>
     <string id="RecoveredError">Stored schedule data was invalid and was reset. A bounded recovery copy was retained.</string>
     <string id="IncompatibleData">This schedule was created by a newer app version and is read-only.</string>
@@ -230,11 +245,11 @@
     <string id="GlanceMinuteUnit" scope="glance">$1$m</string>
     <string id="GlanceDayCount" scope="glance">$1$ / $2$</string>
     <string id="GlanceEllipsis" scope="glance">…</string>
-    <string id="GlanceRemovePrefix" scope="glance">Ring: remove in </string>
-    <string id="GlanceInsertPrefix" scope="glance">Ring: insert in </string>
-    <string id="GlanceReplacePrefix" scope="glance">Ring: replace in </string>
-    <string id="GlanceOverduePrefix" scope="glance">Ring: overdue </string>
-    <string id="GlanceOutPrefix" scope="glance">Ring: out </string>
+    <string id="GlanceRemovePrefix" scope="glance">Remove in </string>
+    <string id="GlanceInsertPrefix" scope="glance">Insert in </string>
+    <string id="GlanceReplacePrefix" scope="glance">Replace in </string>
+    <string id="GlanceOverduePrefix" scope="glance">Overdue </string>
+    <string id="GlanceOutPrefix" scope="glance">Ring out </string>
     <string id="GlanceOneDaySuffix" scope="glance"> day</string>
     <string id="GlanceDaysSuffix" scope="glance"> days</string>
     <string id="GlanceOneHourSuffix" scope="glance"> hr</string>
@@ -250,6 +265,8 @@
     <string id="NotificationInsertTomorrow" scope="background">Insert tomorrow</string>
     <string id="NotificationRemoveToday" scope="background">Remove today</string>
     <string id="NotificationInsertToday" scope="background">Insert today</string>
+    <string id="NotificationReplaceTomorrow" scope="background">Replace tomorrow</string>
+    <string id="NotificationReplaceToday" scope="background">Replace today</string>
     <string id="NotificationRemove" scope="background">Remove ring</string>
     <string id="NotificationInsert" scope="background">Insert ring</string>
     <string id="NotificationReplace" scope="background">Replace ring</string>

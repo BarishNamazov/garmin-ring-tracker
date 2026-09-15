@@ -7,6 +7,8 @@ source "${script_dir}/env.sh"
 cd "${project_dir}"
 
 devices=(epix2pro42mm epix2pro47mm epix2pro51mm)
+simulator_pid=""
+simulator_log=""
 
 print_hashes() {
     local path
@@ -49,8 +51,6 @@ build_debug() {
 run_tests() {
     local output_dir="bin/test"
     local test_prg="${output_dir}/RingTracker-tests.prg"
-    local simulator_pid=""
-    local simulator_log=""
     local test_output runner_status summary passed failed errors
     mkdir -p "${output_dir}"
     monkeyc -d epix2pro47mm -f monkey.tests.jungle -o "${test_prg}" \
@@ -84,7 +84,7 @@ run_tests() {
     fi
     read -r passed failed errors <<<"${summary}"
     printf 'Tests: passed=%s failed=%s errors=%s\n' "${passed}" "${failed}" "${errors}"
-    if (( failed != 0 || errors != 0 )); then
+    if (( runner_status != 0 || failed != 0 || errors != 0 )); then
         exit 1
     fi
 }

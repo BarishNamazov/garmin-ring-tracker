@@ -1,44 +1,9 @@
-// Independent review regression tests captured exactly as executed against
-// HEAD de9f030 (de9f0309b730775c4f3218dd3f30e89f0da37b19).
-// Run timezone: TZ=America/New_York.
-//
-// Currently failing against HEAD de9f030 (Test.assert failures are reported as
-// ERROR by Garmin's runner):
-// - reviewPlannedOverrideCannotPostponeEarlierDeadline
-// - reviewSettingsRejectFutureActualInsertion
-// - reviewValidationRejectsMissingReminderDocument
-// - reviewValidationRejectsRemovalBeforeInsertion
-// - reviewTemporaryOutBeforeLimitDoesNotCreateScheduleReminder
-// - reviewExactThreeHoursIsNotGenericActionOverdue
-// - reviewDayOfSuppressesStaleDayBeforeCatchup
-// - reviewWorstCaseHistoryFitsStorageValueLimit
-// - reviewThirtyThirdTemporaryOutIsStillRecordable
-// - reviewLoadRecoversSemanticallyInvalidReminderConfig
-//
-// The remaining eight review tests pass against that commit.
+// Independent review regressions originally executed against de9f030.
+// Run in TZ=America/New_York with the main domain test personality.
 
 import Toybox.Lang;
 import Toybox.System;
 import Toybox.Test;
-
-(:testhelper)
-function testWall(y as Number, m as Number, d as Number, hh as Number, mm as Number) as Number {
-    var result = CalendarMath.wallToUtc({
-        :year => y, :month => m, :day => d, :hour => hh, :minute => mm, :second => 0
-    }, System.getClockTime().timeZoneOffset);
-    Test.assert(result != null);
-    return (result as Dictionary)[:utc] as Number;
-}
-
-(:testhelper)
-function assertLocalDateTime(value as Number, y as Number, m as Number, d as Number, hh as Number, mm as Number) as Void {
-    var fields = CalendarMath.localFields(value);
-    Test.assertEqual(y, fields[:year]);
-    Test.assertEqual(m, fields[:month]);
-    Test.assertEqual(d, fields[:day]);
-    Test.assertEqual(hh, fields[:hour]);
-    Test.assertEqual(mm, fields[:minute]);
-}
 
 (:test)
 function reviewCalendarAddAcrossSpringGap(logger as Test.Logger) as Boolean {
@@ -163,8 +128,8 @@ function reviewWorstCaseHistoryFitsStorageValueLimit(logger as Test.Logger) as B
                 :phaseWeekAtStart=>1, :phaseWeekAtEnd=>1, :thresholdCode=>"over3h"});
         }
         history.add({:cycleId=>cycle + 1, :insertionUtc=>1700000000 + (cycle * 100000),
-            :removalUtc=>1700010000 + (cycle * 100000),
-            :nextInsertionUtc=>1700020000 + (cycle * 100000), :closeReason=>"replaced",
+            :removalUtc=>1700700000 + (cycle * 100000),
+            :nextInsertionUtc=>1700800000 + (cycle * 100000), :closeReason=>"replaced",
             :regimenDaysIn=>21, :regimenDaysOut=>7, :temporaryOut=>intervals,
             :temporaryOutSummary=>{:shortIntervalCount=>0, :shortIntervalSeconds=>0}});
     }

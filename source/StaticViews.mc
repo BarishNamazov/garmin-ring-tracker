@@ -22,7 +22,10 @@ class InfoView extends WatchUi.View {
     function scroll(delta as Lang.Number) as Void {
         _scroll += delta;
         if (_scroll < 0) { _scroll = 0; }
-        if (_scroll >= _lineCount) { _scroll = _lineCount > 0 ? _lineCount - 1 : 0; }
+        // drawParagraphs appends one spacer after the final paragraph. Never
+        // allow that spacer to become the only visible "page".
+        var maxScroll = _lineCount > 1 ? _lineCount - 2 : 0;
+        if (_scroll > maxScroll) { _scroll = maxScroll; }
         WatchUi.requestUpdate();
     }
 
@@ -37,7 +40,7 @@ class InfoView extends WatchUi.View {
 
 class DisclaimerView extends InfoView {
     function initialize() {
-        InfoView.initialize(Rez.Strings.ScheduleAidTitle, [Ui.s(Rez.Strings.DisclaimerLine1), Ui.s(Rez.Strings.DisclaimerLine2), Ui.s(Rez.Strings.DisclaimerLine3), Ui.s(Rez.Strings.DisclaimerLine4)]);
+        InfoView.initialize(Rez.Strings.ScheduleAidTitle, [Ui.s(Rez.Strings.DisclaimerLine1), Ui.s(Rez.Strings.DisclaimerLine2), Ui.s(Rez.Strings.DisclaimerLine3)]);
     }
     function onUpdate(dc as Graphics.Dc) as Void {
         Ui.clear(dc);
@@ -113,11 +116,11 @@ class ScheduleView extends WatchUi.View {
         var reminders = state[:reminders] as Lang.Dictionary;
         var status = ScheduleModel.deriveStatus(currentUtc(), active, regimen);
         Ui.centered(dc, Ui.px(dc, 48), Ui.s(Rez.Strings.ScheduleTitle), Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        Ui.compactRow(dc, Ui.px(dc, 92), Ui.s(Rez.Strings.InsertedLabel), Ui.shortTimestamp(active[:insertionUtc], reminders[:clockFormat]));
-        Ui.compactRow(dc, Ui.px(dc, 132), Ui.s(Rez.Strings.RemoveLabel), Ui.shortTimestamp(active[:scheduledRemovalUtc], reminders[:clockFormat]));
-        Ui.compactRow(dc, Ui.px(dc, 172), Ui.s(Rez.Strings.InsertLabel), Ui.shortTimestamp(active[:scheduledInsertionUtc], reminders[:clockFormat]));
-        Ui.compactRow(dc, Ui.px(dc, 232), Ui.s(Rez.Strings.CycleDayLabel), status[:dayOfCycle].toString());
-        Ui.compactRow(dc, Ui.px(dc, 272), Ui.s(Rez.Strings.PlanLabel), Ui.fmt(Rez.Strings.PlanTemplate, [regimen[:daysIn], regimen[:daysOut]]));
+        Ui.dateTimeRow(dc, Ui.px(dc, 88), Ui.s(Rez.Strings.InsertedLabel), active[:insertionUtc], reminders[:clockFormat]);
+        Ui.dateTimeRow(dc, Ui.px(dc, 140), Ui.s(Rez.Strings.RemoveLabel), active[:scheduledRemovalUtc], reminders[:clockFormat]);
+        Ui.dateTimeRow(dc, Ui.px(dc, 192), Ui.s(Rez.Strings.InsertLabel), active[:scheduledInsertionUtc], reminders[:clockFormat]);
+        Ui.compactRow(dc, Ui.px(dc, 244), Ui.s(Rez.Strings.CycleDayLabel), status[:dayOfCycle].toString());
+        Ui.compactRow(dc, Ui.px(dc, 280), Ui.s(Rez.Strings.PlanLabel), Ui.fmt(Rez.Strings.PlanTemplate, [regimen[:daysIn], regimen[:daysOut]]));
         Ui.centered(dc, Ui.px(dc, 320), Ui.s(Rez.Strings.TimesCurrentLocal), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 300));
         Ui.centered(dc, Ui.px(dc, 350), Ui.s(Rez.Strings.BackHint), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 240));
     }
@@ -125,22 +128,31 @@ class ScheduleView extends WatchUi.View {
 
 class AboutView extends InfoView {
     function initialize() {
-        InfoView.initialize(Rez.Strings.AboutTitle, [Ui.s(Rez.Strings.ProductVersion), Ui.s(Rez.Strings.DisclaimerLine1), Ui.s(Rez.Strings.DisclaimerLine2), Ui.s(Rez.Strings.DisclaimerLine3), Ui.s(Rez.Strings.DisclaimerLine4), Ui.s(Rez.Strings.SupportedScope), Ui.s(Rez.Strings.AnnoveraUnsupported), Ui.s(Rez.Strings.ReminderLimit), Ui.s(Rez.Strings.Privacy), Ui.s(Rez.Strings.SourcesTitle), Ui.s(Rez.Strings.SourcesLine1), Ui.s(Rez.Strings.SourcesLine2), Ui.s(Rez.Strings.ReviewDate)]);
+        InfoView.initialize(Rez.Strings.AboutTitle, [Ui.s(Rez.Strings.ProductVersion), Ui.s(Rez.Strings.DisclaimerLine1), Ui.s(Rez.Strings.DisclaimerLine2), Ui.s(Rez.Strings.DisclaimerLine3), Ui.s(Rez.Strings.SupportedScope), Ui.s(Rez.Strings.AnnoveraUnsupported), Ui.s(Rez.Strings.ReminderLimit), Ui.s(Rez.Strings.Privacy), Ui.s(Rez.Strings.SourcesTitle), Ui.s(Rez.Strings.SourcesLine1), Ui.s(Rez.Strings.SourcesLine2), Ui.s(Rez.Strings.SourcesLine3)]);
     }
 }
 
 class AlertView extends WatchUi.View {
     private var _attentionPlayed as Lang.Boolean;
-    private var _detail as Lang.Boolean;
+    private var _detailScroll as Lang.Number;
+    private var _detailLines as Lang.Number;
 
     function initialize() {
         View.initialize();
         _attentionPlayed = false;
-        _detail = false;
+        _detailScroll = -1;
+        _detailLines = 0;
     }
 
     function scroll(delta as Lang.Number) as Void {
-        _detail = delta > 0;
+        if (delta > 0) {
+            if (_detailScroll < 0) { _detailScroll = 0; }
+            else if (_detailScroll + 2 < _detailLines) { _detailScroll += 1; }
+        } else if (_detailScroll > 0) {
+            _detailScroll -= 1;
+        } else {
+            _detailScroll = -1;
+        }
         WatchUi.requestUpdate();
     }
 
@@ -169,22 +181,27 @@ class AlertView extends WatchUi.View {
         var status = ScheduleModel.deriveStatus(nowUtc, active, state[:regimen] as Lang.Dictionary);
         var title = Rez.Strings.ActionDueTitle;
         var color = Ui.AMBER;
-        var detail = Rez.Strings.ActionDueBody;
+        var details = [Ui.s(Rez.Strings.ActionDueBody)];
         var hint = Rez.Strings.AlertRecordHint;
-        if (status[:ringFreeLimitExceeded]) {
+        var alertInterval = getApp().getAlertContext();
+        if (alertInterval == null && status[:temporaryOutOpen]
+            && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
+            alertInterval = ScheduleModel.tempOpen(active);
+        }
+        if (status[:ringFreeLimitExceeded] || status[:ringFreeLimitReached]) {
             title = Rez.Strings.AlertRingFreeTitle;
-            color = Ui.RED;
-            detail = Rez.Strings.RingFreeExceededBody;
+            color = status[:ringFreeLimitExceeded] ? Ui.RED : Ui.AMBER;
+            details = [Ui.s(status[:ringFreeLimitExceeded]
+                ? Rez.Strings.RingFreeExceededBody : Rez.Strings.RingFreeReachedBody)];
             hint = Rez.Strings.AlertLabelHint;
-        } else if (status[:temporaryOutOpen] && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
+        } else if (alertInterval != null) {
             title = Rez.Strings.AlertTemporaryTitle;
             color = Ui.RED;
-            var open = ScheduleModel.tempOpen(active) as Lang.Dictionary;
-            detail = open[:phaseWeekAtStart] == 3 ? Rez.Strings.TempOverBody3 : Rez.Strings.TempOverBody12;
+            details = temporaryDetails(alertInterval as Lang.Dictionary);
             hint = Rez.Strings.AlertLabelHint;
         } else if (status[:beyondLabelFourWeeks]) {
             title = Rez.Strings.AlertDurationTitle;
-            detail = Rez.Strings.ExtendedBody;
+            details = [Ui.s(Rez.Strings.ExtendedBody)];
             hint = Rez.Strings.AlertLabelHint;
         } else if (status[:clockBeforeInsertion]) {
             title = Rez.Strings.AlertDateReviewTitle;
@@ -194,11 +211,12 @@ class AlertView extends WatchUi.View {
             title = Rez.Strings.AlertOverdueTitle;
         }
 
-        if (_detail) {
-            Ui.centered(dc, Ui.px(dc, 62), Ui.s(Rez.Strings.LabelInformationTitle),
+        if (_detailScroll >= 0) {
+            Ui.centered(dc, Ui.px(dc, 58), Ui.s(Rez.Strings.LabelInformationTitle),
                         Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 280));
-            Ui.drawParagraphs(dc, [Ui.s(detail), Ui.s(Rez.Strings.AboutSourcesHint)],
-                              Ui.px(dc, 108), Ui.px(dc, 310), 0);
+            details.add(Ui.s(Rez.Strings.AboutSourcesHint));
+            _detailLines = Ui.drawParagraphs(dc, details,
+                              Ui.px(dc, 104), Ui.px(dc, 302), _detailScroll);
             Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.AlertActionsHint),
                         Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
             return;
@@ -220,18 +238,30 @@ class AlertView extends WatchUi.View {
             timing = Ui.fmt(Rez.Strings.AlertDueIn, [Ui.countdownText(status[:secondsRemaining])]);
         }
         var clock = (state[:reminders] as Lang.Dictionary)[:clockFormat];
-        Ui.centered(dc, Ui.px(dc, 58), Ui.s(title), Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 286));
-        Ui.centered(dc, Ui.px(dc, 112), action, Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 164), timing, Graphics.FONT_SYSTEM_TINY, color, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 213), Ui.s(Rez.Strings.NextActionLabel),
+        Ui.centered(dc, Ui.px(dc, 56), Ui.s(title), Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 286));
+        Ui.centered(dc, Ui.px(dc, 106), action, Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 151), timing, Graphics.FONT_SYSTEM_TINY, color, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 198), Ui.s(Rez.Strings.NextActionLabel),
                     Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
-        Ui.centered(dc, Ui.px(dc, 246), Ui.dateOnly(status[:nextActionUtc]),
+        Ui.centered(dc, Ui.px(dc, 230), Ui.dateOnly(status[:nextActionUtc]),
                     Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 277), Ui.timeForUtc(status[:nextActionUtc], clock),
+        Ui.centered(dc, Ui.px(dc, 262), Ui.timeForUtc(status[:nextActionUtc], clock),
                     Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
-        Ui.centered(dc, Ui.px(dc, 316), Ui.s(hint), Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 306), Ui.s(hint), Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
         Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.AlertActionsHint),
                     Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
+    }
+
+    private function temporaryDetails(interval as Lang.Dictionary) as Lang.Array<Lang.String> {
+        var codes = ScheduleModel.temporaryGuidance(interval);
+        var result = [] as Lang.Array<Lang.String>;
+        for (var i = 0; i < codes.size(); i += 1) {
+            var id = codes[i] == :week12 ? Rez.Strings.TempOverBody12
+                : (codes[i] == :week3 ? Rez.Strings.TempOverBody3
+                : (codes[i] == :outside ? Rez.Strings.TempOverBodyOutside : Rez.Strings.TempOverBodyUnknown));
+            result.add(Ui.s(id));
+        }
+        return result;
     }
 }
 

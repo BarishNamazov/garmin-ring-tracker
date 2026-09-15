@@ -134,6 +134,7 @@ class MainView extends WatchUi.View {
         if (status[:nextAction] == :insert) { heading = status[:phase] == :overdue ? Ui.s(Rez.Strings.InsertRing) : Ui.s(Rez.Strings.InsertIn); }
         else if (status[:nextAction] == :replace) { heading = status[:phase] == :overdue ? Ui.s(Rez.Strings.ReplaceRing) : Ui.s(Rez.Strings.ReplaceIn); }
         else if (status[:phase] == :overdue) { heading = Ui.s(Rez.Strings.RemoveRing); }
+        if (status[:ringFreeLimitReached]) { heading = Ui.s(Rez.Strings.InsertNow); }
         Ui.centered(dc, Ui.px(dc, overdue ? 112 : 148), heading,
                     Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 280));
 
@@ -154,9 +155,16 @@ class MainView extends WatchUi.View {
         var hintColor = Ui.SECONDARY;
         if (status[:clockBeforeInsertion]) { hint = Ui.s(Rez.Strings.WatchBeforeInsertion); hintColor = Ui.RED; }
         else if (status[:ringFreeLimitExceeded]) { hint = Ui.s(Rez.Strings.RingFreeLimitPassed); hintColor = Ui.RED; }
-        else if (status[:beyondLabelFourWeeks]) { hint = Ui.s(Rez.Strings.BeyondFourWeeks); hintColor = Ui.AMBER; }
+        else if (status[:ringFreeLimitReached]) { hint = Ui.s(Rez.Strings.RingFreeLimitReached); hintColor = Ui.AMBER; }
+        else if (status[:beyondLabelFourWeeks]) {
+            Ui.centered(dc, Ui.px(dc, 326), Ui.s(Rez.Strings.BeyondFourWeeksLine1),
+                        Graphics.FONT_SYSTEM_XTINY, Ui.AMBER, Ui.px(dc, 260));
+            Ui.centered(dc, Ui.px(dc, 350), Ui.s(Rez.Strings.BeyondFourWeeksLine2),
+                        Graphics.FONT_SYSTEM_XTINY, Ui.AMBER, Ui.px(dc, 220));
+            return;
+        }
         else if ((getApp().getState()[:active] as Lang.Dictionary)[:plannedOverrideUtc] != null) { hint = Ui.s(Rez.Strings.AdjustedBadge); hintColor = Ui.AMBER; }
-        Ui.centered(dc, Ui.px(dc, 340), hint, Graphics.FONT_SYSTEM_XTINY, hintColor, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 330), hint, Graphics.FONT_SYSTEM_XTINY, hintColor, Ui.px(dc, 300));
     }
 
     private function drawTemporary(dc as Graphics.Dc, status as Lang.Dictionary) as Void {
@@ -174,9 +182,13 @@ class MainView extends WatchUi.View {
         } else {
             boundary = Ui.s(Rez.Strings.RecordedOutOver3h);
         }
-        Ui.centered(dc, Ui.px(dc, 270), boundary, Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 320), Ui.s(Rez.Strings.RingBackIn), Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 260));
-        Ui.centered(dc, Ui.px(dc, 350), Ui.s(Rez.Strings.PressStart), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
+        if (elapsed == ScheduleModel.TEMP_LIMIT_SECONDS) {
+            Ui.drawParagraphs(dc, [boundary], Ui.px(dc, 258), Ui.px(dc, 300), 0);
+        } else {
+            Ui.centered(dc, Ui.px(dc, 270), boundary, Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
+        }
+        Ui.centered(dc, Ui.px(dc, 324), Ui.s(Rez.Strings.RingBackIn), Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 260));
+        Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.PressStart), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
     }
 }
 

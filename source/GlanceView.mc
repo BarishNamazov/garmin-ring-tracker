@@ -21,13 +21,23 @@ class RingGlanceView extends WatchUi.GlanceView {
         var daysOut = 7;
         try {
             var raw = Storage.getValue("ringTrackerGlance");
-            if (raw instanceof Lang.Array && raw.size() >= 4 && raw[0] == 2) {
-                active = raw[1];
-                daysIn = raw[2];
-                daysOut = raw[3];
+            var state = Storage.getValue("ringTrackerState");
+            if (raw instanceof Lang.Array && raw.size() == 5 && raw[0] == 2
+                && raw[1] instanceof Lang.Number && raw[3] instanceof Lang.Number
+                && raw[4] instanceof Lang.Number && raw[3] >= 21 && raw[3] <= 35
+                && raw[4] >= 0 && raw[4] <= 7
+                && state instanceof Lang.Array && state.size() >= 10
+                && state[0] == 2 && state[9] == raw[1]
+                && validActive(raw[2])) {
+                active = raw[2];
+                daysIn = raw[3];
+                daysOut = raw[4];
+            } else {
+                markMirrorError();
             }
         } catch (ignored) {
             active = null;
+            markMirrorError();
         }
 
         var text = gs(Rez.Strings.GlanceSetup);
@@ -96,6 +106,20 @@ class RingGlanceView extends WatchUi.GlanceView {
 
     private function gs(id as Lang.ResourceId) as Lang.String {
         return Application.loadResource(id) as Lang.String;
+    }
+
+    private function validActive(value) as Lang.Boolean {
+        if (value == null) { return true; }
+        if (!(value instanceof Lang.Array) || (value as Lang.Array).size() != 7) { return false; }
+        var a = value as Lang.Array;
+        return a[0] instanceof Lang.Number && (a[1] == null || a[1] instanceof Lang.Number)
+            && a[2] instanceof Lang.Number && a[3] instanceof Lang.Number
+            && a[4] instanceof Lang.Number && (a[5] == null || a[5] instanceof Lang.Number)
+            && (a[6] == null || a[6] instanceof Lang.Number);
+    }
+
+    private function markMirrorError() as Void {
+        try { Storage.setValue("ringTrackerMirrorError", "glance mirror invalid"); } catch (ignored) { }
     }
 
     private function compactDuration(seconds as Lang.Number) as Lang.String {

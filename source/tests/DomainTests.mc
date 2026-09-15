@@ -238,7 +238,7 @@ function reminderTemporaryOutHasHigherPriority(logger as Test.Logger) as Boolean
 function stateValidationRejectsNewerAndCorrupt(logger as Test.Logger) as Boolean {
     var valid = ScheduleModel.defaultState();
     Test.assert(ScheduleModel.validState(valid));
-    valid[:schemaVersion] = 2;
+    valid[:schemaVersion] = ScheduleModel.SCHEMA_VERSION + 1;
     Test.assert(!ScheduleModel.validState(valid));
     var corrupt = ScheduleModel.defaultState();
     var corruptRegimen = corrupt[:regimen] as Dictionary;
@@ -401,7 +401,7 @@ function compactBackgroundTemporaryOutPriority(logger as Test.Logger) as Boolean
     var compact = BackgroundRuntime.load();
     var selected = BackgroundRuntime.evaluate(start + 10801, compact as Array);
     Test.assertEqual(1, selected[0]);
-    Test.assertEqual(3, selected[1]);
+    Test.assertEqual(0, selected[1]);
     return true;
 }
 

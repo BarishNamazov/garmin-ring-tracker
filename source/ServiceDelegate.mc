@@ -15,7 +15,7 @@ class RingServiceDelegate extends System.ServiceDelegate {
         try {
             var state = BackgroundRuntime.load();
             if (state != null) {
-                var active = state[1] as Lang.Array?;
+                var active = state[2] as Lang.Array?;
                 var selected = BackgroundRuntime.evaluate(currentUtc(), state);
                 if (selected != null) {
                     var ids = notificationIds(selected[0], selected[1]);
@@ -43,9 +43,11 @@ class RingServiceDelegate extends System.ServiceDelegate {
             : (action == 2 ? Rez.Strings.NotificationReplace : Rez.Strings.NotificationInsert);
         var body = Rez.Strings.NotificationScheduled;
         if (kind == 5) {
-            subtitle = action == 0 ? Rez.Strings.NotificationRemoveTomorrow : Rez.Strings.NotificationInsertTomorrow;
+            subtitle = action == 0 ? Rez.Strings.NotificationRemoveTomorrow
+                : (action == 2 ? Rez.Strings.NotificationReplaceTomorrow : Rez.Strings.NotificationInsertTomorrow);
         } else if (kind == 4) {
-            subtitle = action == 0 ? Rez.Strings.NotificationRemoveToday : Rez.Strings.NotificationInsertToday;
+            subtitle = action == 0 ? Rez.Strings.NotificationRemoveToday
+                : (action == 2 ? Rez.Strings.NotificationReplaceToday : Rez.Strings.NotificationInsertToday);
         } else if (kind == 3) {
             title = Rez.Strings.NotificationOverdueTitle;
         } else if (kind == 1) {

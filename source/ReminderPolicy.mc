@@ -5,7 +5,7 @@ import Toybox.Lang;
 // candidate, then calls markSent only after posting succeeds.
 module ReminderPolicy {
     function actionKey(status as Lang.Dictionary) as Lang.String {
-        return status[:nextAction].toString() + ":" + status[:nextActionUtc].toString();
+        return status[:underlyingAction].toString() + ":" + status[:underlyingActionUtc].toString();
     }
 
     function candidate(kind as Lang.Symbol, priority as Lang.Number, slot as Lang.Number?) as Lang.Dictionary {
@@ -35,7 +35,8 @@ module ReminderPolicy {
             ledger[:lastTempOutSlot] = null;
         }
 
-        if (status[:ringFreeLimitExceeded] && !ledger[:ringFreeExceededSent]) {
+        if ((status[:ringFreeLimitReached] || status[:ringFreeLimitExceeded])
+            && !ledger[:ringFreeExceededSent]) {
             return candidate(:ringFreeExceeded, 1, null);
         }
         if (status[:temporaryOutOpen] && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
@@ -48,20 +49,22 @@ module ReminderPolicy {
         if (status[:beyondLabelFourWeeks] && !ledger[:labelFourWeekSent]) {
             return candidate(:beyondFourWeeks, 3, null);
         }
-        if (status[:secondsRemaining] <= 0) {
-            var overdueSlot = Math.floor((-status[:secondsRemaining]) / (reminders[:overdueRepeatHours] * CalendarMath.SECONDS_PER_HOUR));
+        if (status[:underlyingSecondsRemaining] <= 0) {
+            var overdueSlot = Math.floor((-status[:underlyingSecondsRemaining]) / (reminders[:overdueRepeatHours] * CalendarMath.SECONDS_PER_HOUR));
             if (ledger[:lastOverdueSlot] == null || overdueSlot > ledger[:lastOverdueSlot]) {
                 return candidate(:overdue, 4, overdueSlot);
             }
             return null;
         }
 
-        var dayOf = reminderAt(status[:nextActionUtc], 0, reminders[:localHour], reminders[:localMinute]);
-        if (dayOf != null && dayOf < status[:nextActionUtc] && nowUtc >= dayOf && !ledger[:dayOfSent]) {
+        var deadline = status[:underlyingActionUtc];
+        var dayOf = reminderAt(deadline, 0, reminders[:localHour], reminders[:localMinute]);
+        if (dayOf != null && dayOf < deadline && nowUtc >= dayOf && !ledger[:dayOfSent]) {
             return candidate(:dayOf, 5, null);
         }
-        var dayBefore = reminderAt(status[:nextActionUtc], -1, reminders[:localHour], reminders[:localMinute]);
-        if (dayBefore != null && dayBefore < status[:nextActionUtc] && nowUtc >= dayBefore && !ledger[:dayBeforeSent]) {
+        var dayBefore = reminderAt(deadline, -1, reminders[:localHour], reminders[:localMinute]);
+        if (dayBefore != null && dayBefore < deadline && nowUtc >= dayBefore
+            && (dayOf == null || nowUtc < dayOf) && !ledger[:dayBeforeSent]) {
             return candidate(:dayBefore, 6, null);
         }
         return null;
@@ -84,6 +87,7 @@ module ReminderPolicy {
                 break;
             case :dayOf:
                 ledger[:dayOfSent] = true;
+                ledger[:dayBeforeSent] = true;
                 break;
             case :dayBefore:
                 ledger[:dayBeforeSent] = true;

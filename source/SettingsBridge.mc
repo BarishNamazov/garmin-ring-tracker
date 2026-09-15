@@ -27,6 +27,7 @@ module SettingsBridge {
             var resolved = CalendarMath.wallToUtcUsingDevice(fields);
             if (resolved == null || resolved[:adjusted]) { return null; }
             if (!isoForUtc(resolved[:utc]).equals(text)) { return null; }
+            if (resolved[:utc] > nowUtc + 60) { return null; }
             return resolved;
         } catch (ignored) {
             return null;
@@ -95,7 +96,7 @@ module SettingsBridge {
     // values are applied immediately, as permitted by the settings contract.
     function observe(state as Lang.Dictionary, nowUtc as Lang.Number) as Lang.Dictionary? {
         var sync = state[:settingsSync] as Lang.Dictionary;
-        completePendingMirror(state);
+        completePendingMirrors(state);
         var result = {};
         var iso = Properties.getValue("insertionIso");
         if (iso instanceof Lang.String && !(iso as Lang.String).equals(sync[:lastSeenInsertionIso] as Lang.String)) {
@@ -108,13 +109,20 @@ module SettingsBridge {
                     result[:insertionUtc] = parsed[:utc];
                     result[:insertionIso] = iso;
                 }
+            } else if (state[:active] != null) {
+                sync[:pendingSettingsError] = "emptyInsertionIso";
+                result[:invalid] = true;
+            } else {
+                sync[:lastSeenInsertionIso] = "";
+                sync[:lastAcceptedInsertionIso] = "";
             }
         }
 
         var fromPhone = configFromProperties();
         var snapshot = sync[:configSnapshot] as Lang.Array?;
         if (snapshot == null) {
-            mirrorAll(state);
+            stageMirrors(state);
+            completePendingMirrors(state);
         } else if (fromPhone == null) {
             sync[:pendingSettingsError] = "configuration";
             result[:invalid] = true;
@@ -141,7 +149,7 @@ module SettingsBridge {
         r[:soundEnabled] = values[6]; r[:clockFormat] = values[7];
     }
 
-    function completePendingMirror(state as Lang.Dictionary) as Void {
+    function completePendingMirrors(state as Lang.Dictionary) as Void {
         var sync = state[:settingsSync] as Lang.Dictionary;
         if (sync[:pendingMirrorIso] != null) {
             Properties.setValue("insertionIso", sync[:pendingMirrorIso]);
@@ -149,30 +157,48 @@ module SettingsBridge {
             sync[:lastAcceptedInsertionIso] = sync[:pendingMirrorIso];
             sync[:pendingMirrorIso] = null;
         }
+        if (sync[:pendingConfigSnapshot] instanceof Lang.Array) {
+            var values = sync[:pendingConfigSnapshot] as Lang.Array;
+            Properties.setValue("reminderHour", values[0]);
+            Properties.setValue("reminderMinute", values[1]);
+            Properties.setValue("daysIn", values[2]);
+            Properties.setValue("daysOut", values[3]);
+            Properties.setValue("overdueRepeatHours", values[4]);
+            Properties.setValue("vibrationEnabled", values[5]);
+            Properties.setValue("soundEnabled", values[6]);
+            Properties.setValue("clockFormat", values[7]);
+            sync[:configSnapshot] = values;
+            sync[:pendingConfigSnapshot] = null;
+        }
     }
 
-    function mirrorAll(state as Lang.Dictionary) as Void {
+    function stageMirrors(state as Lang.Dictionary) as Void {
         var sync = state[:settingsSync] as Lang.Dictionary;
-        completePendingMirror(state);
         var values = configFromState(state);
-        Properties.setValue("reminderHour", values[0]);
-        Properties.setValue("reminderMinute", values[1]);
-        Properties.setValue("daysIn", values[2]);
-        Properties.setValue("daysOut", values[3]);
-        Properties.setValue("overdueRepeatHours", values[4]);
-        Properties.setValue("vibrationEnabled", values[5]);
-        Properties.setValue("soundEnabled", values[6]);
-        Properties.setValue("clockFormat", values[7]);
-        sync[:configSnapshot] = values;
+        if (sync[:configSnapshot] == null
+            || !arraysEqual(sync[:configSnapshot] as Lang.Array, values)) {
+            sync[:pendingConfigSnapshot] = values;
+        }
         if (state[:active] != null) {
             var iso = isoForUtc((state[:active] as Lang.Dictionary)[:insertionUtc]);
-            Properties.setValue("insertionIso", iso);
-            sync[:lastSeenInsertionIso] = iso;
-            sync[:lastAcceptedInsertionIso] = iso;
+            if (!iso.equals(sync[:lastSeenInsertionIso] as Lang.String)) {
+                sync[:pendingMirrorIso] = iso;
+            }
         } else {
-            Properties.setValue("insertionIso", "");
-            sync[:lastSeenInsertionIso] = "";
-            sync[:lastAcceptedInsertionIso] = "";
+            if (!(sync[:lastSeenInsertionIso] as Lang.String).equals("")) {
+                sync[:pendingMirrorIso] = "";
+            }
         }
+    }
+
+    // Synchronous helper retained for setup/tests. Production mutations stage
+    // markers, save them, complete the property writes, then save the cleared
+    // markers in RingTrackerApp.saveOrRecover().
+    function mirrorAll(state as Lang.Dictionary) as Void {
+        var sync = state[:settingsSync] as Lang.Dictionary;
+        sync[:pendingConfigSnapshot] = configFromState(state);
+        sync[:pendingMirrorIso] = state[:active] == null ? ""
+            : isoForUtc((state[:active] as Lang.Dictionary)[:insertionUtc]);
+        completePendingMirrors(state);
     }
 }

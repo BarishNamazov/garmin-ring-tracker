@@ -13,6 +13,7 @@ class RingTrackerApp extends Application.AppBase {
     private var _notificationData as Lang.Array?;
     private var _pendingSettings as Lang.Dictionary?;
     private var _backgroundWarning as Lang.Boolean;
+    private var _alertContext as Lang.Dictionary?;
 
     function initialize() {
         AppBase.initialize();
@@ -23,6 +24,7 @@ class RingTrackerApp extends Application.AppBase {
         _notificationData = null;
         _pendingSettings = null;
         _backgroundWarning = false;
+        _alertContext = null;
     }
 
     function onStart(state as Lang.Dictionary?) as Void {
@@ -31,13 +33,12 @@ class RingTrackerApp extends Application.AppBase {
         }
     }
 
-    (:typecheck(disableBackgroundCheck))
     function getInitialView() {
         _state = RingStore.load();
         if (_notificationData != null) {
             var active = _state[:active] as Lang.Dictionary?;
-            _launchAlert = (_notificationData as Lang.Array).size() >= 2 && active != null
-                && (_notificationData as Lang.Array)[0] == active[:cycleId];
+            var data = _notificationData as Lang.Array;
+            _launchAlert = active != null && ScheduleModel.validNotificationData(data, active[:cycleId]);
         }
         registerBackground();
         if (_backgroundWarning) {
@@ -75,7 +76,6 @@ class RingTrackerApp extends Application.AppBase {
         return [new RingServiceDelegate()];
     }
 
-    (:typecheck(disableBackgroundCheck))
     function registerBackground() as Void {
         try {
             Background.registerForTemporalEvent(new Time.Duration(60 * 60));
@@ -87,14 +87,23 @@ class RingTrackerApp extends Application.AppBase {
 
     function getState() as Lang.Dictionary { return _state; }
     function getPendingSettings() as Lang.Dictionary? { return _pendingSettings; }
+    function getAlertContext() as Lang.Dictionary? { return _alertContext; }
 
     function saveOrRecover() as Lang.Boolean {
+        SettingsBridge.stageMirrors(_state);
         if (RingStore.save(_state)) {
             try {
-                SettingsBridge.mirrorAll(_state);
-                RingStore.save(_state);
+                SettingsBridge.completePendingMirrors(_state);
+                if (!RingStore.save(_state)) {
+                    _state = RingStore.load();
+                    showInfo(Rez.Strings.AppName, [Ui.s(Rez.Strings.SettingsMirrorRetry)]);
+                    return false;
+                }
             } catch (ignored) {
                 // pendingMirrorIso remains durable for the next foreground run.
+                _state = RingStore.load();
+                showInfo(Rez.Strings.AppName, [Ui.s(Rez.Strings.SettingsMirrorRetry)]);
+                return false;
             }
             return true;
         }
@@ -136,6 +145,15 @@ class RingTrackerApp extends Application.AppBase {
     }
 
     function showAlert() as Void {
+        // A direct alert launch always reflects the live schedule. Temporary
+        // interval context is only valid for the immediate "ring back in"
+        // flow and must not leak into a later overdue alert.
+        _alertContext = null;
+        WatchUi.pushView(new AlertView(), new AlertDelegate(), WatchUi.SLIDE_UP);
+    }
+
+    function showTemporaryAlert(interval as Lang.Dictionary) as Void {
+        _alertContext = interval;
         WatchUi.pushView(new AlertView(), new AlertDelegate(), WatchUi.SLIDE_UP);
     }
 
@@ -144,8 +162,8 @@ class RingTrackerApp extends Application.AppBase {
         var message = Ui.s(Rez.Strings.SettingsReviewQuestion);
         if ((_pendingSettings as Lang.Dictionary)[:insertionUtc] != null && _state[:active] != null) {
             var clock = (_state[:reminders] as Lang.Dictionary)[:clockFormat];
-            var watchTime = Ui.shortTimestamp((_state[:active] as Lang.Dictionary)[:insertionUtc], clock);
-            var phoneTime = Ui.shortTimestamp((_pendingSettings as Lang.Dictionary)[:insertionUtc], clock);
+            var watchTime = Ui.timestamp((_state[:active] as Lang.Dictionary)[:insertionUtc], clock);
+            var phoneTime = Ui.timestamp((_pendingSettings as Lang.Dictionary)[:insertionUtc], clock);
             message = Ui.fmt(Rez.Strings.RemoteInsertionQuestion, [watchTime, phoneTime]);
         } else if ((_pendingSettings as Lang.Dictionary)[:invalid] == true) {
             message = Ui.s(Rez.Strings.InvalidSettingsQuestion);
@@ -157,6 +175,8 @@ class RingTrackerApp extends Application.AppBase {
         if (_pendingSettings == null) { showMain(); return; }
         var pending = _pendingSettings as Lang.Dictionary;
         var dstNotice = false;
+        var incomingRejected = false;
+        var incomingWasFuture = false;
         if (accept && pending[:invalid] != true) {
             if (pending[:config] instanceof Lang.Array) {
                 SettingsBridge.applyConfig(_state, pending[:config] as Lang.Array);
@@ -166,20 +186,23 @@ class RingTrackerApp extends Application.AppBase {
             if (pending[:insertionUtc] instanceof Lang.Number) {
                 var incoming = pending[:insertionUtc] as Lang.Number;
                 var active = _state[:active] as Lang.Dictionary?;
-                if (active == null) {
-                    var created = ScheduleModel.insertOrReplace(_state, incoming);
+                if (incoming > currentUtc() + 60
+                    || (active != null && !ScheduleModel.validInsertionEdit(active, incoming))) {
+                    incomingWasFuture = incoming > currentUtc() + 60;
+                    pending[:invalid] = true;
+                    accept = false;
+                    incomingRejected = true;
+                }
+            }
+            if (accept && pending[:insertionUtc] instanceof Lang.Number) {
+                var acceptedUtc = pending[:insertionUtc] as Lang.Number;
+                var acceptedActive = _state[:active] as Lang.Dictionary?;
+                if (acceptedActive == null) {
+                    var created = ScheduleModel.insertOrReplace(_state, acceptedUtc);
                     dstNotice = created[:dstAdjustment] != null;
                 } else {
-                    var rebuilt = ScheduleModel.newCycle(active[:cycleId], incoming, _state[:regimen] as Lang.Dictionary);
-                    rebuilt[:removalUtc] = active[:removalUtc];
-                    rebuilt[:removalWall] = active[:removalWall];
-                    rebuilt[:temporaryOut] = active[:temporaryOut];
-                    rebuilt[:plannedOverrideUtc] = active[:plannedOverrideUtc];
-                    if (active[:removalUtc] != null) {
-                        var ceiling = CalendarMath.addLocalCalendarDays(active[:removalUtc], 7);
-                        rebuilt[:ringFreeCeilingUtc] = ceiling[:utc];
-                        if (ceiling[:adjusted]) { rebuilt[:dstAdjustment] = "advancedToValidLocalTime"; }
-                    }
+                    var rebuilt = ScheduleModel.rebuildForInsertion(acceptedActive, acceptedUtc,
+                        _state[:regimen] as Lang.Dictionary) as Lang.Dictionary;
                     _state[:active] = rebuilt;
                     dstNotice = rebuilt[:dstAdjustment] != null;
                 }
@@ -191,10 +214,12 @@ class RingTrackerApp extends Application.AppBase {
         var resolvedSync = _state[:settingsSync] as Lang.Dictionary;
         resolvedSync[:pendingSettingsError] = null;
         _pendingSettings = null;
-        if (!accept || pending[:invalid] == true) {
-            try { SettingsBridge.mirrorAll(_state); } catch (ignored) { }
-        }
         if (saveOrRecover()) {
+            if (incomingRejected) {
+                showInfo(Rez.Strings.AdjustDates, [Ui.s(incomingWasFuture
+                    ? Rez.Strings.FutureEvent : Rez.Strings.InvalidEventOrder)]);
+                return;
+            }
             if (_state[:active] == null) {
                 WatchUi.switchToView(Menus.insertionMenu(), new InsertionMenuDelegate(), WatchUi.SLIDE_IMMEDIATE);
             } else {
@@ -204,7 +229,6 @@ class RingTrackerApp extends Application.AppBase {
         }
     }
 
-    (:typecheck(disableBackgroundCheck))
     function onSettingsChanged() as Void {
         prepareSettings();
         if (_pendingSettings != null) {
@@ -220,7 +244,6 @@ class RingTrackerApp extends Application.AppBase {
             ? true : Ui.s(key.equals("insertionIso") ? Rez.Strings.InsertionDateTimeError : Rez.Strings.SettingValueError);
     }
 
-    (:typecheck(disableBackgroundCheck))
     private function prepareSettings() as Void {
         try {
             _pendingSettings = SettingsBridge.observe(_state, currentUtc());
@@ -232,14 +255,15 @@ class RingTrackerApp extends Application.AppBase {
 
     function confirmAction(action as Lang.Symbol, atUtc as Lang.Number, data) as Void {
         var message = Ui.s(Rez.Strings.SaveChangeQuestion);
-        var when = Ui.timestamp(atUtc, (_state[:reminders] as Lang.Dictionary)[:clockFormat]);
+        var clock = (_state[:reminders] as Lang.Dictionary)[:clockFormat];
+        var whenParts = [Ui.dateOnly(atUtc), Ui.timeForUtc(atUtc, clock)];
         if (action == :acceptDisclaimer) { message = Ui.s(Rez.Strings.ContinueQuestion); }
         else if (action == :acceptRegimen) { message = Ui.s(Rez.Strings.ConfirmRegimenQuestion); }
-        else if (action == :insert) { message = Ui.fmt(Rez.Strings.RecordInsertionQuestion, [when]); }
-        else if (action == :replace) { message = Ui.fmt(Rez.Strings.ReplaceRingQuestion, [when]); }
-        else if (action == :remove) { message = Ui.fmt(Rez.Strings.RemoveRingQuestion, [when]); }
-        else if (action == :tempOut) { message = Ui.fmt(Rez.Strings.TempOutQuestion, [when]); }
-        else if (action == :backIn) { message = Ui.fmt(Rez.Strings.BackInQuestion, [when]); }
+        else if (action == :insert) { message = Ui.fmt(Rez.Strings.RecordInsertionQuestion, whenParts); }
+        else if (action == :replace) { message = Ui.fmt(Rez.Strings.ReplaceRingQuestion, whenParts); }
+        else if (action == :remove) { message = Ui.fmt(Rez.Strings.RemoveRingQuestion, whenParts); }
+        else if (action == :tempOut) { message = Ui.fmt(Rez.Strings.TempOutQuestion, whenParts); }
+        else if (action == :backIn) { message = Ui.fmt(Rez.Strings.BackInQuestion, whenParts); }
         else if (action == :clearHistory) { message = Ui.s(Rez.Strings.ClearHistoryQuestion); }
         else if (action == :reset) { message = Ui.s(Rez.Strings.ResetQuestion); }
         else if (action == :setDaysIn || action == :setDaysOut) {
@@ -264,6 +288,11 @@ class RingTrackerApp extends Application.AppBase {
         }
         if (action == :insert || action == :replace) {
             if (atUtc > currentUtc() + 60) { showInfo(Rez.Strings.InitialInsertionTitle, [Ui.s(Rez.Strings.FutureEvent)]); return; }
+            var previous = _state[:active] as Lang.Dictionary?;
+            if (previous != null && !ScheduleModel.validReplacementTime(previous, atUtc)) {
+                showInfo(Rez.Strings.AdjustDates, [Ui.s(Rez.Strings.InvalidEventOrder)]);
+                return;
+            }
             var inserted = ScheduleModel.insertOrReplace(_state, atUtc);
             noteWatchEdit(atUtc);
             if (saveOrRecover()) {
@@ -290,7 +319,14 @@ class RingTrackerApp extends Application.AppBase {
             return;
         }
         if (active == null) { return; }
+        if ((action == :remove || action == :tempOut || action == :backIn
+            || action == :adjustInsertion || action == :adjustRemoval)
+            && atUtc > currentUtc() + 60) {
+            showInfo(Rez.Strings.AdjustDates, [Ui.s(Rez.Strings.FutureEvent)]);
+            return;
+        }
         var wasOver = false;
+        var closedAlertInterval = null;
         var dstNotice = false;
         if (action == :remove) {
             if (atUtc > currentUtc() + 60 || !ScheduleModel.recordRemoval(active, atUtc, regimen)) {
@@ -298,30 +334,29 @@ class RingTrackerApp extends Application.AppBase {
             }
             dstNotice = active[:dstAdjustment] != null;
         } else if (action == :tempOut) {
-            if (!ScheduleModel.startTemporaryOut(active, atUtc)) { return; }
+            if (!ScheduleModel.startTemporaryOut(active, atUtc)) {
+                showInfo(Rez.Strings.AdjustDates, [Ui.s(Rez.Strings.TemporaryOutStorageError)]);
+                return;
+            }
         } else if (action == :backIn) {
             var open = ScheduleModel.tempOpen(active);
             wasOver = open != null && atUtc - open[:outUtc] > ScheduleModel.TEMP_LIMIT_SECONDS;
             if (!ScheduleModel.endTemporaryOut(active, atUtc)) { return; }
+            if (wasOver) { closedAlertInterval = open; }
         } else if (action == :adjustInsertion) {
-            var rebuilt = ScheduleModel.newCycle(active[:cycleId], atUtc, regimen);
-            rebuilt[:removalUtc] = active[:removalUtc];
-            rebuilt[:removalWall] = active[:removalWall];
-            rebuilt[:temporaryOut] = active[:temporaryOut];
-            rebuilt[:plannedOverrideUtc] = active[:plannedOverrideUtc];
-            if (active[:removalUtc] != null) {
-                var ceiling = CalendarMath.addLocalCalendarDays(active[:removalUtc], 7);
-                rebuilt[:ringFreeCeilingUtc] = ceiling[:utc];
-                if (ceiling[:adjusted]) { rebuilt[:dstAdjustment] = "advancedToValidLocalTime"; }
+            var rebuilt = ScheduleModel.rebuildForInsertion(active, atUtc, regimen);
+            if (rebuilt == null) {
+                showInfo(Rez.Strings.AdjustDates, [Ui.s(Rez.Strings.InvalidEventOrder)]);
+                return;
             }
             _state[:active] = rebuilt;
-            dstNotice = rebuilt[:dstAdjustment] != null;
+            dstNotice = (rebuilt as Lang.Dictionary)[:dstAdjustment] != null;
             noteWatchEdit(atUtc);
         } else if (action == :adjustRemoval) {
             if (!ScheduleModel.recordRemoval(active, atUtc, regimen)) { showInfo(Rez.Strings.AdjustDates, [Ui.s(Rez.Strings.InvalidEventOrder)]); return; }
             dstNotice = active[:dstAdjustment] != null;
         } else if (action == :adjustPlanned) {
-            active[:plannedOverrideUtc] = atUtc;
+            ScheduleModel.setPlannedOverride(active, atUtc, regimen);
         } else if (action == :setReminder) {
             var reminders = _state[:reminders] as Lang.Dictionary;
             var timeValues = data as Lang.Array<Lang.Number>;
@@ -351,7 +386,9 @@ class RingTrackerApp extends Application.AppBase {
         if (saveOrRecover()) {
             if (action == :reset) { WatchUi.switchToView(new DisclaimerView(), new DisclaimerDelegate(), WatchUi.SLIDE_IMMEDIATE); }
             else if (isFreshOptionalSeed(action, data)) { WatchUi.switchToView(new DisclaimerView(), new DisclaimerDelegate(), WatchUi.SLIDE_IMMEDIATE); }
-            else if (action == :backIn && wasOver) { showAlert(); }
+            else if (action == :backIn && closedAlertInterval != null) {
+                showTemporaryAlert(closedAlertInterval as Lang.Dictionary);
+            }
             else {
                 showMain();
                 if (dstNotice) { showDstAdjustment(); }
@@ -369,6 +406,7 @@ class RingTrackerApp extends Application.AppBase {
         active[:labelFourWeekUtc] = label[:utc];
         var adjusted = removal[:adjusted] || insertion[:adjusted] || label[:adjusted];
         active[:dstAdjustment] = adjusted ? "advancedToValidLocalTime" : null;
+        ScheduleModel.refreshFinalInsertionUtc(active, regimen);
         return adjusted;
     }
 

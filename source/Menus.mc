@@ -61,6 +61,9 @@ module Menus {
         var menu = new WatchUi.Menu2({:title => Rez.Strings.Settings, :footer => Rez.Strings.ForegroundOnlyFooter});
         menu.addItem(item(Rez.Strings.ReminderTime, Ui.timeOnly(reminders[:localHour], reminders[:localMinute], reminders[:clockFormat]), :reminderTime));
         menu.addItem(item(Rez.Strings.DaysRingIn, regimen[:daysIn].toString(), :daysIn));
+        if (regimen[:daysIn] > 28) {
+            menu.addItem(item(Rez.Strings.OutsideLabelBadge, Rez.Strings.ExtendedUseNotice, :outsideLabelInfo));
+        }
         menu.addItem(item(Rez.Strings.DaysRingFree, regimen[:daysOut] == 0 ? Rez.Strings.ReplaceImmediately : regimen[:daysOut].toString(), :daysOut));
         menu.addItem(item(Rez.Strings.RepeatOverdue, Ui.fmt(Rez.Strings.HoursShortTemplate, [reminders[:overdueRepeatHours]]), :repeat));
         menu.addItem(item(Rez.Strings.Vibration, reminders[:vibrationEnabled] ? Rez.Strings.On : Rez.Strings.Off, :vibration));
@@ -96,12 +99,9 @@ module Menus {
         for (var i = history.size() - 1; i >= 0; i -= 1) {
             var cycle = history[i];
             var end = cycle[:nextInsertionUtc] == null ? cycle[:removalUtc] : cycle[:nextInsertionUtc];
-            var label = Ui.shortDate(cycle[:insertionUtc]) + Ui.s(Rez.Strings.RangeSeparator)
-                + (end == null ? Ui.s(Rez.Strings.NotRecorded) : Ui.shortDate(end));
-            var summary = cycle[:temporaryOutSummary] as Lang.Dictionary;
-            var sub = Ui.fmt(summary[:shortIntervalCount] > 0
-                ? Rez.Strings.HistoryPlanSummaryTemplate : Rez.Strings.HistoryPlanTemplate,
-                [cycle[:regimenDaysIn], cycle[:regimenDaysOut]]);
+            var label = Ui.shortDate(cycle[:insertionUtc]);
+            var sub = end == null ? Ui.s(Rez.Strings.NotRecorded)
+                : Ui.fmt(Rez.Strings.HistoryEndTemplate, [Ui.shortDate(end)]);
             menu.addItem(item(label, sub, i));
         }
         if (history.size() > 0) { menu.addItem(item(Rez.Strings.ClearHistory, null, :clear)); }
@@ -129,6 +129,7 @@ module Menus {
         menu.addItem(item(Rez.Strings.DemoTemp250, null, :temp250));
         menu.addItem(item(Rez.Strings.DemoTemp310, null, :temp310));
         menu.addItem(item(Rez.Strings.DemoExtended35, null, :extended35));
+        menu.addItem(item(Rez.Strings.DemoMaximumState, null, :maximumState));
         return menu;
     }
 }
@@ -183,6 +184,7 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
         if (id == :reminderTime) { PickerFlow.openTime(:setReminder, currentUtc()); }
         else if (id == :daysIn) { PickerFlow.openNumber(:setDaysIn, 21, 35, regimen[:daysIn], Rez.Strings.DaysRingIn); }
         else if (id == :daysOut) { PickerFlow.openNumber(:setDaysOut, 0, 7, regimen[:daysOut], Rez.Strings.DaysRingFree); }
+        else if (id == :outsideLabelInfo) { getApp().showInfo(Rez.Strings.OutsideLabelBadge, [Ui.s(Rez.Strings.OutsideLabelNotice)]); }
         else if (id == :repeat) { WatchUi.pushView(Menus.repeatMenu(), new ValueMenuDelegate(:setRepeat), WatchUi.SLIDE_LEFT); }
         else if (id == :vibration) { getApp().confirmAction(:toggleVibration, currentUtc(), null); }
         else if (id == :sound) { getApp().confirmAction(:toggleSound, currentUtc(), null); }

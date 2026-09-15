@@ -11,5 +11,6 @@
     <string id="DemoTemp250">Temporary-out 2h50m</string>
     <string id="DemoTemp310">Temporary-out 3h10m</string>
     <string id="DemoExtended35">35-day plan past day 28</string>
+    <string id="DemoMaximumState">Maximum stored history</string>
     <string id="DemoSeedQuestion">Load this demo scenario? Replaces stored data.</string>
 </strings>
