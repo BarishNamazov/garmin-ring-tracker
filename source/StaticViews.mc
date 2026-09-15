@@ -10,6 +10,7 @@ class InfoView extends WatchUi.View {
     protected var _paragraphs as Lang.Array<Lang.String>;
     protected var _scroll as Lang.Number;
     protected var _lineCount as Lang.Number;
+    protected var _visibleLines as Lang.Number;
 
     function initialize(title, paragraphs as Lang.Array<Lang.String>) {
         View.initialize();
@@ -17,14 +18,13 @@ class InfoView extends WatchUi.View {
         _paragraphs = paragraphs;
         _scroll = 0;
         _lineCount = 0;
+        _visibleLines = 0;
     }
 
     function scroll(delta as Lang.Number) as Void {
         _scroll += delta;
         if (_scroll < 0) { _scroll = 0; }
-        // drawParagraphs appends one spacer after the final paragraph. Never
-        // allow that spacer to become the only visible "page".
-        var maxScroll = _lineCount > 1 ? _lineCount - 2 : 0;
+        var maxScroll = _lineCount > _visibleLines ? _lineCount - _visibleLines : 0;
         if (_scroll > maxScroll) { _scroll = maxScroll; }
         WatchUi.requestUpdate();
     }
@@ -33,7 +33,11 @@ class InfoView extends WatchUi.View {
         Ui.clear(dc);
         var titleText = _title instanceof Lang.ResourceId ? Ui.s(_title) : _title as Lang.String;
         Ui.centered(dc, Ui.px(dc, 66), titleText, Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        _lineCount = Ui.drawParagraphs(dc, _paragraphs, Ui.px(dc, 112), Ui.px(dc, 316), _scroll);
+        var startY = Ui.px(dc, 112);
+        var bottomY = Ui.px(dc, 316);
+        _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
+        _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
+        Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount, _visibleLines, Ui.RING_IN);
         Ui.centered(dc, Ui.px(dc, 356), Ui.s(Rez.Strings.BackHint), Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 240));
     }
 }
@@ -45,7 +49,11 @@ class DisclaimerView extends InfoView {
     function onUpdate(dc as Graphics.Dc) as Void {
         Ui.clear(dc);
         Ui.centered(dc, Ui.px(dc, 68), Ui.s(Rez.Strings.ScheduleAidTitle), Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        _lineCount = Ui.drawParagraphs(dc, _paragraphs, Ui.px(dc, 118), Ui.px(dc, 286), _scroll);
+        var startY = Ui.px(dc, 118);
+        var bottomY = Ui.px(dc, 286);
+        _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
+        _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
+        Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount, _visibleLines, Ui.RING_IN);
         Ui.centered(dc, Ui.px(dc, 328), Ui.s(Rez.Strings.StartContinue), Graphics.FONT_SYSTEM_TINY, Ui.PRIMARY, Ui.px(dc, 280));
     }
 }
@@ -87,6 +95,7 @@ class RegimenView extends WatchUi.View {
         Ui.centered(dc, Ui.px(dc, 340), Ui.s(Rez.Strings.StartConfirm), Graphics.FONT_SYSTEM_TINY, Ui.PRIMARY, Ui.px(dc, 280));
         var ys = [205, 245, 292, 340];
         focusRail(dc, Ui.px(dc, ys[_focus]));
+        Ui.drawScrollIndicator(dc, Ui.px(dc, 190), Ui.px(dc, 350), _focus, 4, 1, Ui.RING_IN);
     }
 }
 
@@ -104,6 +113,11 @@ class RegimenDelegate extends WatchUi.BehaviorDelegate {
     }
     function onNextPage() as Boolean { view().moveFocus(1); return true; }
     function onPreviousPage() as Boolean { view().moveFocus(-1); return true; }
+    function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        return false;
+    }
 }
 
 class ScheduleView extends WatchUi.View {
@@ -136,18 +150,24 @@ class AlertView extends WatchUi.View {
     private var _attentionPlayed as Lang.Boolean;
     private var _detailScroll as Lang.Number;
     private var _detailLines as Lang.Number;
+    private var _detailVisibleLines as Lang.Number;
 
     function initialize() {
         View.initialize();
         _attentionPlayed = false;
         _detailScroll = -1;
         _detailLines = 0;
+        _detailVisibleLines = 0;
     }
 
     function scroll(delta as Lang.Number) as Void {
         if (delta > 0) {
             if (_detailScroll < 0) { _detailScroll = 0; }
-            else if (_detailScroll + 2 < _detailLines) { _detailScroll += 1; }
+            else {
+                var maxScroll = _detailLines > _detailVisibleLines
+                    ? _detailLines - _detailVisibleLines : 0;
+                if (_detailScroll < maxScroll) { _detailScroll += 1; }
+            }
         } else if (_detailScroll > 0) {
             _detailScroll -= 1;
         } else {
@@ -217,6 +237,9 @@ class AlertView extends WatchUi.View {
             details.add(Ui.s(Rez.Strings.AboutSourcesHint));
             _detailLines = Ui.drawParagraphs(dc, details,
                               Ui.px(dc, 104), Ui.px(dc, 302), _detailScroll);
+            _detailVisibleLines = Ui.paragraphVisibleLines(dc, Ui.px(dc, 104), Ui.px(dc, 302));
+            Ui.drawScrollIndicator(dc, Ui.px(dc, 104), Ui.px(dc, 302), _detailScroll,
+                                   _detailLines, _detailVisibleLines, color);
             Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.AlertActionsHint),
                         Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
             return;
@@ -250,6 +273,7 @@ class AlertView extends WatchUi.View {
         Ui.centered(dc, Ui.px(dc, 306), Ui.s(hint), Graphics.FONT_SYSTEM_XTINY, color, Ui.px(dc, 300));
         Ui.centered(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.AlertActionsHint),
                     Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
+        Ui.drawScrollIndicator(dc, Ui.px(dc, 104), Ui.px(dc, 302), 0, 2, 1, color);
     }
 
     private function temporaryDetails(interval as Lang.Dictionary) as Lang.Array<Lang.String> {
@@ -270,6 +294,12 @@ class ScrollDelegate extends WatchUi.BehaviorDelegate {
     function onNextPage() as Boolean { (WatchUi.getCurrentView()[0] as InfoView).scroll(1); return true; }
     function onPreviousPage() as Boolean { (WatchUi.getCurrentView()[0] as InfoView).scroll(-1); return true; }
     function onBack() as Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
+    function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
+        return false;
+    }
 }
 
 class PopDelegate extends WatchUi.BehaviorDelegate {
@@ -286,6 +316,12 @@ class AlertDelegate extends WatchUi.BehaviorDelegate {
     function onNextPage() as Boolean { view().scroll(1); return true; }
     function onPreviousPage() as Boolean { view().scroll(-1); return true; }
     function onBack() as Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
+    function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
+        return false;
+    }
 }
 
 class SettingsReviewView extends InfoView {
@@ -299,7 +335,11 @@ class SettingsReviewView extends InfoView {
         Ui.clear(dc);
         var titleText = _title instanceof Lang.ResourceId ? Ui.s(_title) : _title as Lang.String;
         Ui.centered(dc, Ui.px(dc, 66), titleText, Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        _lineCount = Ui.drawParagraphs(dc, _paragraphs, Ui.px(dc, 112), Ui.px(dc, 292), _scroll);
+        var startY = Ui.px(dc, 112);
+        var bottomY = Ui.px(dc, 292);
+        _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
+        _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
+        Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount, _visibleLines, Ui.RING_IN);
         Ui.centered(dc, Ui.px(dc, 350), Ui.s(Rez.Strings.SettingsReviewActionsHint),
                     Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Ui.px(dc, 300));
     }

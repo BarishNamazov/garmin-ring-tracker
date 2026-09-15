@@ -123,10 +123,11 @@ class MainView extends WatchUi.View {
             phaseColor = status[:ringFreeLimitExceeded] ? Ui.RED : Ui.AMBER;
         }
         var overdue = status[:phase] == :overdue;
-        Ui.centered(dc, Ui.px(dc, overdue ? 68 : 80), phaseText,
+        var compactWarning = status[:beyondLabelFourWeeks] && dc.getWidth() <= 390;
+        Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 60 : 55) : (overdue ? 68 : 80)), phaseText,
                     Graphics.FONT_SYSTEM_XTINY, phaseColor, Ui.px(dc, 280));
         if (!overdue) {
-            Ui.centered(dc, Ui.px(dc, 108), Ui.fmt(Rez.Strings.DayTemplate, [status[:dayOfCycle]]),
+            Ui.centered(dc, Ui.px(dc, compactWarning ? 82 : 108), Ui.fmt(Rez.Strings.DayTemplate, [status[:dayOfCycle]]),
                         Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
         }
 
@@ -135,19 +136,23 @@ class MainView extends WatchUi.View {
         else if (status[:nextAction] == :replace) { heading = status[:phase] == :overdue ? Ui.s(Rez.Strings.ReplaceRing) : Ui.s(Rez.Strings.ReplaceIn); }
         else if (status[:phase] == :overdue) { heading = Ui.s(Rez.Strings.RemoveRing); }
         if (status[:ringFreeLimitReached]) { heading = Ui.s(Rez.Strings.InsertNow); }
-        Ui.centered(dc, Ui.px(dc, overdue ? 112 : 148), heading,
+        Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 100 : 115) : (overdue ? 112 : 148)), heading,
                     Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 280));
 
         var countdownColor = phaseColor;
         if (status[:secondsRemaining] > 0 && status[:secondsRemaining] < CalendarMath.SECONDS_PER_DAY) { countdownColor = Ui.AMBER; }
         if (overdue) {
-            Ui.centered(dc, Ui.px(dc, 154), Ui.s(Rez.Strings.OverdueBy),
+            Ui.centered(dc, Ui.px(dc, compactWarning ? 137 : 154), Ui.s(Rez.Strings.OverdueBy),
                         Graphics.FONT_SYSTEM_XTINY, countdownColor, Ui.px(dc, 260));
         }
-        Ui.drawCountdown(dc, Ui.px(dc, overdue ? 211 : 212), status[:secondsRemaining], countdownColor);
-        Ui.centered(dc, Ui.px(dc, overdue ? 270 : 276), Ui.dateOnly(status[:nextActionUtc]),
+        if (compactWarning) {
+            Ui.drawCompactCountdown(dc, Ui.px(dc, overdue ? 186 : 173), status[:secondsRemaining], countdownColor);
+        } else {
+            Ui.drawCountdown(dc, Ui.px(dc, overdue ? 211 : 212), status[:secondsRemaining], countdownColor);
+        }
+        Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 240 : 226) : (overdue ? 270 : 276)), Ui.dateOnly(status[:nextActionUtc]),
                     Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, overdue ? 300 : 307),
+        Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 268 : 254) : (overdue ? 300 : 307)),
                     Ui.timeForUtc(status[:nextActionUtc], reminders[:clockFormat]),
                     Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
 
@@ -157,10 +162,14 @@ class MainView extends WatchUi.View {
         else if (status[:ringFreeLimitExceeded]) { hint = Ui.s(Rez.Strings.RingFreeLimitPassed); hintColor = Ui.RED; }
         else if (status[:ringFreeLimitReached]) { hint = Ui.s(Rez.Strings.RingFreeLimitReached); hintColor = Ui.AMBER; }
         else if (status[:beyondLabelFourWeeks]) {
-            Ui.centered(dc, Ui.px(dc, 326), Ui.s(Rez.Strings.BeyondFourWeeksLine1),
+            Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 292 : 280) : 326), Ui.s(Rez.Strings.BeyondFourWeeksLine1),
                         Graphics.FONT_SYSTEM_XTINY, Ui.AMBER, Ui.px(dc, 260));
-            Ui.centered(dc, Ui.px(dc, 350), Ui.s(Rez.Strings.BeyondFourWeeksLine2),
+            Ui.centered(dc, Ui.px(dc, compactWarning ? (overdue ? 312 : 300) : 350), Ui.s(Rez.Strings.BeyondFourWeeksLine2),
                         Graphics.FONT_SYSTEM_XTINY, Ui.AMBER, Ui.px(dc, 220));
+            if (compactWarning) {
+                Ui.centered(dc, Ui.px(dc, overdue ? 340 : 332), hint, Graphics.FONT_SYSTEM_XTINY,
+                            Ui.SECONDARY, Ui.px(dc, 280));
+            }
             return;
         }
         else if ((getApp().getState()[:active] as Lang.Dictionary)[:plannedOverrideUtc] != null) { hint = Ui.s(Rez.Strings.AdjustedBadge); hintColor = Ui.AMBER; }

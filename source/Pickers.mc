@@ -65,10 +65,10 @@ class RingDateFactory extends WatchUi.PickerFactory {
     function getDrawable(index as Lang.Number, selected as Lang.Boolean) as WatchUi.Drawable? {
         var value = getValue(index) as Lang.Number;
         var info = Gregorian.utcInfo(new Time.Moment(value), Time.FORMAT_SHORT);
-        var text = Ui.weekdayName(info.day_of_week) + " " + info.day.toString()
-            + " " + Ui.monthName(info.month);
+        var text = info.day.toString() + " " + Ui.monthName(info.month);
         return new WatchUi.Text({:text=>text, :font=>Graphics.FONT_SYSTEM_XTINY,
             :color=>selected ? Ui.PRIMARY : Ui.SECONDARY,
+            :width=>150,
             :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_CENTER});
     }
 }
@@ -85,6 +85,7 @@ class RingTimeFactory extends WatchUi.PickerFactory {
         var text = Ui.timeOnly(index / 60, index % 60, _clockFormat);
         return new WatchUi.Text({:text=>text, :font=>Graphics.FONT_SYSTEM_TINY,
             :color=>selected ? Ui.PRIMARY : Ui.SECONDARY,
+            :width=>150,
             :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_CENTER});
     }
 }

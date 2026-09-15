@@ -161,9 +161,23 @@ Screenshot inventory:
 
 - `epix2pro42mm-main.png`
 - `epix2pro42mm-main-overdue.png`
+- `epix2pro42mm-main-extended-35-day.png`
+- `epix2pro42mm-first-run-disclaimer.png`
+- `epix2pro42mm-regimen.png`
+- `epix2pro42mm-date-picker.png`
+- `epix2pro42mm-time-picker.png`
+- `epix2pro42mm-about.png`
+- `epix2pro42mm-alert-detail.png`
 - `epix2pro42mm-glance.png`
 - `epix2pro51mm-main.png`
 - `epix2pro51mm-main-overdue.png`
+- `epix2pro51mm-main-extended-35-day.png`
+- `epix2pro51mm-first-run-disclaimer.png`
+- `epix2pro51mm-regimen.png`
+- `epix2pro51mm-date-picker.png`
+- `epix2pro51mm-time-picker.png`
+- `epix2pro51mm-about.png`
+- `epix2pro51mm-alert-detail.png`
 - `epix2pro51mm-glance.png`
 - `epix2pro47mm-first-run-disclaimer.png`
 - `epix2pro47mm-regimen.png`
@@ -196,6 +210,12 @@ review is not pictured because the headless App Settings editor requires an
 authenticated Garmin session; its view, confirmation, validation, and
 accept/reject reconciliation paths are implemented, compiled, and covered at
 the bridge/domain level.
+
+The September 2026 UI verification shortened and explicitly sized the native
+date/time picker columns, added bounded button-and-swipe scrolling with visible
+position rails to informational screens, and compacted the extended-duration
+warning layout on the 42 mm device so the warning and button hints remain in
+the safe area. The affected flows were recaptured on all three epix Pro sizes.
 
 ## Memory verification
 

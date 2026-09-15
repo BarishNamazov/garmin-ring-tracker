@@ -159,6 +159,15 @@ module Ui {
     }
 
     function drawCountdown(dc as Graphics.Dc, centerY as Lang.Number, delta as Lang.Number, color as Lang.Number) as Void {
+        drawCountdownWithFont(dc, centerY, delta, color, Graphics.FONT_SYSTEM_NUMBER_HOT);
+    }
+
+    function drawCompactCountdown(dc as Graphics.Dc, centerY as Lang.Number, delta as Lang.Number, color as Lang.Number) as Void {
+        drawCountdownWithFont(dc, centerY, delta, color, Graphics.FONT_SYSTEM_NUMBER_MEDIUM);
+    }
+
+    function drawCountdownWithFont(dc as Graphics.Dc, centerY as Lang.Number, delta as Lang.Number,
+                                   color as Lang.Number, digitFont) as Void {
         var c = CalendarMath.countdown(delta);
         if (c[:due]) {
             centered(dc, centerY, s(Rez.Strings.DueNow), Graphics.FONT_SYSTEM_LARGE, color, px(dc, 280));
@@ -171,7 +180,6 @@ module Ui {
             groups.add([c[:minutes].toString(), s(Rez.Strings.MinuteUnit)]);
         }
         if (groups.size() == 0) { groups.add([c[:minutes].toString(), s(Rez.Strings.MinuteUnit)]); }
-        var digitFont = Graphics.FONT_SYSTEM_NUMBER_HOT;
         var unitFont = Graphics.FONT_SYSTEM_XTINY;
         var gap = px(dc, 8);
         var total = 0;
@@ -237,5 +245,31 @@ module Ui {
             y += lineHeight;
         }
         return all.size();
+    }
+
+    function paragraphVisibleLines(dc as Graphics.Dc, startY as Lang.Number, bottomY as Lang.Number) as Lang.Number {
+        var lineHeight = Graphics.getFontHeight(Graphics.FONT_SYSTEM_XTINY) + px(dc, 5);
+        return ((bottomY - startY) / lineHeight) + 1;
+    }
+
+    function drawScrollIndicator(dc as Graphics.Dc, startY as Lang.Number, bottomY as Lang.Number,
+                                 position as Lang.Number, total as Lang.Number,
+                                 visible as Lang.Number, color as Lang.Number) as Void {
+        if (total <= visible || visible <= 0) { return; }
+        var maxPosition = total - visible;
+        if (position < 0) { position = 0; }
+        if (position > maxPosition) { position = maxPosition; }
+        var trackHeight = bottomY - startY;
+        var thumbHeight = (trackHeight * visible) / total;
+        if (thumbHeight < px(dc, 18)) { thumbHeight = px(dc, 18); }
+        var thumbY = startY;
+        if (maxPosition > 0) {
+            thumbY += ((trackHeight - thumbHeight) * position) / maxPosition;
+        }
+        var x = dc.getWidth() - px(dc, 42);
+        dc.setColor(TRACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x, startY, px(dc, 2), trackHeight);
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x - px(dc, 1), thumbY, px(dc, 4), thumbHeight);
     }
 }
