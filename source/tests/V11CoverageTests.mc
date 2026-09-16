@@ -42,6 +42,19 @@ function v11CompactConfirmationTimestampOmitsWeekday(logger as Test.Logger) as B
 }
 
 (:test)
+function v11DatePairsKeepSeparatorAndCompactLongestDates(logger as Test.Logger) as Boolean {
+    var inUtc = testWall(2026, 9, 30, 9, 0);
+    var outUtc = testWall(2026, 10, 21, 9, 0);
+    Test.assertEqual("In Wed 30 Sep · Out Wed 21 Oct", Ui.datePairText(inUtc, outUtc, false));
+    Test.assertEqual("In 30 Sep · Out 21 Oct", Ui.datePairText(inUtc, outUtc, true));
+    var parts = Ui.datePairParts(inUtc, outUtc, true);
+    Test.assertEqual("In 30 Sep", parts[0]);
+    Test.assertEqual("Out 21 Oct", parts[1]);
+    Test.assertEqual("In 30 Sep · Out —", Ui.datePairText(inUtc, null, true));
+    return true;
+}
+
+(:test)
 function v11WarningCopySplitsAtSentenceBoundaries(logger as Test.Logger) as Boolean {
     var free = Ui.sentences("Insert now. Use backup 7 days.");
     Test.assertEqual(2, free.size());

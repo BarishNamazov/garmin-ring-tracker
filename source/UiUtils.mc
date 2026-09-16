@@ -126,6 +126,48 @@ module Ui {
         return f[:day].toString() + " " + monthName(f[:month]);
     }
 
+    function datePairParts(inUtc as Lang.Number, outUtc, compact as Lang.Boolean) as Lang.Array<Lang.String> {
+        var inDate = compact ? compactDate(inUtc) : shortDate(inUtc);
+        var outDate = outUtc == null ? s(Rez.Strings.NotRecorded)
+            : (compact ? compactDate(outUtc as Lang.Number) : shortDate(outUtc as Lang.Number));
+        return [fmt(Rez.Strings.UpcomingInTemplate, [inDate]),
+            fmt(Rez.Strings.UpcomingOutTemplate, [outDate])];
+    }
+
+    function datePairText(inUtc as Lang.Number, outUtc, compact as Lang.Boolean) as Lang.String {
+        var parts = datePairParts(inUtc, outUtc, compact);
+        return parts[0] + s(Rez.Strings.DateTimeSeparator) + parts[1];
+    }
+
+    function datePairLayout(dc as Graphics.Dc, inUtc as Lang.Number, outUtc,
+                            maxWidth as Lang.Number) as Lang.Number {
+        if (dc.getTextWidthInPixels(datePairText(inUtc, outUtc, false),
+                Graphics.FONT_SYSTEM_TINY) <= maxWidth) {
+            return 0;
+        }
+        if (dc.getTextWidthInPixels(datePairText(inUtc, outUtc, true),
+                Graphics.FONT_SYSTEM_XTINY) <= maxWidth) {
+            return 1;
+        }
+        return 2;
+    }
+
+    function drawDatePair(dc as Graphics.Dc, y as Lang.Number, inUtc as Lang.Number,
+                          outUtc, maxWidth as Lang.Number, color as Lang.Number) as Lang.Number {
+        var layout = datePairLayout(dc, inUtc, outUtc, maxWidth);
+        if (layout < 2) {
+            centered(dc, y, datePairText(inUtc, outUtc, layout == 1),
+                layout == 0 ? Graphics.FONT_SYSTEM_TINY : Graphics.FONT_SYSTEM_XTINY,
+                color, maxWidth);
+            return 1;
+        }
+
+        var parts = datePairParts(inUtc, outUtc, true);
+        centered(dc, y - px(dc, 6), parts[0], Graphics.FONT_SYSTEM_XTINY, color, maxWidth);
+        centered(dc, y + px(dc, 14), parts[1], Graphics.FONT_SYSTEM_XTINY, color, maxWidth);
+        return 2;
+    }
+
     function compactTimestamp(utcSeconds as Lang.Number, clockFormat as Lang.Number) as Lang.String {
         return compactDate(utcSeconds) + s(Rez.Strings.DateTimeSeparator) + timeForUtc(utcSeconds, clockFormat);
     }

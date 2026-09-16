@@ -66,7 +66,7 @@ medical-model source record.
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Reduced mirror codecs, glance rendering, and hourly reminder service |
 | Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production seams and debug-only clock, fixtures, notification previews, temporal-event diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
-| Tests | `source/tests/*.mc` | 119 deterministic domain, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Tests | `source/tests/*.mc` | 120 deterministic domain, migration, settings, storage, reminder, layout-helper, and review-regression tests |
 | Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, portable `grep` background resource/exit guard, simulator tests, and Store-package PRG hashes |
 | Visual evidence | `docs/screenshots/` | 93 native-resolution v1.1 captures |
 
@@ -119,7 +119,7 @@ Final verification on 2026-09-16:
 | --- | --- | --- | --- |
 | Release | success, zero warnings | success, zero warnings | success, zero warnings |
 | Debug | success, zero warnings | success, zero warnings | success, zero warnings |
-| Unit-test personality | — | success, zero warnings; 119/0/0 | — |
+| Unit-test personality | — | success, zero warnings; 120/0/0 | — |
 
 The generated 47 mm debug annotation map contains no `background` or `glance`
 entry for `ForegroundController`, `ForegroundRuntime`, `ForegroundEntryView`,
@@ -128,7 +128,7 @@ and the dedicated constrained implementations are tagged into those scopes.
 
 ## Tests
 
-The final simulator result is **119 passed, 0 failed, 0 errors**:
+The final simulator result is **120 passed, 0 failed, 0 errors**:
 
 | File | Tests |
 | --- | ---: |
@@ -139,12 +139,12 @@ The final simulator result is **119 passed, 0 failed, 0 errors**:
 | `Review3Tests.mc` | 8 |
 | `Review3ResolutionTests.mc` | 3 |
 | `V11Tests.mc` | 12 |
-| `V11CoverageTests.mc` | 15 |
+| `V11CoverageTests.mc` | 16 |
 
 The suite covers exact and crossed regimen boundaries, leap/month/year and DST
 calendar behavior, actual-event re-anchoring, early/late deltas, six-cycle
-projection, compact confirmation timestamps, sentence-boundary warning splits,
-History variance/scroll bounds, reminder priority and per-slot deduplication, v1/v2 migration,
+projection, compact confirmation timestamps, measured date-pair fallbacks,
+sentence-boundary warning splits, History variance/scroll bounds, reminder priority and per-slot deduplication, v1/v2 migration,
 pending settings mirrors, schema validation, split-history recovery and
 compaction, reduced codecs, interval-specific temporary-out deduplication,
 exact spring-gap boundaries, non-past overdue projection, and the maximum
@@ -279,6 +279,13 @@ three sizes. The 390 px History capture exercises the longest fixture
 variance, bar clearance, and round-edge margins. The three detail captures
 confirm that the date and time share a right edge and `First cycle` occupies
 its own line beneath them.
+
+The final date-pair polish regenerated both Upcoming pages and History on all
+three sizes. Date pairs are measured as a composed string: the full weekday
+form is preferred, an XTINY weekday-free form preserves the ` · ` separator
+when needed, and only an over-width compact pair splits into `In` and `Out`
+lines. The regression fixture covers `Wed 30 Sep` and all nine native captures
+were checked for clipping, separator loss, and `if done today` crowding.
 
 For every size, 23 captures cover ring-in, ring-free, overdue removal,
 overdue insertion, temporary out at 2h50 and 3h10, >7d and >28d warnings,

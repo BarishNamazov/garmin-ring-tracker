@@ -60,7 +60,8 @@ class UpcomingView extends WatchUi.View {
         var xLeft = Ui.px(dc, 66);
         var xRight = dc.getWidth() - Ui.px(dc, 66);
         var width = xRight - xLeft;
-        var headingY = y + Ui.px(dc, 18);
+        var dateLayout = Ui.datePairLayout(dc, row[:inUtc], row[:outUtc], width);
+        var headingY = y + Ui.px(dc, dateLayout == 2 ? 10 : 18);
         dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xLeft, headingY, Graphics.FONT_SYSTEM_SMALL,
             Ui.fmt(Rez.Strings.CycleTemplate, [row[:cycleId]]),
@@ -77,22 +78,8 @@ class UpcomingView extends WatchUi.View {
                 Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
-        var inText = Ui.fmt(Rez.Strings.UpcomingInTemplate, [Ui.shortDate(row[:inUtc])]);
-        var outText = Ui.fmt(Rez.Strings.UpcomingOutTemplate, [Ui.shortDate(row[:outUtc])]);
-        var font = Graphics.FONT_SYSTEM_TINY;
-        if (dc.getTextWidthInPixels(inText, font) + dc.getTextWidthInPixels(outText, font)
-            + Ui.px(dc, 28) > width) {
-            font = Graphics.FONT_SYSTEM_XTINY;
-        }
-        dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
-        // The longest English date pair needs a few pixels beyond the bar
-        // ends even at the mandated XTINY fallback. This remains well inside
-        // the circular safe area at the date baselines.
-        var dateOverflow = Ui.px(dc, 8);
-        dc.drawText(xLeft - dateOverflow, y + Ui.px(dc, 46), font, inText,
-            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(xRight + dateOverflow, y + Ui.px(dc, 46), font, outText,
-            Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+        var dateLines = Ui.drawDatePair(dc, y + Ui.px(dc, 46), row[:inUtc], row[:outUtc],
+            width, Ui.SECONDARY);
 
         var regimen = getApp().getState()[:regimen] as Lang.Dictionary;
         var daysIn = regimen[:daysIn] as Lang.Number;
@@ -100,7 +87,7 @@ class UpcomingView extends WatchUi.View {
         var gap = daysOut > 0 ? Ui.px(dc, 2) : 0;
         var greenWidth = daysOut == 0 ? width
             : ((width - gap) * daysIn) / (daysIn + daysOut);
-        var barY = y + Ui.px(dc, 70);
+        var barY = y + Ui.px(dc, dateLines == 2 ? 80 : 70);
         dc.setPenWidth(Ui.px(dc, 5));
         dc.setColor(Ui.RING_IN, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(xLeft, barY, xLeft + greenWidth, barY);

@@ -178,32 +178,27 @@ class HistoryView extends WatchUi.View {
                 Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
-        var outText = cycle[:removalUtc] == null
-            ? Ui.s(Rez.Strings.NotRecorded) : Ui.shortDate(cycle[:removalUtc]);
-        var dates = Ui.fmt(Rez.Strings.UpcomingInTemplate, [Ui.shortDate(cycle[:insertionUtc])])
-            + Ui.s(Rez.Strings.DateTimeSeparator)
-            + Ui.fmt(Rez.Strings.UpcomingOutTemplate, [outText]);
-        var dateFont = Graphics.FONT_SYSTEM_TINY;
-        if (dc.getTextWidthInPixels(dates, dateFont) > width) { dateFont = Graphics.FONT_SYSTEM_XTINY; }
-        dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 48), dateFont, dates,
-            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        var dateLines = Ui.drawDatePair(dc, y + Ui.px(dc, 48), cycle[:insertionUtc],
+            cycle[:removalUtc], width, Ui.SECONDARY);
 
         var varianceParts = HistoryUi.varianceParts(cycle, active);
         var variance = HistoryUi.listVariance(cycle, active);
-        var barOffset = 103;
+        var barOffset = dateLines == 2 ? 110 : 103;
         if (!variance.equals("")) {
             var varianceColor = variance.equals(Ui.s(Rez.Strings.OnTime)) ? Ui.SECONDARY : Ui.AMBER;
             dc.setColor(varianceColor, Graphics.COLOR_TRANSPARENT);
             if (varianceParts.size() == 2
                     && dc.getTextWidthInPixels(variance, Graphics.FONT_SYSTEM_XTINY) > width) {
-                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 68), Graphics.FONT_SYSTEM_XTINY,
+                var firstVarianceOffset = dateLines == 2 ? 80 : 68;
+                var secondVarianceOffset = dateLines == 2 ? 101 : 89;
+                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, firstVarianceOffset), Graphics.FONT_SYSTEM_XTINY,
                     varianceParts[0], Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 89), Graphics.FONT_SYSTEM_XTINY,
+                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, secondVarianceOffset), Graphics.FONT_SYSTEM_XTINY,
                     varianceParts[1], Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-                barOffset = 112;
+                barOffset = dateLines == 2 ? 122 : 112;
             } else {
-                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 76), Graphics.FONT_SYSTEM_XTINY, variance,
+                var varianceOffset = dateLines == 2 ? 84 : 76;
+                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, varianceOffset), Graphics.FONT_SYSTEM_XTINY, variance,
                     Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
             }
         }
