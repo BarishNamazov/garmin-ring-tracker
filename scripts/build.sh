@@ -72,6 +72,7 @@ run_tests() {
     local output_dir="bin/test"
     local test_prg="${output_dir}/RingTracker-tests.prg"
     local test_output runner_status summary passed failed errors
+    local attempt max_attempts=30
     mkdir -p "${output_dir}"
     monkeyc -d epix2pro47mm -f monkey.tests.jungle -o "${test_prg}" \
         -y "${CIQ_DEVELOPER_KEY}" -w --unit-test
@@ -86,7 +87,7 @@ run_tests() {
         simulator_pid=$!
         set +m
         trap 'if [[ -n "${simulator_pid}" ]]; then kill -- "-${simulator_pid}" 2>/dev/null || true; wait "${simulator_pid}" 2>/dev/null || true; fi' EXIT
-        sleep 4
+        sleep 2
         if ! kill -0 "${simulator_pid}" 2>/dev/null; then
             printf 'Headless simulator failed to start. Log:\n' >&2
             sed -n '1,160p' "${simulator_log}" >&2
@@ -94,12 +95,32 @@ run_tests() {
         fi
     fi
 
-    set +e
-    test_output="$(TZ=America/New_York monkeydo "${test_prg}" epix2pro47mm -t 2>&1)"
-    runner_status=$?
-    set -e
+    for ((attempt = 1; attempt <= max_attempts; attempt++)); do
+        set +e
+        test_output="$(TZ=America/New_York monkeydo "${test_prg}" epix2pro47mm -t 2>&1)"
+        runner_status=$?
+        set -e
+        if [[ "${test_output}" != *"Unable to connect to simulator."* ]]; then
+            break
+        fi
+        if ! simulator_running; then
+            printf 'Headless simulator exited before accepting connections. Log:\n' >&2
+            [[ -n "${simulator_log}" ]] && sed -n '1,160p' "${simulator_log}" >&2
+            exit 1
+        fi
+        if (( attempt < max_attempts )); then
+            printf 'Simulator is not ready (attempt %s/%s); retrying.\n' \
+                "${attempt}" "${max_attempts}"
+            sleep 2
+        fi
+    done
     printf '%s\n' "${test_output}"
     printf 'monkeydo status: %s\n' "${runner_status}"
+    if [[ "${test_output}" == *"Unable to connect to simulator."* ]]; then
+        printf 'Simulator did not accept connections after %s attempts. Log:\n' \
+            "${max_attempts}" >&2
+        [[ -n "${simulator_log}" ]] && sed -n '1,160p' "${simulator_log}" >&2
+    fi
     summary="$(printf '%s\n' "${test_output}" | sed -n \
         's/.*(passed=\([0-9][0-9]*\), failed=\([0-9][0-9]*\), errors=\([0-9][0-9]*\)).*/\1 \2 \3/p' | tail -n 1)"
     if [[ -z "${summary}" ]]; then
