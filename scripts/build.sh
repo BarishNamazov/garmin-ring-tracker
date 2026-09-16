@@ -24,6 +24,14 @@ simulator_running() {
     return 1
 }
 
+simulator_alive() {
+    if [[ -n "${simulator_pid}" ]]; then
+        kill -0 "${simulator_pid}" 2>/dev/null
+    else
+        simulator_running
+    fi
+}
+
 print_hashes() {
     local path
     for path in "$@"; do
@@ -103,7 +111,7 @@ run_tests() {
         if [[ "${test_output}" != *"Unable to connect to simulator."* ]]; then
             break
         fi
-        if ! simulator_running; then
+        if ! simulator_alive; then
             printf 'Headless simulator exited before accepting connections. Log:\n' >&2
             [[ -n "${simulator_log}" ]] && sed -n '1,160p' "${simulator_log}" >&2
             exit 1
