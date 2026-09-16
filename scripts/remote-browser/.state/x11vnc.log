@@ -1,0 +1,94 @@
+16/09/2026 12:53:01 passing arg to libvncserver: -rfbport
+16/09/2026 12:53:01 passing arg to libvncserver: 5999
+16/09/2026 12:53:01 passing arg to libvncserver: -rfbauth
+16/09/2026 12:53:01 passing arg to libvncserver: /home/agent/Dev/garmin-bc/scripts/remote-browser/.state/vnc-password
+16/09/2026 12:53:01 x11vnc version: 0.9.16 lastmod: 2019-01-05  pid: 1581983
+16/09/2026 12:53:01 Using X display :99
+16/09/2026 12:53:01 rootwin: 0x21f reswin: 0x200001 dpy: 0x8de09110
+16/09/2026 12:53:01 
+16/09/2026 12:53:01 ------------------ USEFUL INFORMATION ------------------
+16/09/2026 12:53:01 X DAMAGE available on display, using it for polling hints.
+16/09/2026 12:53:01   To disable this behavior use: '-noxdamage'
+16/09/2026 12:53:01 
+16/09/2026 12:53:01   Most compositing window managers like 'compiz' or 'beryl'
+16/09/2026 12:53:01   cause X DAMAGE to fail, and so you may not see any screen
+16/09/2026 12:53:01   updates via VNC.  Either disable 'compiz' (recommended) or
+16/09/2026 12:53:01   supply the x11vnc '-noxdamage' command line option.
+16/09/2026 12:53:01 
+16/09/2026 12:53:01 Wireframing: -wireframe mode is in effect for window moves.
+16/09/2026 12:53:01   If this yields undesired behavior (poor response, painting
+16/09/2026 12:53:01   errors, etc) it may be disabled:
+16/09/2026 12:53:01    - use '-nowf' to disable wireframing completely.
+16/09/2026 12:53:01    - use '-nowcr' to disable the Copy Rectangle after the
+16/09/2026 12:53:01      moved window is released in the new position.
+16/09/2026 12:53:01   Also see the -help entry for tuning parameters.
+16/09/2026 12:53:01   You can press 3 Alt_L's (Left "Alt" key) in a row to 
+16/09/2026 12:53:01   repaint the screen, also see the -fixscreen option for
+16/09/2026 12:53:01   periodic repaints.
+16/09/2026 12:53:01 
+16/09/2026 12:53:01 XFIXES available on display, resetting cursor mode
+16/09/2026 12:53:01   to: '-cursor most'.
+16/09/2026 12:53:01   to disable this behavior use: '-cursor arrow'
+16/09/2026 12:53:01   or '-noxfixes'.
+16/09/2026 12:53:01 using XFIXES for cursor drawing.
+16/09/2026 12:53:01 GrabServer control via XTEST.
+16/09/2026 12:53:01 
+16/09/2026 12:53:01 Scroll Detection: -scrollcopyrect mode is in effect to
+16/09/2026 12:53:01   use RECORD extension to try to detect scrolling windows
+16/09/2026 12:53:01   (induced by either user keystroke or mouse input).
+16/09/2026 12:53:01   If this yields undesired behavior (poor response, painting
+16/09/2026 12:53:01   errors, etc) it may be disabled via: '-noscr'
+16/09/2026 12:53:01   Also see the -help entry for tuning parameters.
+16/09/2026 12:53:01   You can press 3 Alt_L's (Left "Alt" key) in a row to 
+16/09/2026 12:53:01   repaint the screen, also see the -fixscreen option for
+16/09/2026 12:53:01   periodic repaints.
+16/09/2026 12:53:01 
+16/09/2026 12:53:01 XKEYBOARD: number of keysyms per keycode 7 is greater
+16/09/2026 12:53:01   than 4 and 51 keysyms are mapped above 4.
+16/09/2026 12:53:01   Automatically switching to -xkb mode.
+16/09/2026 12:53:01   If this makes the key mapping worse you can
+16/09/2026 12:53:01   disable it with the "-noxkb" option.
+16/09/2026 12:53:01   Also, remember "-remap DEAD" for accenting characters.
+16/09/2026 12:53:01 
+16/09/2026 12:53:01 X FBPM extension not supported.
+Xlib:  extension "DPMS" missing on display ":99".
+16/09/2026 12:53:01 X display is not capable of DPMS.
+16/09/2026 12:53:01 --------------------------------------------------------
+16/09/2026 12:53:01 
+16/09/2026 12:53:01 Default visual ID: 0x21
+16/09/2026 12:53:02 Read initial data from X display into framebuffer.
+16/09/2026 12:53:02 initialize_screen: fb_depth/fb_bpp/fb_Bpl 24/32/5120
+16/09/2026 12:53:02 
+16/09/2026 12:53:02 X display :99 is 32bpp depth=24 true color
+16/09/2026 12:53:02 
+16/09/2026 12:53:02 Listening for VNC connections on TCP port 5999
+16/09/2026 12:53:02 Listening for VNC connections on TCP6 port 5900
+16/09/2026 12:53:02 Listening also on IPv6 port 5999 (socket 10)
+16/09/2026 12:53:02 
+16/09/2026 12:53:02 Xinerama is present and active (e.g. multi-head).
+16/09/2026 12:53:02 Xinerama: number of sub-screens: 1
+16/09/2026 12:53:02 Xinerama: no blackouts needed (only one sub-screen)
+16/09/2026 12:53:02 
+16/09/2026 12:53:02 fb read rate: 270 MB/sec
+16/09/2026 12:53:02 fast read: reset -wait  ms to: 10
+16/09/2026 12:53:02 fast read: reset -defer ms to: 10
+16/09/2026 12:53:02 The X server says there are 10 mouse buttons.
+16/09/2026 12:53:02 screen setup finished.
+16/09/2026 12:53:02 
+
+The VNC desktop is:      localhost:99
+PORT=5999
+
+******************************************************************************
+Have you tried the x11vnc '-ncache' VNC client-side pixel caching feature yet?
+
+The scheme stores pixel data offscreen on the VNC viewer side for faster
+retrieval.  It should work with any VNC viewer.  Try it by running:
+
+    x11vnc -ncache 10 ...
+
+One can also add -ncache_cr for smooth 'copyrect' window motion.
+More info: http://www.karlrunge.com/x11vnc/faq.html#faq-client-caching
+
+caught signal: 15
+16/09/2026 12:53:03 deleted 40 tile_row polling images.

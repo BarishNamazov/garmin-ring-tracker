@@ -1,0 +1,15 @@
+WebSocket server settings:
+  - Listen on 127.0.0.1:6080
+  - Web server. Web root: /home/agent/.local/opt/novnc
+  - No SSL/TLS support (no cert file)
+  - proxying from 127.0.0.1:6080 to 127.0.0.1:5999
+127.0.0.1 - - [16/Sep/2026 13:00:54] 127.0.0.1: Plain non-SSL (ws://) WebSocket connection
+127.0.0.1 - - [16/Sep/2026 13:00:54] 127.0.0.1: Path: '/websockify'
+127.0.0.1 - - [16/Sep/2026 13:00:54] connecting to: 127.0.0.1:5999
+127.0.0.1 - - [16/Sep/2026 13:02:10] 127.0.0.1: Plain non-SSL (ws://) WebSocket connection
+127.0.0.1 - - [16/Sep/2026 13:02:10] 127.0.0.1: Path: '/websockify'
+127.0.0.1 - - [16/Sep/2026 13:02:10] connecting to: 127.0.0.1:5999
+127.0.0.1 - - [16/Sep/2026 13:04:38] 127.0.0.1: Plain non-SSL (ws://) WebSocket connection
+127.0.0.1 - - [16/Sep/2026 13:04:38] 127.0.0.1: Path: '/websockify'
+127.0.0.1 - - [16/Sep/2026 13:04:38] connecting to: 127.0.0.1:5999
+In exit

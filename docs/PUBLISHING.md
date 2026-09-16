@@ -6,11 +6,11 @@ This procedure is for the repository owner. It creates public GitHub releases au
 
 Create an empty public repository named `garmin-ring-tracker` under the `BarishNamazov` account. Do not add a README, license, or `.gitignore` in GitHub because this working tree already contains them. A personal account or organization can host it; standard GitHub-hosted runners are free for public repositories under [GitHub Actions billing](https://docs.github.com/en/billing/concepts/product-billing/github-actions).
 
-From the repository root, add the remote and publish the current `master` branch:
+From the repository root, add the remote and publish the current `main` branch:
 
 ```bash
 git remote add origin git@github.com:BarishNamazov/garmin-ring-tracker.git
-git push -u origin master
+git push -u origin main
 ```
 
 Open [the Actions page](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml) and verify that both CI jobs pass. Pull requests from forks do not receive repository secrets; CI deliberately generates a disposable developer key in that case.
@@ -75,7 +75,7 @@ Delete the unencrypted `developer_key.der.b64` file after setting the secret. Ke
 
    ```bash
    git tag v1.1.0
-   git push origin master
+   git push origin main
    git push --tags
    ```
 

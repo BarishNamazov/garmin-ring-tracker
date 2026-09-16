@@ -1,0 +1,6 @@
+Browser: 151.0.7922.34
+Pages: 3
+Page 1: Garmin SSO Portal | https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=APPS_LIBRARY&service=https://apps.garmin.com/api/auth/login?returnTo=/en-US/developer/dashboard
+Page 2: Garmin SSO Portal | https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=APPS_LIBRARY&service=https://apps.garmin.com/api/auth/login?returnTo=/en-US/developer/dashboard
+Page 3: Garmin SSO Portal | https://sso.garmin.com/portal/sso/en-US/sign-in?clientId=APPS_LIBRARY&service=https://apps.garmin.com/api/auth/login?returnTo=/en-US/developer/dashboard
+Screenshot: /home/agent/Dev/garmin-bc/scripts/remote-browser/garmin-signin.png
