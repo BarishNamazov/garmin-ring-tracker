@@ -147,18 +147,27 @@ module CalendarMath {
             }
         }
 
-        // For a spring gap, locate the first representable wall minute after
-        // the skipped tuple. At most one hourly transition band is normally
-        // scanned, keeping execution bounded and watchdog-safe.
+        // For a spring gap, locate the offset boundary independently of the
+        // hourly sample's minute phase. A minute-stepped scan can begin at
+        // :30 and miss a transition at :00, returning 03:01 instead of 03:00.
         for (var t = 0; t < transitions.size(); t += 1) {
             var band = transitions[t] as Lang.Array;
-            for (var probe = band[0]; probe <= band[1]; probe += SECONDS_PER_MINUTE) {
-                var probeInfo = Gregorian.info(new Time.Moment(probe), Time.FORMAT_SHORT);
-                var probeOrder = infoWallValue(probeInfo) - targetWall;
-                if (probeOrder > 0 && probeOrder < firstAfterOrder) {
-                    firstAfter = probe;
-                    firstAfterOrder = probeOrder;
-                }
+            var low = band[0] as Lang.Number;
+            var high = band[1] as Lang.Number;
+            var lowInfo = Gregorian.info(new Time.Moment(low), Time.FORMAT_SHORT);
+            var lowOffset = infoWallValue(lowInfo) - low;
+            while (high - low > 1) {
+                var middle = low + Math.floor((high - low) / 2);
+                var middleInfo = Gregorian.info(new Time.Moment(middle), Time.FORMAT_SHORT);
+                var middleOffset = infoWallValue(middleInfo) - middle;
+                if (middleOffset == lowOffset) { low = middle; }
+                else { high = middle; }
+            }
+            var boundaryInfo = Gregorian.info(new Time.Moment(high), Time.FORMAT_SHORT);
+            var boundaryOrder = infoWallValue(boundaryInfo) - targetWall;
+            if (boundaryOrder > 0 && boundaryOrder < firstAfterOrder) {
+                firstAfter = high;
+                firstAfterOrder = boundaryOrder;
             }
         }
 

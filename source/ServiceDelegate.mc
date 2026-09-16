@@ -2,7 +2,6 @@ import Toybox.Application;
 import Toybox.Background;
 import Toybox.Lang;
 import Toybox.Math;
-import Toybox.Notifications;
 import Toybox.System;
 import Toybox.Time;
 import Toybox.Time.Gregorian;
@@ -16,12 +15,17 @@ class RingServiceDelegate extends System.ServiceDelegate {
     }
 
     function onTemporalEvent() as Void {
+        var selectedKind = null;
+        var notificationShown = false;
+        var ledgerSaved = false;
+        var caught = false;
         try {
             var state = BackgroundRuntime.load();
             if (state != null) {
                 var active = state[2] as Lang.Array?;
                 var selected = BackgroundRuntime.evaluate(currentUtc(), state);
                 if (selected != null) {
+                    selectedKind = selected[0];
                     var reminders = state[5] as Lang.Array;
                     var copy = notificationIds(selected[0], selected[1], active[9], reminders[9], currentUtc());
                     var options = {
@@ -30,27 +34,33 @@ class RingServiceDelegate extends System.ServiceDelegate {
                         :dismissPrevious => true
                     };
                     if (copy[2] != null) { options[:body] = copy[2]; }
-                    Notifications.showNotification(copy[0], copy[1], options);
+                    showOptionalNotification(copy[0], copy[1], options);
+                    notificationShown = true;
                     BackgroundRuntime.markSent(state, selected);
                     BackgroundRuntime.save(state);
+                    ledgerSaved = true;
                 }
             }
         } catch (ignored) {
             // A later hourly evaluation retries. Do not mark unsent work done.
+            caught = true;
         }
-        reportOptionalServiceMemory();
+        try { reportOptionalServiceResult(selectedKind, notificationShown, ledgerSaved, caught); }
+        catch (ignoredResult) { }
+        try { reportOptionalServiceMemory(); }
+        catch (ignoredMemory) { }
         Background.exit(null);
     }
 
     function notificationIds(kind as Lang.Number, action as Lang.Number, deadline as Lang.Number,
                              clockFormat as Lang.Number, nowUtc as Lang.Number) as Lang.Array {
-        var title = text(action == 0 ? Rez.Strings.NotificationRemoveToday
-            : (action == 2 ? Rez.Strings.NotificationReplaceToday : Rez.Strings.NotificationInsertToday));
-        var subtitle = format(Rez.Strings.NotificationScheduled, [timeFor(deadline, clockFormat)]);
+        var title = null;
+        var subtitle = null;
         var body = null;
         if (kind == 5) {
             title = text(action == 0 ? Rez.Strings.NotificationRemoveTomorrow
                 : (action == 2 ? Rez.Strings.NotificationReplaceTomorrow : Rez.Strings.NotificationInsertTomorrow));
+            subtitle = format(Rez.Strings.NotificationScheduled, [timeFor(deadline, clockFormat)]);
         } else if (kind == 3) {
             title = format(Rez.Strings.NotificationOverdueTitle, [elapsed(nowUtc - deadline)]);
             subtitle = text(action == 0 ? Rez.Strings.NotificationRemove
@@ -66,6 +76,10 @@ class RingServiceDelegate extends System.ServiceDelegate {
         } else if (kind == 2) {
             title = text(Rez.Strings.NotificationFourWeeks);
             subtitle = text(Rez.Strings.NotificationFourWeekContext);
+        } else {
+            title = text(action == 0 ? Rez.Strings.NotificationRemoveToday
+                : (action == 2 ? Rez.Strings.NotificationReplaceToday : Rez.Strings.NotificationInsertToday));
+            subtitle = format(Rez.Strings.NotificationScheduled, [timeFor(deadline, clockFormat)]);
         }
         return [title, subtitle, body];
     }

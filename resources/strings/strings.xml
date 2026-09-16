@@ -86,6 +86,7 @@ Out $1$</string>
     <string id="UpcomingInTemplate">In $1$</string>
     <string id="UpcomingOutTemplate">Out $1$</string>
     <string id="CurrentCycle">Current</string>
+    <string id="IfDoneToday">if done today</string>
     <string id="OnTime">On time</string>
     <string id="FirstCycle">First cycle</string>
     <string id="EarlyTemplate">$1$ early</string>

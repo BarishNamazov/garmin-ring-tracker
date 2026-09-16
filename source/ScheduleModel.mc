@@ -37,6 +37,7 @@ module ScheduleModel {
             :dayOf2Sent => false,
             :lastOverdueSlot => null,
             :lastTempOutSlot => null,
+            :tempOutIdentity => null,
             :labelFourWeekSent => false,
             :ringFreeExceededSent => false
         };
@@ -425,20 +426,28 @@ module ScheduleModel {
     // Future rows are derived on demand. Actual events remain authoritative
     // for the current row and every later row follows the latest actual anchor.
     function projectUpcoming(active as Lang.Dictionary, regimen as Lang.Dictionary,
-                             count as Lang.Number) as Lang.Array {
+                             count as Lang.Number, nowUtc as Lang.Number) as Lang.Array {
         var rows = [];
         if (count <= 0) { return rows; }
         var currentOut = active[:removalUtc] == null ? active[:removeDueUtc] : active[:removalUtc];
         rows.add({ :cycleId=>active[:cycleId], :inUtc=>active[:insertionUtc],
             :outUtc=>currentOut, :inActual=>true,
-            :outActual=>active[:removalUtc] != null, :isCurrent=>true });
-        var nextIn = active[:removalUtc] != null
-            ? active[:insertDueUtc]
-            : CalendarMath.addLocalCalendarDays(active[:removeDueUtc], regimen[:daysOut])[:utc];
+            :outActual=>active[:removalUtc] != null, :isCurrent=>true,
+            :ifDoneToday=>false });
+        var actionDue = active[:removalUtc] == null ? active[:removeDueUtc] : active[:insertDueUtc];
+        var overdueAnchor = actionDue < nowUtc;
+        var nextIn;
+        if (active[:removalUtc] != null) {
+            nextIn = overdueAnchor ? nowUtc : active[:insertDueUtc];
+        } else {
+            var removalAnchor = overdueAnchor ? nowUtc : active[:removeDueUtc];
+            nextIn = CalendarMath.addLocalCalendarDays(removalAnchor, regimen[:daysOut])[:utc];
+        }
         for (var i = 1; i < count; i += 1) {
             var nextOut = CalendarMath.addLocalCalendarDays(nextIn, regimen[:daysIn])[:utc];
             rows.add({ :cycleId=>active[:cycleId] + i, :inUtc=>nextIn,
-                :outUtc=>nextOut, :inActual=>false, :outActual=>false, :isCurrent=>false });
+                :outUtc=>nextOut, :inActual=>false, :outActual=>false, :isCurrent=>false,
+                :ifDoneToday=>overdueAnchor });
             nextIn = CalendarMath.addLocalCalendarDays(nextOut, regimen[:daysOut])[:utc];
         }
         return rows;
@@ -522,6 +531,8 @@ module ScheduleModel {
             && l[:dayBeforeSent] instanceof Lang.Boolean
             && l[:dayOf1Sent] instanceof Lang.Boolean && l[:dayOf2Sent] instanceof Lang.Boolean
             && nullableNonnegative(l[:lastOverdueSlot]) && nullableNonnegative(l[:lastTempOutSlot])
+            && nullableNonnegative(l[:tempOutIdentity])
+            && (l[:lastTempOutSlot] == null || l[:tempOutIdentity] != null)
             && l[:labelFourWeekSent] instanceof Lang.Boolean
             && l[:ringFreeExceededSent] instanceof Lang.Boolean;
     }

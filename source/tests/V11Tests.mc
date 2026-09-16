@@ -117,7 +117,7 @@ function v11UpcomingUsesActualCurrentAndSixRows(logger as Test.Logger) as Boolea
     var active = ScheduleModel.newCycle(8, start, regimen);
     var removed = active[:removeDueUtc] - 86400;
     Test.assert(ScheduleModel.recordRemoval(active, removed, regimen));
-    var rows = ScheduleModel.projectUpcoming(active, regimen, 6);
+    var rows = ScheduleModel.projectUpcoming(active, regimen, 6, start);
     Test.assertEqual(6, rows.size());
     Test.assertEqual(start, (rows[0] as Lang.Dictionary)[:inUtc]);
     Test.assertEqual(removed, (rows[0] as Lang.Dictionary)[:outUtc]);

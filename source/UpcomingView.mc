@@ -27,7 +27,7 @@ class UpcomingView extends WatchUi.View {
         var state = getApp().getState();
         var active = state[:active] as Lang.Dictionary?;
         _rows = active == null ? [] : ScheduleModel.projectUpcoming(
-            active as Lang.Dictionary, state[:regimen] as Lang.Dictionary, 6);
+            active as Lang.Dictionary, state[:regimen] as Lang.Dictionary, 6, currentUtc());
         _topIndex = UpcomingUi.boundedTopIndex(_topIndex);
     }
 
@@ -69,6 +69,11 @@ class UpcomingView extends WatchUi.View {
             dc.setColor(Ui.RING_IN, Graphics.COLOR_TRANSPARENT);
             dc.drawText(xRight, headingY, Graphics.FONT_SYSTEM_XTINY,
                 Ui.s(Rez.Strings.CurrentCycle),
+                Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+        } else if (row[:ifDoneToday]) {
+            dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(xRight, headingY, Graphics.FONT_SYSTEM_XTINY,
+                Ui.s(Rez.Strings.IfDoneToday),
                 Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 

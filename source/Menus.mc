@@ -138,6 +138,17 @@ module Menus {
         menu.addItem(item(Rez.Strings.DemoNotificationTemp, null, :notificationTemp));
         menu.addItem(item(Rez.Strings.DemoNotificationFree, null, :notificationFree));
         menu.addItem(item(Rez.Strings.DemoNotificationFourWeeks, null, :notificationFourWeeks));
+        menu.addItem(item(Rez.Strings.DemoBackgroundDayBefore, null, :backgroundDayBefore));
+        menu.addItem(item(Rez.Strings.DemoBackgroundReminder1, null, :backgroundReminder1));
+        menu.addItem(item(Rez.Strings.DemoBackgroundReminder2, null, :backgroundReminder2));
+        menu.addItem(item(Rez.Strings.DemoBackgroundOverdue, null, :backgroundOverdue));
+        menu.addItem(item(Rez.Strings.DemoBackgroundTemp, null, :backgroundTemp));
+        menu.addItem(item(Rez.Strings.DemoBackgroundFree, null, :backgroundFree));
+        menu.addItem(item(Rez.Strings.DemoBackgroundFourWeeks, null, :backgroundFourWeeks));
+        menu.addItem(item(Rez.Strings.DemoBackgroundNoOp, null, :backgroundNoOp));
+        menu.addItem(item(Rez.Strings.DemoBackgroundNil, null, :backgroundNil));
+        menu.addItem(item(Rez.Strings.DemoBackgroundCorrupt, null, :backgroundCorrupt));
+        menu.addItem(item(Rez.Strings.DemoBackgroundThrow, null, :backgroundThrow));
         return menu;
     }
 }

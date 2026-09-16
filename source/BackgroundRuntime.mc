@@ -56,12 +56,15 @@ module BackgroundRuntime {
                 || reminders[6] == 12 || reminders[6] == 24)
             || !(reminders[7] instanceof Lang.Boolean) || !(reminders[8] instanceof Lang.Boolean)
             || !(reminders[9] == 0 || reminders[9] == 12 || reminders[9] == 24)) { return false; }
-        if (ledger.size() != 9 || !nonnegative(ledger[0]) || !(ledger[1] instanceof Lang.String)
+        if ((ledger.size() != 9 && ledger.size() != 10)
+            || !nonnegative(ledger[0]) || !(ledger[1] instanceof Lang.String)
             || (ledger[1] as Lang.String).length() > 64
             || !(ledger[2] instanceof Lang.Boolean) || !(ledger[3] instanceof Lang.Boolean)
             || !(ledger[4] instanceof Lang.Boolean) || !nullableNonnegative(ledger[5])
             || !nullableNonnegative(ledger[6]) || !(ledger[7] instanceof Lang.Boolean)
-            || !(ledger[8] instanceof Lang.Boolean)) { return false; }
+            || !(ledger[8] instanceof Lang.Boolean)
+            || (ledger.size() == 10 && (!nullableNonnegative(ledger[9])
+                || (ledger[6] != null && ledger[9] == null)))) { return false; }
         if (a[2] == null) { return true; }
         if (!(a[2] instanceof Lang.Array) || (a[2] as Lang.Array).size() != 10) { return false; }
         var active = a[2] as Lang.Array;
@@ -97,6 +100,7 @@ module BackgroundRuntime {
         if (active == null) { return null; }
         var reminders = state[5] as Lang.Array;
         var ledger = state[6] as Lang.Array;
+        normalizeLedger(ledger);
         var deadline = active[9] as Lang.Number;
         var action = active[8] as Lang.Number;
         var actionName = action == 0 ? "remove" : (action == 1 ? "insert" : "replace");
@@ -111,6 +115,10 @@ module BackgroundRuntime {
             return [0, action, null];
         }
         if (active[7] != null) {
+            if (ledger[9] == null || ledger[9] != active[7]) {
+                ledger[9] = active[7];
+                ledger[6] = null;
+            }
             var elapsed = nowUtc - active[7];
             if (elapsed > 10800) {
                 var tempSlot = Math.floor((elapsed - 10801) / (reminders[6] * 3600));
@@ -151,8 +159,12 @@ module BackgroundRuntime {
 
     function markSent(state as Lang.Array, selected as Lang.Array) as Void {
         var ledger = state[6] as Lang.Array;
+        normalizeLedger(ledger);
         if (selected[0] == 0) { ledger[8] = true; }
-        else if (selected[0] == 1) { ledger[6] = selected[2]; }
+        else if (selected[0] == 1) {
+            ledger[6] = selected[2];
+            ledger[9] = (state[2] as Lang.Array)[7];
+        }
         else if (selected[0] == 2) { ledger[7] = true; }
         else if (selected[0] == 3) { ledger[5] = selected[2]; }
         else if (selected[0] == 4) {
@@ -160,6 +172,15 @@ module BackgroundRuntime {
             if ((selected[4] & 2) != 0) { ledger[4] = true; }
         }
         else if (selected[0] == 5) { ledger[2] = true; }
+    }
+
+    function normalizeLedger(ledger as Lang.Array) as Void {
+        if (ledger.size() == 9) {
+            // Old schema-3 mirrors did not identify the open interval. Drop
+            // their ambiguous slot so an upgrade cannot suppress a warning.
+            ledger[6] = null;
+            ledger.add(null);
+        }
     }
 
     function localDateOrdinal(value as Lang.Number) as Lang.Number {

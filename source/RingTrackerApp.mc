@@ -482,6 +482,7 @@ class ForegroundController {
                 return;
             }
             if (saveOrRecover()) {
+                afterOptionalSeed(action, data);
                 if (isFreshOptionalSeed(action, data)) {
                     WatchUi.switchToView(new DisclaimerView(), new DisclaimerDelegate(), WatchUi.SLIDE_IMMEDIATE);
                 } else {

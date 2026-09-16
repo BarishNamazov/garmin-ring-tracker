@@ -41,10 +41,18 @@ module ReminderPolicy {
             return candidate(:ringFreeExceeded, 1, null, null);
         }
         if (status[:temporaryOutOpen] && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
+            var open = ScheduleModel.tempOpen(active);
+            var identity = (open as Lang.Dictionary)[:outUtc];
+            if (ledger[:tempOutIdentity] == null || ledger[:tempOutIdentity] != identity) {
+                ledger[:tempOutIdentity] = identity;
+                ledger[:lastTempOutSlot] = null;
+            }
             var repeatSeconds = reminders[:overdueRepeatHours] * CalendarMath.SECONDS_PER_HOUR;
             var tempSlot = Math.floor((status[:tempElapsed] - ScheduleModel.TEMP_LIMIT_SECONDS - 1) / repeatSeconds);
             if (ledger[:lastTempOutSlot] == null || tempSlot > ledger[:lastTempOutSlot]) {
-                return candidate(:tempOver3h, 2, tempSlot, null);
+                var selected = candidate(:tempOver3h, 2, tempSlot, null);
+                selected[:tempOutIdentity] = identity;
+                return selected;
             }
         }
         if (status[:ringInOverFourWeeks] && !ledger[:labelFourWeekSent]) {
@@ -92,6 +100,7 @@ module ReminderPolicy {
                 ledger[:ringFreeExceededSent] = true;
                 break;
             case :tempOver3h:
+                ledger[:tempOutIdentity] = selected[:tempOutIdentity];
                 ledger[:lastTempOutSlot] = selected[:slot];
                 break;
             case :beyondFourWeeks:

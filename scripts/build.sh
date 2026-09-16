@@ -5,6 +5,7 @@ script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 project_dir="$(cd "${script_dir}/.." && pwd)"
 source "${script_dir}/env.sh"
 cd "${project_dir}"
+"${script_dir}/check-background-scope.sh"
 
 devices=(epix2pro42mm epix2pro47mm epix2pro51mm)
 simulator_pid=""
@@ -15,6 +16,11 @@ print_hashes() {
     for path in "$@"; do
         sha256sum "${path}"
     done
+}
+
+print_iq_prg_hashes() {
+    java --class-path "${CIQ_SDK_HOME}/bin/monkeybrains.jar" \
+        "${script_dir}/IqPrgHashes.java" "$1"
 }
 
 build_release() {
@@ -32,6 +38,7 @@ build_release() {
         -y "${CIQ_DEVELOPER_KEY}" -w -r
     outputs+=("${output_dir}/RingTracker.iq")
     print_hashes "${outputs[@]}"
+    print_iq_prg_hashes "${output_dir}/RingTracker.iq"
 }
 
 build_debug() {

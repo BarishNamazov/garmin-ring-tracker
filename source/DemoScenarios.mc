@@ -67,10 +67,52 @@ function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as L
     Notifications.showNotification(title as Lang.String, subtitle as Lang.String, options);
 }
 
+(:debug)
+function afterOptionalSeed(action as Lang.Symbol, data) as Void {
+    if (action != :demo) { return; }
+    var scenario = data as Lang.Symbol;
+    Storage.setValue("debugBackgroundScenario", scenario.toString());
+    Storage.deleteValue("debugBackgroundResult");
+    Storage.deleteValue("debugBackgroundThrow");
+    if (scenario == :backgroundNil) {
+        Storage.deleteValue(RingStore.BACKGROUND_KEY);
+    } else if (scenario == :backgroundCorrupt) {
+        Storage.setValue(RingStore.BACKGROUND_KEY, ["corrupt"]);
+    } else if (scenario == :backgroundThrow) {
+        Storage.setValue("debugBackgroundThrow", true);
+    }
+}
+
 (:debug, :background)
 function reportOptionalServiceMemory() as Void {
     var stats = Toybox.System.getSystemStats();
     Toybox.System.println("RING_TRACKER_BACKGROUND_MEMORY=" + stats.usedMemory + "/" + stats.totalMemory);
+}
+
+(:debug, :background)
+function showOptionalNotification(title as Lang.String, subtitle as Lang.String, options) as Void {
+    if (Storage.getValue("debugBackgroundThrow") == true) {
+        Storage.deleteValue("debugBackgroundThrow");
+        throw new Lang.InvalidValueException("injected notification failure");
+    }
+    Notifications.showNotification(title, subtitle, options);
+}
+
+(:debug, :background)
+function reportOptionalServiceResult(kind, notificationShown as Lang.Boolean,
+                                     ledgerSaved as Lang.Boolean, caught as Lang.Boolean) as Void {
+    try {
+        var scenario = Storage.getValue("debugBackgroundScenario");
+        var raw = Storage.getValue("ringTrackerBackground");
+        var ledger = raw instanceof Lang.Array && (raw as Lang.Array).size() > 6
+            ? (raw as Lang.Array)[6].toString() : "null";
+        var line = "RING_TRACKER_BACKGROUND_RESULT=" + scenario
+            + ",kind=" + kind + ",notification=" + notificationShown
+            + ",ledgerSaved=" + ledgerSaved + ",caught=" + caught
+            + ",exit=1,ledger=" + ledger;
+        Toybox.System.println(line);
+        Storage.setValue("debugBackgroundResult", line);
+    } catch (ignored) { }
 }
 
 (:debug)
@@ -94,11 +136,14 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
         regimen[:daysOut] = 3;
         insertion = nowUtc - (28 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR);
     }
-    else if (scenario == :freeExceeded || scenario == :notificationFree) { insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :temp250 || scenario == :temp310 || scenario == :notificationTemp || scenario == :reminder2) { insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :extended35 || scenario == :notificationFourWeeks || scenario == :largestCountdown) {
+    else if (scenario == :freeExceeded || scenario == :notificationFree || scenario == :backgroundFree) { insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :temp250 || scenario == :temp310 || scenario == :notificationTemp
+        || scenario == :backgroundTemp || scenario == :reminder2) { insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :extended35 || scenario == :notificationFourWeeks
+        || scenario == :backgroundFourWeeks || scenario == :largestCountdown) {
         regimen[:daysIn] = 35;
-        insertion = (scenario == :extended35 || scenario == :notificationFourWeeks)
+        insertion = (scenario == :extended35 || scenario == :notificationFourWeeks
+            || scenario == :backgroundFourWeeks)
             ? nowUtc - (29 * CalendarMath.SECONDS_PER_DAY) : nowUtc;
     }
     else if (scenario == :clock12Long || scenario == :clock24) {
@@ -109,27 +154,31 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
         var target = CalendarMath.wallToUtcUsingDevice(targetWall);
         if (target != null) { insertion = target[:utc]; }
     }
-    else if (scenario == :notificationDayBefore) {
+    else if (scenario == :notificationDayBefore || scenario == :backgroundDayBefore) {
         insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY);
     }
-    else if (scenario == :notificationReminder1 || scenario == :notificationReminder2) {
+    else if (scenario == :notificationReminder1 || scenario == :notificationReminder2
+        || scenario == :backgroundReminder1 || scenario == :backgroundReminder2
+        || scenario == :backgroundThrow) {
         insertion = nowUtc - (21 * CalendarMath.SECONDS_PER_DAY);
     }
-    else if (scenario == :notificationOverdue) {
+    else if (scenario == :notificationOverdue || scenario == :backgroundOverdue) {
         insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY) - (4 * CalendarMath.SECONDS_PER_HOUR);
     }
     var active = ScheduleModel.insertOrReplace(state, insertion);
     if (scenario == :ringFree) { ScheduleModel.recordRemoval(active, nowUtc - (2 * CalendarMath.SECONDS_PER_DAY), regimen); }
     else if (scenario == :freeDay3) { ScheduleModel.recordRemoval(active, nowUtc - (3 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR), regimen); }
-    else if (scenario == :freeExceeded || scenario == :notificationFree) { ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen); }
+    else if (scenario == :freeExceeded || scenario == :notificationFree || scenario == :backgroundFree) { ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen); }
     else if (scenario == :temp250) { ScheduleModel.startTemporaryOut(active, nowUtc - (2 * 3600) - (50 * 60)); }
-    else if (scenario == :temp310 || scenario == :notificationTemp) { ScheduleModel.startTemporaryOut(active, nowUtc - (3 * 3600) - (10 * 60)); }
+    else if (scenario == :temp310 || scenario == :notificationTemp || scenario == :backgroundTemp) { ScheduleModel.startTemporaryOut(active, nowUtc - (3 * 3600) - (10 * 60)); }
     else if (scenario == :reminder2) {
         var demoReminders = state[:reminders] as Lang.Dictionary;
         demoReminders[:reminder2Enabled] = true;
     }
     var scenarioReminders = state[:reminders] as Lang.Dictionary;
-    if (scenario == :notificationDayBefore || scenario == :notificationReminder1) {
+    if (scenario == :notificationDayBefore || scenario == :notificationReminder1
+        || scenario == :backgroundDayBefore || scenario == :backgroundReminder1
+        || scenario == :backgroundThrow) {
         var reminderNow = CalendarMath.localFields(nowUtc);
         scenarioReminders[:reminder1Hour] = reminderNow[:hour];
         scenarioReminders[:reminder1Minute] = reminderNow[:minute];
@@ -137,7 +186,7 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     if (scenario == :clock12Long) { scenarioReminders[:clockFormat] = 12; }
     else if (scenario == :clock24) { scenarioReminders[:clockFormat] = 24; }
     else if (scenario == :migration) { state[:migrationNoticePending] = true; }
-    else if (scenario == :notificationReminder2) {
+    else if (scenario == :notificationReminder2 || scenario == :backgroundReminder2) {
         var nowFields = CalendarMath.localFields(nowUtc);
         scenarioReminders[:reminder2Enabled] = true;
         scenarioReminders[:reminder2Hour] = nowFields[:hour];

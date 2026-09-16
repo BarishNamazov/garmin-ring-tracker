@@ -95,17 +95,17 @@ function v11UpcomingRingInRingFreeZeroDayAndScrollBounds(logger as Test.Logger) 
     var start = testWall(2026, 2, 1, 9, 0);
     var regimen = ScheduleModel.defaultRegimen();
     var ringIn = ScheduleModel.newCycle(4, start, regimen);
-    var rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6);
+    var rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6, start);
     Test.assertEqual(CalendarMath.addLocalCalendarDays(ringIn[:removeDueUtc], 7)[:utc],
         (rows[1] as Lang.Dictionary)[:inUtc]);
     var removed = ringIn[:removeDueUtc] - 86400;
     Test.assert(ScheduleModel.recordRemoval(ringIn, removed, regimen));
-    rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6);
+    rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6, start);
     Test.assertEqual(removed, (rows[0] as Lang.Dictionary)[:outUtc]);
     Test.assertEqual(ringIn[:insertDueUtc], (rows[1] as Lang.Dictionary)[:inUtc]);
     regimen[:daysOut] = 0;
     ScheduleModel.recomputeForRegimen(ringIn, regimen);
-    rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6);
+    rows = ScheduleModel.projectUpcoming(ringIn, regimen, 6, start);
     Test.assertEqual(removed, (rows[1] as Lang.Dictionary)[:inUtc]);
     Test.assertEqual(0, UpcomingUi.boundedTopIndex(-9));
     Test.assertEqual(3, UpcomingUi.boundedTopIndex(9));
@@ -116,18 +116,18 @@ function v11UpcomingRingInRingFreeZeroDayAndScrollBounds(logger as Test.Logger) 
 function v11UpcomingUpdatesAfterEditsAndDurationChanges(logger as Test.Logger) as Boolean {
     var regimen = ScheduleModel.defaultRegimen();
     var active = ScheduleModel.newCycle(1, testWall(2026, 4, 1, 9, 0), regimen);
-    var original = ScheduleModel.projectUpcoming(active, regimen, 6);
+    var original = ScheduleModel.projectUpcoming(active, regimen, 6, active[:insertionUtc]);
     regimen[:daysIn] = 28;
     ScheduleModel.recomputeForRegimen(active, regimen);
-    var longer = ScheduleModel.projectUpcoming(active, regimen, 6);
+    var longer = ScheduleModel.projectUpcoming(active, regimen, 6, active[:insertionUtc]);
     Test.assert((original[1] as Lang.Dictionary)[:inUtc] != (longer[1] as Lang.Dictionary)[:inUtc]);
     var edited = ScheduleModel.rebuildForInsertion(active, active[:insertionUtc] + 3600, regimen) as Lang.Dictionary;
-    var shifted = ScheduleModel.projectUpcoming(edited, regimen, 6);
+    var shifted = ScheduleModel.projectUpcoming(edited, regimen, 6, edited[:insertionUtc]);
     Test.assertEqual((longer[1] as Lang.Dictionary)[:inUtc] + 3600,
         (shifted[1] as Lang.Dictionary)[:inUtc]);
     var removal = edited[:removeDueUtc] - 7200;
     Test.assert(ScheduleModel.recordRemoval(edited, removal, regimen));
-    var removedRows = ScheduleModel.projectUpcoming(edited, regimen, 6);
+    var removedRows = ScheduleModel.projectUpcoming(edited, regimen, 6, edited[:insertionUtc]);
     Test.assertEqual(CalendarMath.addLocalCalendarDays(removal, regimen[:daysOut])[:utc],
         (removedRows[1] as Lang.Dictionary)[:inUtc]);
     return true;

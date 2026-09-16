@@ -26,6 +26,17 @@
     <string id="DemoNotificationTemp">Notification · out over 3h</string>
     <string id="DemoNotificationFree">Notification · ring out over 7d</string>
     <string id="DemoNotificationFourWeeks">Notification · ring in over 4 weeks</string>
+    <string id="DemoBackgroundDayBefore">BG · day before</string>
+    <string id="DemoBackgroundReminder1">BG · Reminder 1</string>
+    <string id="DemoBackgroundReminder2">BG · Reminder 2</string>
+    <string id="DemoBackgroundOverdue">BG · overdue</string>
+    <string id="DemoBackgroundTemp">BG · out over 3h</string>
+    <string id="DemoBackgroundFree">BG · ring out over 7d</string>
+    <string id="DemoBackgroundFourWeeks">BG · ring in over 4 weeks</string>
+    <string id="DemoBackgroundNoOp">BG · no-op</string>
+    <string id="DemoBackgroundNil">BG · nil mirror</string>
+    <string id="DemoBackgroundCorrupt">BG · corrupt mirror</string>
+    <string id="DemoBackgroundThrow">BG · notification exception</string>
     <string id="DemoSeedQuestion">Load demo?
 Replaces data.</string>
 </strings>

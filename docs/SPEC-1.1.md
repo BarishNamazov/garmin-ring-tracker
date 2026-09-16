@@ -348,6 +348,7 @@ The audit below contains all 283 current `<string>` elements. `DELETE` means rem
 | `UpcomingInTemplate` | `In $1$` | Upcoming row |
 | `UpcomingOutTemplate` | `Out $1$` | Upcoming row |
 | `CurrentCycle` | `Current` | Current Upcoming row badge |
+| `IfDoneToday` | `if done today` | Projected row after an overdue current action |
 | `OnTime` | `On time` | Event delta |
 | `FirstCycle` | `First cycle` | Initial insertion confirmation/history fallback |
 | `EarlyTemplate` | `$1$ early` | Event delta |
@@ -622,14 +623,15 @@ The long segment of each 5 px bar is ring-in green and the short segment is ring
 Projection algorithm:
 
 1. Row 1 `In` is the active actual `insertionUtc`. Row 1 `Out` is actual `removalUtc` when present, otherwise `removeDueUtc`.
-2. If actual removal exists, row 2 `In` is `insertDueUtc`. Otherwise it is `addLocalCalendarDays(removeDueUtc, daysOut)`.
-3. For rows 2–6, `Out = addLocalCalendarDays(In, daysIn)` and the following `In = addLocalCalendarDays(Out, daysOut)`.
-4. Show local dates only as `Mon 2 Nov`; do not show times, `projected`, or explanatory footers. The title `Upcoming` and the current badge supply enough context.
-5. Compute rows on view creation/resume; never persist them. An actual insertion/removal, an edited actual timestamp, or a duration change invalidates the view model and regenerates all six rows.
+2. Let the current action be removal when no actual removal exists, otherwise insertion. If that action is not overdue, row 2 `In` is `insertDueUtc` after actual removal, or `addLocalCalendarDays(removeDueUtc, daysOut)` before removal.
+3. If the current action is overdue, keep row 1 unchanged but assume that action happens at `nowUtc` for projection only. For overdue removal, row 2 `In` is `addLocalCalendarDays(nowUtc, daysOut)`; for overdue insertion, row 2 `In` is `nowUtc`. This assumption never records an event or changes state.
+4. For rows 2–6, `Out = addLocalCalendarDays(In, daysIn)` and the following `In = addLocalCalendarDays(Out, daysOut)`.
+5. Show local dates only as `Mon 2 Nov`; do not show times or explanatory footers. When rule 3 applies, show the subtle small-line note `if done today` on projected rows 2–6.
+6. Compute rows on view creation/resume; never persist them. An actual insertion/removal, an edited actual timestamp, a duration change, or advancing `nowUtc` invalidates the view model and regenerates all six rows.
 
-Implement this as pure `ScheduleModel.projectUpcoming(active, regimen, count)` returning rows `{ :cycleId, :inUtc, :outUtc, :inActual, :outActual, :isCurrent }`. Require `count == 6` at the UI call site; keeping the helper parameterized makes boundary tests small without putting date math in the view.
+Implement this as pure `ScheduleModel.projectUpcoming(active, regimen, count, nowUtc)` returning rows `{ :cycleId, :inUtc, :outUtc, :inActual, :outActual, :isCurrent, :ifDoneToday }`. Require `count == 6` at the UI call site; keeping the helper parameterized makes boundary tests small without putting date math in the view.
 
-This deliberately continues the current anchor even when an action is overdue; it does not pretend missed projected events happened. Row 1 always retains actual event dates. Once the user records the late event, all downstream rows shift from that actual instant.
+Row 1 always retains actual event dates. Projected rows never show a past action: when the current action is overdue, they use the non-persisted “if done today” assumption above. Once the user records the late event, all downstream rows shift from that actual instant and the assumption note disappears.
 
 ### Layout and input
 
@@ -1009,7 +1011,9 @@ All three sizes (390/416/454):
 
 - Ring in, ring free, overdue remove, overdue insert, temporary out 2h50, temporary out 3h10;
 - ring free >7d warning and ring in >28d warning;
-- Upcoming at rows 1–3 and scrolled to rows 4–6; verify date pairs and bars clear the round edge;
+- Upcoming with an overdue current action at rows 1–3 and scrolled to rows
+  4–6; verify the actual row, future `if done today` rows, date pairs, and bars
+  clear the round edge;
 - long 12-hour date/time, 24-hour time, largest countdown, and warning wrapping;
 - glance ring-in, ring-free, overdue, and temporary-out.
 

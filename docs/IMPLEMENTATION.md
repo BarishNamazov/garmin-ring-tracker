@@ -22,7 +22,9 @@ medical-model source record.
   Insertion is due `daysOut` local calendar days after the actual removal.
   Confirmations and History preserve early/late event deltas.
 - Upcoming projects six cycles from the active actual-event anchor without
-  mutating state.
+  mutating state. If the current action is overdue, row 1 retains the actual
+  cycle while projected rows assume the action happens now, remain non-past,
+  and show `if done today`.
 - Main is a status screen: UP opens Upcoming, DOWN opens History, START/tap
   opens the context menu, and long MENU opens the same menu. While temporarily
   out, START/tap opens the ring-back-in confirmation.
@@ -41,6 +43,11 @@ medical-model source record.
   text breaks at sentence boundaries.
 - Foreground orchestration lives in the unscoped `ForegroundController` and
   `ForegroundRuntime`, outside the `:background` and `:glance` personalities.
+- Temporary-out reminder deduplication includes the open interval's `outUtc`,
+  so closing and reopening within one cycle starts a new reminder sequence.
+- Spring-forward gaps resolve to the exact first valid minute. The background
+  notification path uses only background-scoped resources and is exercised by
+  real simulator temporal events, including failure paths.
 
 ## File map
 
@@ -54,9 +61,10 @@ medical-model source record.
 | App shell | `source/RingTrackerApp.mc` | Minimal scoped `AppBase` bridge plus unscoped foreground controller, navigation, confirmations, and settings orchestration |
 | Foreground UI | `source/MainView.mc`, `source/UpcomingView.mc`, `source/HistoryView.mc`, `source/StaticViews.mc`, `source/Menus.mc`, `source/Pickers.mc`, `source/UiUtils.mc` | Main, six-cycle Upcoming, custom scrollable History/detail, setup/About, menus, confirmations, and native pickers |
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Reduced mirror codecs, glance rendering, and hourly reminder service |
-| Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production no-op seams and debug-only clock, fixtures, notification previews, and memory reporting |
+| Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production seams and debug-only clock, fixtures, notification previews, temporal-event diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
-| Tests | `source/tests/*.mc` | 108 deterministic domain, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Tests | `source/tests/*.mc` | 119 deterministic domain, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, background resource/exit guard, simulator tests, and Store-package PRG hashes |
 | Visual evidence | `docs/screenshots/` | 93 native-resolution v1.1 captures |
 
 The canonical document excludes archived history. History is split across two
@@ -87,16 +95,20 @@ source scripts/env.sh
 ./scripts/build.sh test
 ```
 
-The driver builds every target, treats warnings as failures, exports the Store
-package for release, and runs the simulator test personality for `test`.
+The driver first checks that every `Rez.Strings` symbol referenced by
+`ServiceDelegate` or `BackgroundRuntime` is declared with
+`scope="background"`, and that the service contains exactly one lexical
+`Background.exit` call. It then builds every target, treats warnings as
+failures, exports the Store package for release, and runs the simulator test
+personality for `test`.
 
-Final verification on 2026-09-15:
+Final verification on 2026-09-16:
 
 | Configuration | 42 mm | 47 mm | 51 mm |
 | --- | --- | --- | --- |
 | Release | success, zero warnings | success, zero warnings | success, zero warnings |
 | Debug | success, zero warnings | success, zero warnings | success, zero warnings |
-| Test compile | success, zero warnings | success, zero warnings | success, zero warnings |
+| Unit-test personality | — | success, zero warnings; 119/0/0 | — |
 
 The generated 47 mm debug annotation map contains no `background` or `glance`
 entry for `ForegroundController`, `ForegroundRuntime`, `ForegroundEntryView`,
@@ -105,7 +117,7 @@ and the dedicated constrained implementations are tagged into those scopes.
 
 ## Tests
 
-The final simulator result is **108 passed, 0 failed, 0 errors**:
+The final simulator result is **119 passed, 0 failed, 0 errors**:
 
 | File | Tests |
 | --- | ---: |
@@ -113,6 +125,8 @@ The final simulator result is **108 passed, 0 failed, 0 errors**:
 | `ReviewTests.mc` | 17 |
 | `ReviewResolutionTests.mc` | 15 |
 | `Review2Tests.mc` | 15 |
+| `Review3Tests.mc` | 8 |
+| `Review3ResolutionTests.mc` | 3 |
 | `V11Tests.mc` | 12 |
 | `V11CoverageTests.mc` | 15 |
 
@@ -121,7 +135,9 @@ calendar behavior, actual-event re-anchoring, early/late deltas, six-cycle
 projection, compact confirmation timestamps, sentence-boundary warning splits,
 History variance/scroll bounds, reminder priority and per-slot deduplication, v1/v2 migration,
 pending settings mirrors, schema validation, split-history recovery and
-compaction, reduced codecs, and the maximum retained-history fixture.
+compaction, reduced codecs, interval-specific temporary-out deduplication,
+exact spring-gap boundaries, non-past overdue projection, and the maximum
+retained-history fixture.
 
 ### Review 2 regression disposition
 
@@ -156,6 +172,81 @@ Four old expectations were dropped or replaced because v1.1 supersedes them:
 - the impossible/final planned-deadline case (planned overrides and the final
   deadline were removed; actual-event deadline validation replaces it).
 
+### Review 3 resolution
+
+All eight tests in `docs/review-tests/Review3Tests.mc` were adopted into
+`source/tests/Review3Tests.mc`; none were dropped. The Upcoming test was adapted
+only to pass the explicit `nowUtc` required by the selected overdue-projection
+contract. The adopted cases cover:
+
+1. existing spring/fall wall times;
+2. exact 03:00 spring-gap resolution for direct, 21-day, and 28-day paths;
+3. leap-day, midnight, and persisted-UTC authority;
+4. a second temporary-out interval in one cycle;
+5. changed reminder times and both insertion-day slots;
+6. a real v1.0 ring-in/open-interval/24-history migration;
+7. a real v1.0 late-removal migration; and
+8. non-past Upcoming rows after a long-overdue current action.
+
+`Review3ResolutionTests.mc` adds three implementation-specific checks: the
+temporary interval identity survives a foreground codec round trip, a second
+interval stays in foreground/background parity, and an old nine-field schema-3
+ledger drops its ambiguous temporary slot while migrating to ten fields.
+
+The five review findings were resolved as follows:
+
+- Background subtitle formatting no longer looks up `TimeSeparator`, `Am`,
+  `Pm`, `DayUnit`, `HourUnit`, or `MinuteUnit`; its compact formatter uses
+  background-safe literals. The build-time scope guard prevents recurrence.
+- The ledger stores `tempOutIdentity` beside `lastTempOutSlot`; an identity
+  change resets the slot in both foreground and compact background codecs.
+- Overdue projections keep the actual current row, project later rows from an
+  as-if-done-now anchor, and mark those rows `if done today`.
+- The spring-gap resolver binary-searches the UTC offset transition, returning
+  the first valid instant rather than retaining the input minute phase.
+- SDK 9.2 release mode strips executable debug information, but the Store
+  archive still embeds path-bearing `debug.xml` entries. The executable PRGs
+  inside the archive are therefore hashed separately as described below.
+
+### Live background temporal-event verification
+
+The verification uses the actual `System.ServiceDelegate` entry point, not a
+direct unit-test call:
+
+1. `source scripts/env.sh`, build `debug`, start
+   `TZ=America/New_York ciq_headless_simulator`, and attach
+   `monkeydo bin/debug/RingTracker-epix2pro47mm.prg epix2pro47mm`.
+2. In the app's **Demo scenarios** menu, load one `BG · …` fixture and confirm
+   it. Each fixture records its scenario and creates a fresh compact mirror;
+   the nil/corrupt/throw fixtures then apply their named fault.
+3. In the simulator choose **Simulation → Background Events**, leave
+   **Temporal Event** and the current app target selected, then press Return.
+4. Read `RING_TRACKER_BACKGROUND_RESULT=…` and
+   `RING_TRACKER_BACKGROUND_MEMORY=…` from the attached `monkeydo` process.
+   The result records selected kind, post/save/catch flags, the resulting
+   ledger, and `exit=1` immediately before the sole `Background.exit(null)`.
+
+Observed 47 mm results:
+
+| Fixture | Kind | Notification | Ledger save | Caught | Exit | Ledger effect |
+| --- | ---: | --- | --- | --- | ---: | --- |
+| Day-before | 5 | yes | yes | no | 1 | `dayBeforeSent=true` |
+| Reminder 1 | 4 | yes | yes | no | 1 | `dayOf1Sent=true` |
+| Reminder 2 | 4 | yes | yes | no | 1 | `dayOf1Sent=true`, `dayOf2Sent=true` |
+| Overdue | 3 | yes | yes | no | 1 | `lastOverdueSlot=4` |
+| Temporary out >3h | 1 | yes | yes | no | 1 | slot 0 plus interval `outUtc` identity |
+| Ring free >7d | 0 | yes | yes | no | 1 | `ringFreeExceededSent=true` |
+| Ring in >4 weeks | 2 | yes | yes | no | 1 | `labelFourWeekSent=true` |
+| Valid no-op | — | no | no | no | 1 | unchanged |
+| Nil mirror | — | no | no | no | 1 | no mirror |
+| Corrupt mirror | — | no | no | no | 1 | rejected as inert |
+| Injected `showNotification` exception | 4 | no | no | yes | 1 | unchanged for retry |
+
+Each successful reminder produced one native notification and one ledger
+write. No-op and invalid-storage paths produced neither. The injected exception
+was caught before marking or saving. Diagnostic and memory hooks are separately
+guarded so they cannot bypass the one final exit.
+
 ## Debug fixtures and visual QA
 
 Debug uses numeric object-store key `debugNowUtc` as a clock override. Remove
@@ -176,6 +267,9 @@ overdue insertion, temporary out at 2h50 and 3h10, >7d and >28d warnings,
 Upcoming rows 1–3 and 4–6, long 12-hour and 24-hour formatting, maximum
 countdown, warning wrapping, all four glance states, custom History and cycle
 detail, and early-removal, late-insertion, and edit-removal confirmations. The
+six Upcoming captures now use the overdue-removal fixture: row 1 retains its
+actual past dates, rows 2–6 remain non-past, and each affected projected row
+shows `if done today` without clipping on 390, 416, or 454 px. The
 47 mm interaction set adds 24 captures covering first run, regimen, four context menus, Edit
 dates, Reminder 2 Off/On/submenus/picker, day-before, overdue repeat, clock,
 About, migration notice, and all seven native notification kinds. Obsolete Schedule, planned-override, and
@@ -189,13 +283,16 @@ background use reduced active mirrors.
 
 | Personality | Peak/live use | Available heap | Result |
 | --- | ---: | ---: | --- |
-| Foreground | 136.0 KiB | 763.6 KiB | within foreground budget |
-| Glance | 16.8 KiB | 59.8 KiB | below 45 KiB |
-| Background | 15,040 bytes (14.7 KiB) | 61,256 bytes (59.8 KiB) | below 45 KiB |
+| Foreground | 138.7 KiB | 763.6 KiB | within foreground budget |
+| Glance | 17.5 KiB | 59.8 KiB | below 45 KiB |
+| Background | 16,184 bytes (15.8 KiB) | 61,256 bytes (59.8 KiB) | below 45 KiB |
 
-The background number is sampled after temporal evaluation immediately before
-the short-lived process exits. Neither constrained personality loads the full
-history, foreground controller, or foreground view graph.
+The foreground reading is the maximum transient 25-row History view. Glance
+was launched with **Settings → Glance Launch Mode → Launch in Glance Mode**.
+The background peak is the injected notification-exception case, sampled after
+temporal evaluation immediately before the short-lived process exits. Neither
+constrained personality loads the full history, foreground controller, or
+foreground view graph.
 
 ## Deliberate deviation
 
@@ -215,6 +312,15 @@ presentation override:
 - `RingTracker-epix2pro51mm.prg`
 - `RingTracker.iq`
 - `SHA256SUMS`
+
+The three standalone release PRGs are byte-reproducible. The SDK 9.2.0
+`monkeyc -e -r` export has no option to omit the path-bearing `debug.xml`
+members inside the 7z-format `.iq`, so whole-file `.iq` bytes can vary with the
+build path even when executable content is identical. After every release
+export, `build.sh` uses `IqPrgHashes.java` and the SDK-bundled Apache Commons
+Compress library to print SHA-256 for every internal PRG as `IQ:<entry>`. Those
+internal hashes are the reproducible executable-payload verification; the
+outer `.iq` hash in `SHA256SUMS` verifies the exact distributed archive.
 
 Copy those files only after all three build targets, the string audit, native
 image-dimension check, and release-symbol inspection pass.

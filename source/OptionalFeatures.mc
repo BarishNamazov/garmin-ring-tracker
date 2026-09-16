@@ -20,5 +20,17 @@ function isTransientOptionalSeed(action as Lang.Symbol, data) as Lang.Boolean { 
 (:production)
 function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as Lang.Number) as Void { }
 
+(:production)
+function afterOptionalSeed(action as Lang.Symbol, data) as Void { }
+
 (:production, :background)
 function reportOptionalServiceMemory() as Void { }
+
+(:production, :background)
+function showOptionalNotification(title as Lang.String, subtitle as Lang.String, options) as Void {
+    Toybox.Notifications.showNotification(title, subtitle, options);
+}
+
+(:production, :background)
+function reportOptionalServiceResult(kind, notificationShown as Lang.Boolean,
+                                     ledgerSaved as Lang.Boolean, caught as Lang.Boolean) as Void { }

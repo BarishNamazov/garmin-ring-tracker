@@ -405,7 +405,8 @@ module RingStore {
             || !ScheduleModel.numberBetween(a[3], 21, 35)
             || !ScheduleModel.numberBetween(a[4], 0, 7)
             || !(a[5] instanceof Lang.Array) || (a[5] as Lang.Array).size() != 10
-            || !(a[6] instanceof Lang.Array) || (a[6] as Lang.Array).size() != 9) { return false; }
+            || !(a[6] instanceof Lang.Array)
+            || ((a[6] as Lang.Array).size() != 9 && (a[6] as Lang.Array).size() != 10)) { return false; }
         var r = a[5] as Lang.Array;
         var reminder = { :reminder1Hour=>r[0], :reminder1Minute=>r[1],
             :reminder2Hour=>r[2], :reminder2Minute=>r[3],
@@ -658,10 +659,14 @@ module RingStore {
         ledger[:dayOf1Sent] = oldLedger[:dayOfSent];
         ledger[:dayOf2Sent] = oldLedger[:dayOfSent];
         ledger[:lastOverdueSlot] = oldLedger[:lastOverdueSlot];
-        ledger[:lastTempOutSlot] = oldLedger[:lastTempOutSlot];
         ledger[:labelFourWeekSent] = oldLedger[:labelFourWeekSent];
         ledger[:ringFreeExceededSent] = oldLedger[:ringFreeExceededSent];
         if (state[:active] != null) {
+            var open = ScheduleModel.tempOpen(state[:active] as Lang.Dictionary);
+            if (open != null && oldLedger[:lastTempOutSlot] != null) {
+                ledger[:lastTempOutSlot] = oldLedger[:lastTempOutSlot];
+                ledger[:tempOutIdentity] = (open as Lang.Dictionary)[:outUtc];
+            }
             var status = ScheduleModel.deriveStatus((state[:active] as Lang.Dictionary)[:insertionUtc],
                 state[:active] as Lang.Dictionary, state[:regimen] as Lang.Dictionary);
             var newKey = ReminderPolicy.actionKey(status);
@@ -725,14 +730,17 @@ module RingStore {
 
     function encodeLedger(l as Lang.Dictionary) as Lang.Array {
         return [l[:cycleId], l[:actionKey], l[:dayBeforeSent], l[:dayOf1Sent], l[:dayOf2Sent],
-            l[:lastOverdueSlot], l[:lastTempOutSlot], l[:labelFourWeekSent], l[:ringFreeExceededSent]];
+            l[:lastOverdueSlot], l[:lastTempOutSlot], l[:labelFourWeekSent],
+            l[:ringFreeExceededSent], l[:tempOutIdentity]];
     }
 
     function decodeLedger(a as Lang.Array) as Lang.Dictionary {
-        if (a.size() != 9) { throw new Lang.InvalidValueException("invalid ledger"); }
+        if (a.size() != 9 && a.size() != 10) { throw new Lang.InvalidValueException("invalid ledger"); }
         return { :cycleId=>a[0], :actionKey=>a[1], :dayBeforeSent=>a[2],
             :dayOf1Sent=>a[3], :dayOf2Sent=>a[4], :lastOverdueSlot=>a[5],
-            :lastTempOutSlot=>a[6], :labelFourWeekSent=>a[7], :ringFreeExceededSent=>a[8] };
+            :lastTempOutSlot=>a.size() == 10 ? a[6] : null,
+            :labelFourWeekSent=>a[7], :ringFreeExceededSent=>a[8],
+            :tempOutIdentity=>a.size() == 10 ? a[9] : null };
     }
 
     function decodeLegacyLedger(a as Lang.Array) as Lang.Dictionary {

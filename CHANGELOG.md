@@ -14,6 +14,8 @@ All notable changes to Ring Tracker are documented in this file.
   migration review for existing dates.
 - Regression coverage for second-round review findings, v1/v2 migration,
   actual-event anchors, reminder slots, and reduced constrained codecs.
+- Review 3 regression coverage for real v1.0 fixtures, DST transition matrices,
+  interval-specific temporary-out reminders, and overdue projections.
 
 ### Changed
 
@@ -27,6 +29,13 @@ All notable changes to Ring Tracker are documented in this file.
   control, including durable watch-wins repair after rejected remote changes.
 - Hardened persisted-state validation for derived deadlines, IDs, and close
   reasons, and moved foreground orchestration out of constrained annotations.
+- Scoped every background notification resource, added live temporal-event
+  diagnostics, and guarded the service's single-exit contract.
+- Made temporary-out reminder slots specific to each open interval, resolved
+  nonexistent spring-forward times to the exact first valid minute, and kept
+  overdue Upcoming projections non-past with an `if done today` note.
+- Added reproducible SHA-256 reporting for every executable PRG embedded in the
+  Store `.iq` archive.
 
 ### Removed
 
