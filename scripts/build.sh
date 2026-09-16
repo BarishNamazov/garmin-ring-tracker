@@ -11,6 +11,19 @@ devices=(epix2pro42mm epix2pro47mm epix2pro51mm)
 simulator_pid=""
 simulator_log=""
 
+simulator_running() {
+    local cmdline executable
+    for cmdline in /proc/[0-9]*/cmdline; do
+        [[ -r "${cmdline}" ]] || continue
+        executable=""
+        IFS= read -r -d '' executable <"${cmdline}" || true
+        if [[ "${executable}" == "${CIQ_SDK_HOME}/bin/simulator" ]]; then
+            return 0
+        fi
+    done
+    return 1
+}
+
 print_hashes() {
     local path
     for path in "$@"; do
@@ -64,11 +77,13 @@ run_tests() {
         -y "${CIQ_DEVELOPER_KEY}" -w --unit-test
     print_hashes "${test_prg}"
 
-    if ! pgrep -f "${CIQ_SDK_HOME}/bin/simulator" >/dev/null 2>&1; then
+    if ! simulator_running; then
         simulator_log="$(mktemp /tmp/ring-tracker-simulator.XXXXXX.log)"
-        setsid bash -c 'source "$1"; TZ=America/New_York ciq_headless_simulator' \
+        set -m
+        bash -c 'source "$1"; TZ=America/New_York ciq_headless_simulator' \
             _ "${script_dir}/env.sh" >"${simulator_log}" 2>&1 &
         simulator_pid=$!
+        set +m
         trap 'if [[ -n "${simulator_pid}" ]]; then kill -- "-${simulator_pid}" 2>/dev/null || true; wait "${simulator_pid}" 2>/dev/null || true; fi; if [[ -n "${simulator_log}" ]]; then rm -f "${simulator_log}"; fi' EXIT
         sleep 4
         if ! kill -0 "${simulator_pid}" 2>/dev/null; then

@@ -18,7 +18,7 @@ module HistoryUi {
         return result;
     }
 
-    function listVariance(cycle as Lang.Dictionary, isActive as Lang.Boolean) as Lang.String {
+    function varianceParts(cycle as Lang.Dictionary, isActive as Lang.Boolean) as Lang.Array<Lang.String> {
         var labels = [] as Lang.Array<Lang.String>;
         var allOnTime = true;
         if (isActive) {
@@ -44,8 +44,14 @@ module HistoryUi {
                 allOnTime = allOnTime && inserted.equals(Ui.s(Rez.Strings.OnTime));
             }
         }
+        if (labels.size() == 0) { return labels; }
+        if (allOnTime) { return [Ui.s(Rez.Strings.OnTime)]; }
+        return labels;
+    }
+
+    function listVariance(cycle as Lang.Dictionary, isActive as Lang.Boolean) as Lang.String {
+        var labels = varianceParts(cycle, isActive);
         if (labels.size() == 0) { return ""; }
-        if (allOnTime) { return Ui.s(Rez.Strings.OnTime); }
         if (labels.size() == 1) { return labels[0]; }
         return labels[0] + Ui.s(Rez.Strings.DateTimeSeparator) + labels[1];
     }
@@ -183,12 +189,23 @@ class HistoryView extends WatchUi.View {
         dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 48), dateFont, dates,
             Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
 
+        var varianceParts = HistoryUi.varianceParts(cycle, active);
         var variance = HistoryUi.listVariance(cycle, active);
+        var barOffset = 103;
         if (!variance.equals("")) {
             var varianceColor = variance.equals(Ui.s(Rez.Strings.OnTime)) ? Ui.SECONDARY : Ui.AMBER;
             dc.setColor(varianceColor, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 76), Graphics.FONT_SYSTEM_XTINY, variance,
-                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            if (varianceParts.size() == 2
+                    && dc.getTextWidthInPixels(variance, Graphics.FONT_SYSTEM_XTINY) > width) {
+                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 68), Graphics.FONT_SYSTEM_XTINY,
+                    varianceParts[0], Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 89), Graphics.FONT_SYSTEM_XTINY,
+                    varianceParts[1], Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+                barOffset = 112;
+            } else {
+                dc.drawText(dc.getWidth() / 2, y + Ui.px(dc, 76), Graphics.FONT_SYSTEM_XTINY, variance,
+                    Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            }
         }
 
         var state = getApp().getState();
@@ -197,7 +214,7 @@ class HistoryView extends WatchUi.View {
         var daysOut = active ? regimen[:daysOut] : cycle[:regimenDaysOut];
         var gap = daysOut > 0 ? Ui.px(dc, 2) : 0;
         var greenWidth = daysOut == 0 ? width : ((width - gap) * daysIn) / (daysIn + daysOut);
-        var barY = y + Ui.px(dc, 103);
+        var barY = y + Ui.px(dc, barOffset);
         dc.setPenWidth(Ui.px(dc, 5));
         dc.setColor(Ui.RING_IN, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(xLeft, barY, xLeft + greenWidth, barY);
@@ -301,9 +318,9 @@ class CycleDetailView extends WatchUi.View {
             var color = variance.equals(Ui.s(Rez.Strings.OnTime)) || variance.equals(Ui.s(Rez.Strings.FirstCycle))
                 ? Ui.SECONDARY : Ui.AMBER;
             dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(xLeft, y + Ui.px(dc, 30), Graphics.FONT_SYSTEM_XTINY,
-                Ui.ellipsize(dc, variance, Graphics.FONT_SYSTEM_XTINY, width - Ui.px(dc, 90)),
-                Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+            dc.drawText(xRight, y + Ui.px(dc, 47), Graphics.FONT_SYSTEM_XTINY,
+                Ui.ellipsize(dc, variance, Graphics.FONT_SYSTEM_XTINY, width),
+                Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
     }
 }

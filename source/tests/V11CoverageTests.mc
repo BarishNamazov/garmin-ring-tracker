@@ -80,9 +80,14 @@ function v11HistoryVarianceAndScrollBoundsAreCompact(logger as Test.Logger) as B
     cycle[:nextInsertionDeltaSeconds] = 12 * CalendarMath.SECONDS_PER_DAY;
     Test.assertEqual("Removed 12d late · Inserted 12d late",
         HistoryUi.listVariance(cycle, false));
+    var varianceParts = HistoryUi.varianceParts(cycle, false);
+    Test.assertEqual(2, varianceParts.size());
+    Test.assertEqual("Removed 12d late", varianceParts[0]);
+    Test.assertEqual("Inserted 12d late", varianceParts[1]);
     cycle[:removalDeltaSeconds] = 0;
     cycle[:nextInsertionDeltaSeconds] = 0;
     Test.assertEqual(Ui.s(Rez.Strings.OnTime), HistoryUi.listVariance(cycle, false));
+    Test.assertEqual(1, HistoryUi.varianceParts(cycle, false).size());
     Test.assertEqual(0, HistoryUi.boundedSelection(-1, 25));
     Test.assertEqual(24, HistoryUi.boundedSelection(99, 25));
     Test.assertEqual(0, HistoryUi.topForSelection(0, 25));

@@ -39,8 +39,11 @@ medical-model source record.
   its native confirmation.
 - History is a custom two-row scrollable view with full-width dates, event
   variance, regimen bars, row focus, cycle detail, and a final Clear-history
-  action. Native confirmations use compact two-line copy, and Main warning
-  text breaks at sentence boundaries.
+  action. A two-event variance stays on one line when it fits and otherwise
+  splits into independently centered `Removed …` and `Inserted …` lines.
+  Cycle-detail dates, times, and the `First cycle` tag form a right-aligned
+  vertical block. Native confirmations use compact two-line copy, and Main
+  warning text breaks at sentence boundaries.
 - Foreground orchestration lives in the unscoped `ForegroundController` and
   `ForegroundRuntime`, outside the `:background` and `:glance` personalities.
 - Temporary-out reminder deduplication includes the open interval's `outUtc`,
@@ -64,7 +67,7 @@ medical-model source record.
 | Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production seams and debug-only clock, fixtures, notification previews, temporal-event diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
 | Tests | `source/tests/*.mc` | 119 deterministic domain, migration, settings, storage, reminder, layout-helper, and review-regression tests |
-| Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, background resource/exit guard, simulator tests, and Store-package PRG hashes |
+| Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, portable `grep` background resource/exit guard, simulator tests, and Store-package PRG hashes |
 | Visual evidence | `docs/screenshots/` | 93 native-resolution v1.1 captures |
 
 The canonical document excludes archived history. History is split across two
@@ -100,7 +103,15 @@ The driver first checks that every `Rez.Strings` symbol referenced by
 `scope="background"`, and that the service contains exactly one lexical
 `Background.exit` call. It then builds every target, treats warnings as
 failures, exports the Store package for release, and runs the simulator test
-personality for `test`.
+personality for `test`. The shell checks require only Bash, coreutils, `grep`,
+`sed`, `awk`, `unzip`, `sha256sum`, the documented simulator runtime, and the
+SDK/JDK tools; they do not require `rg`, `pgrep`, or `setsid`. The portability
+smoke test is:
+
+```bash
+env -i HOME="$HOME" PATH=/usr/bin:/bin bash -lc \
+  'cd /home/agent/Dev/garmin-bc && ./scripts/build.sh release && ./scripts/build.sh test'
+```
 
 Final verification on 2026-09-16:
 
@@ -261,6 +272,13 @@ The native screenshot crops are 390×390 at `+118+259`, 416×416 at `+122+263`,
 and 454×454 at `+146+281`. All 93 images in `docs/screenshots/` were regenerated
 and visually checked at native size for clipping, overlap, round-edge clearance,
 warning wrapping, and correct local date/time content.
+
+The final layout follow-up regenerated `history` and `cycle-detail` on all
+three sizes. The 390 px History capture exercises the longest fixture
+(`Removed 15d early` / `Inserted 15d late`) and confirms the adaptive two-line
+variance, bar clearance, and round-edge margins. The three detail captures
+confirm that the date and time share a right edge and `First cycle` occupies
+its own line beneath them.
 
 For every size, 23 captures cover ring-in, ring-free, overdue removal,
 overdue insertion, temporary out at 2h50 and 3h10, >7d and >28d warnings,
