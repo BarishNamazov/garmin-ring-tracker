@@ -78,13 +78,14 @@ run_tests() {
     print_hashes "${test_prg}"
 
     if ! simulator_running; then
-        simulator_log="$(mktemp /tmp/ring-tracker-simulator.XXXXXX.log)"
+        simulator_log="${output_dir}/simulator.log"
+        : >"${simulator_log}"
         set -m
         bash -c 'source "$1"; TZ=America/New_York ciq_headless_simulator' \
             _ "${script_dir}/env.sh" >"${simulator_log}" 2>&1 &
         simulator_pid=$!
         set +m
-        trap 'if [[ -n "${simulator_pid}" ]]; then kill -- "-${simulator_pid}" 2>/dev/null || true; wait "${simulator_pid}" 2>/dev/null || true; fi; if [[ -n "${simulator_log}" ]]; then rm -f "${simulator_log}"; fi' EXIT
+        trap 'if [[ -n "${simulator_pid}" ]]; then kill -- "-${simulator_pid}" 2>/dev/null || true; wait "${simulator_pid}" 2>/dev/null || true; fi' EXIT
         sleep 4
         if ! kill -0 "${simulator_pid}" 2>/dev/null; then
             printf 'Headless simulator failed to start. Log:\n' >&2

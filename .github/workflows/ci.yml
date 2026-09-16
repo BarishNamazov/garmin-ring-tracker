@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    name: Build and test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore Connect IQ toolchain
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.Garmin
+          key: ${{ runner.os }}-ciq-9.2.0-cd073d7-${{ hashFiles('scripts/ci/install-toolchain.sh') }}
+
+      - name: Install Connect IQ toolchain
+        run: ./scripts/ci/install-toolchain.sh
+
+      - name: Check version consistency
+        run: ./scripts/ci/check-version.sh
+
+      - name: Prepare signing key
+        env:
+          CIQ_DEVELOPER_KEY_B64: ${{ secrets.CIQ_DEVELOPER_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          umask 077
+          key_path="${RUNNER_TEMP}/developer_key.der"
+          if [[ -n "${CIQ_DEVELOPER_KEY_B64}" ]]; then
+            printf '%s' "${CIQ_DEVELOPER_KEY_B64}" | base64 --decode >"${key_path}"
+            echo 'Using the repository signing key.'
+          else
+            openssl genrsa -out "${RUNNER_TEMP}/developer_key.pem" 4096
+            openssl pkcs8 -topk8 -inform PEM -outform DER \
+              -in "${RUNNER_TEMP}/developer_key.pem" -out "${key_path}" -nocrypt
+            echo 'CIQ_DEVELOPER_KEY_B64 is unavailable; using a disposable key.'
+          fi
+          openssl pkey -inform DER -in "${key_path}" -noout
+          echo "CIQ_DEVELOPER_KEY=${key_path}" >>"${GITHUB_ENV}"
+
+      - name: Build release artifacts
+        run: |
+          ./scripts/build.sh release
+          cd bin/release
+          sha256sum RingTracker-*.prg RingTracker.iq >SHA256SUMS
+
+      - name: Run simulator tests
+        id: tests
+        run: ./scripts/build.sh test
+
+      - name: Upload simulator log
+        if: failure() && steps.tests.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: simulator-log-${{ github.run_id }}-${{ github.run_attempt }}
+          path: bin/test/simulator.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Build debug artifacts
+        run: ./scripts/build.sh debug
+
+      - name: Upload release bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: RingTracker-${{ github.sha }}
+          path: |
+            bin/release/RingTracker-*.prg
+            bin/release/RingTracker.iq
+            bin/release/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 30
+
+  release-bundle-current:
+    name: Tracked release is current
+    needs: build-test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Restore Connect IQ toolchain
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.Garmin
+          key: ${{ runner.os }}-ciq-9.2.0-cd073d7-${{ hashFiles('scripts/ci/install-toolchain.sh') }}
+
+      - name: Install Connect IQ toolchain
+        run: ./scripts/ci/install-toolchain.sh
+
+      - name: Create disposable signing key
+        run: |
+          set -euo pipefail
+          umask 077
+          openssl genrsa -out "${RUNNER_TEMP}/developer_key.pem" 4096
+          openssl pkcs8 -topk8 -inform PEM -outform DER \
+            -in "${RUNNER_TEMP}/developer_key.pem" \
+            -out "${RUNNER_TEMP}/developer_key.der" -nocrypt
+          echo "CIQ_DEVELOPER_KEY=${RUNNER_TEMP}/developer_key.der" >>"${GITHUB_ENV}"
+
+      - name: Rebuild and compare tracked release
+        run: |
+          ./scripts/build.sh release
+          ./scripts/ci/check-release.sh bin/release

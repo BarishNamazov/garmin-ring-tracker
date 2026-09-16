@@ -55,7 +55,7 @@ Use one Connect IQ device application with three execution surfaces:
 
 Keep date math in a pure, allocation-light domain module that can be called by all three surfaces and by tests. Keep UI objects, history rendering, and custom picker factories out of background annotations.
 
-Suggested source boundaries for the implementing agent—not required filenames—are:
+Suggested source boundaries for the implementer—not required filenames—are:
 
 - `ScheduleModel`: storage records, migration, validation, and derived status;
 - `CalendarMath`: local calendar-day conversion and countdown formatting;

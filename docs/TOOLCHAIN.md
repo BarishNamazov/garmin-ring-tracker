@@ -1,28 +1,36 @@
 # Build an Epix Pro (Gen 2) device app from the command line
 
-This machine can compile signed Garmin Connect IQ device apps for `epix2pro42mm`, `epix2pro47mm`, and `epix2pro51mm` with Connect IQ SDK 9.2.0. The setup is headless and stores the SDK and device definitions outside this repository.
+The project can compile signed Garmin Connect IQ device apps for `epix2pro42mm`, `epix2pro47mm`, and `epix2pro51mm` with Connect IQ SDK 9.2.0. The setup is headless and stores the SDK and device definitions outside this repository.
 
 ## Installed toolchain
 
 | Component | Version or value | Path |
 | --- | --- | --- |
-| Connect IQ SDK | 9.2.0 | `/home/agent/.Garmin/ConnectIQ/Sdks/connectiq-sdk-lin-9.2.0-2026-06-09-92a1605b2` |
-| Active SDK pointer | SDK path above | `/home/agent/.Garmin/ConnectIQ/current-sdk.cfg` |
-| Java | Eclipse Temurin OpenJDK 17.0.20.1+1 | `/home/agent/.local/jdks/temurin-17` |
-| Device definitions | Snapshot from 2026-08-08 | `/home/agent/.Garmin/ConnectIQ/Devices` |
-| Simulator system fonts | 1,332 CFT and 46 TTF files | `/home/agent/.Garmin/ConnectIQ/Fonts` |
-| RSA signing key | 4096-bit PKCS#8 DER | `/home/agent/.Garmin/developer_key.der` |
+| Connect IQ SDK | 9.2.0 | `~/.Garmin/ConnectIQ/Sdks/connectiq-sdk-lin-9.2.0-2026-06-09-92a1605b2` |
+| Active SDK pointer | SDK path above | `~/.Garmin/ConnectIQ/current-sdk.cfg` |
+| Java | OpenJDK 17 | System package, or `~/.Garmin/ConnectIQ/Jdks/temurin-17` without root access |
+| Device definitions | Snapshot from 2026-08-08 | `~/.Garmin/ConnectIQ/Devices` |
+| Required simulator fonts | 125 CFT/TTF files | `~/.Garmin/ConnectIQ/Fonts` |
+| RSA signing key | 4096-bit PKCS#8 DER | `~/.Garmin/developer_key.der` by default |
 
 The SDK was selected from Garmin's [`sdks.json`](https://developer.garmin.com/downloads/connect-iq/sdks/sdks.json). Its Linux archive is `connectiq-sdk-lin-9.2.0-2026-06-09-92a1605b2.zip`, SHA-256 `4907d8455b651c5a00a865e364cc4f1921c055b9279c7c8634c7a7a6773b5593`.
 
-System `sudo` is blocked by a `no_new_privileges` policy in this environment, despite the account configuration described for this machine. Apt therefore could not install OpenJDK. The installed replacement is the current OpenJDK 17 build from the [Adoptium binary API](https://api.adoptium.net/v3/binary/latest/17/ga/linux/x64/jdk/hotspot/normal/eclipse); this satisfies `monkeyc`'s Java requirement. The downloaded JDK archive had SHA-256 `3808d1d15e3ec6bd5b84057fb5d84c33d8a1536a258146bcea2e603fc726e08e`.
+`scripts/ci/install-toolchain.sh` installs OpenJDK 17 with apt when root access is available. Without root access it installs Eclipse Temurin 17.0.20.1+1 under the Connect IQ tree; that archive has SHA-256 `3808d1d15e3ec6bd5b84057fb5d84c33d8a1536a258146bcea2e603fc726e08e`.
+
+Install the complete toolchain without a Garmin login:
+
+```bash
+./scripts/ci/install-toolchain.sh
+```
+
+The installer verifies the pinned SDK and device-archive SHA-256 values, verifies the pinned OCI font-layer digest, extracts only the three device directories and 125 referenced fonts, installs the simulator runtime, and writes `~/.Garmin/ConnectIQ/current-sdk.cfg`. Repeating the command against a complete installation performs validation without downloading those artifacts again. The complete `~/.Garmin` tree is suitable for a CI cache.
 
 ## Shell environment
 
 Source the checked-in environment file before invoking the SDK tools:
 
 ```bash
-source /home/agent/Dev/garmin-bc/scripts/env.sh
+source scripts/env.sh
 java -version
 monkeyc --version
 ```
@@ -32,7 +40,7 @@ The observed compiler version is `Connect IQ Compiler version: 9.2.0`. The envir
 Garmin's documented minimal SDK-only PATH setup is:
 
 ```bash
-export PATH="${PATH}:$(cat /home/agent/.Garmin/ConnectIQ/current-sdk.cfg)/bin"
+export PATH="${PATH}:$(cat "${HOME}/.Garmin/ConnectIQ/current-sdk.cfg")/bin"
 ```
 
 ## Device definitions
@@ -46,9 +54,9 @@ The installed definitions instead came from the public [`blackshadev/garmin-conn
 Only these archive directories were extracted:
 
 ```text
-/home/agent/.Garmin/ConnectIQ/Devices/epix2pro42mm  (67 files)
-/home/agent/.Garmin/ConnectIQ/Devices/epix2pro47mm  (67 files)
-/home/agent/.Garmin/ConnectIQ/Devices/epix2pro51mm  (77 files)
+~/.Garmin/ConnectIQ/Devices/epix2pro42mm  (67 files)
+~/.Garmin/ConnectIQ/Devices/epix2pro47mm  (67 files)
+~/.Garmin/ConnectIQ/Devices/epix2pro51mm  (77 files)
 ```
 
 Each directory includes `compiler.json`, `simulator.json`, the compiled device API data, device image, personality stylesheet, icons, and other device resources required by `monkeyc`.
@@ -58,19 +66,20 @@ Each directory includes `compiler.json`, `simulator.json`, the compiled device A
 The device archive does not contain the separately downloaded system fonts. Device `simulator.json` files name those font resources without an extension; for example, the English `Graphics.FONT_MEDIUM` resources are `FNT_006B431200_CDPG_ROBOTO_32B`, `FNT_006B431300_CDPG_ROBOTO_34B`, and `FNT_006B431400_CDPG_ROBOTO_37B` for the 42, 47, and 51 mm devices respectively. The simulator resolves the corresponding `.cft` files from the shared directory:
 
 ```text
-/home/agent/.Garmin/ConnectIQ/Fonts
+~/.Garmin/ConnectIQ/Fonts
 ```
 
 This matches the SDK Manager layout and the implementation of the community [`connect-iq-sdk-manager-cli`](https://github.com/lindell/connect-iq-sdk-manager-cli), which extracts Garmin's per-font downloads into the shared `Fonts` directory. Garmin's font API requires an authenticated session, so the files were instead recovered from the public [`ghcr.io/matco/connectiq-tester:v2.10.0`](https://github.com/matco/connectiq-tester) image. That project documents that its tester image includes device bits, fonts, and the simulator; its resource Dockerfile copies `Fonts/*.cft` and `Fonts/*.ttf` from an SDK Manager installation.
 
-Docker is not installed on this host. The OCI manifest and only the layer containing `/root/.Garmin/ConnectIQ/Fonts` were fetched directly through the GHCR Registry API, then that subtree was extracted to `/home/agent/.Garmin/ConnectIQ/Fonts`. Provenance for the installed payload:
+The installer fetches the one OCI layer containing `/root/.Garmin/ConnectIQ/Fonts` directly through the GHCR Registry API. It extracts only the filenames referenced by the three pinned `simulator.json` files into `~/.Garmin/ConnectIQ/Fonts`. Provenance for the payload:
 
 ```text
 Image:        ghcr.io/matco/connectiq-tester:v2.10.0
 Source commit: 5508cf707cbd7435f7f1e9226d2303f4349bfc3b
 Resource set: 2026-08-31
 Layer digest: sha256:5ab73d22aa6d18bc1f0c8d6743bf0dafa1010e6a7b70a6619359a2889fac29d0
-Installed:    1,332 .cft files and 46 .ttf files (about 1.2 GiB)
+Layer size:   942,680,574 compressed bytes
+Installed:    125 referenced .cft/.ttf files (107,134,607 bytes)
 ```
 
 Every non-placeholder font filename referenced by the three installed `simulator.json` files exists in the shared directory: 49 unique references for `epix2pro42mm`, 52 for `epix2pro47mm`, and 46 for `epix2pro51mm`. Names such as `bitstreamVeraSans 16` are logical built-in font names rather than downloadable filenames; the SDK Manager CLI likewise skips references containing spaces.
@@ -109,10 +118,10 @@ All three compiler definitions specify the same app-type memory limits:
 The key was generated with the Garmin-documented OpenSSL flow:
 
 ```bash
-openssl genrsa -out /home/agent/.Garmin/developer_key.pem 4096
+openssl genrsa -out "${HOME}/.Garmin/developer_key.pem" 4096
 openssl pkcs8 -topk8 -inform PEM -outform DER \
-  -in /home/agent/.Garmin/developer_key.pem \
-  -out /home/agent/.Garmin/developer_key.der -nocrypt
+  -in "${HOME}/.Garmin/developer_key.pem" \
+  -out "${HOME}/.Garmin/developer_key.der" -nocrypt
 ```
 
 Both key files have mode `0600`. Do not commit either key.
@@ -124,7 +133,7 @@ The temporary test project is `/tmp/ciqhello`. It is a `watch-app` with `minSdkV
 This exact requested command succeeded without warnings or errors:
 
 ```bash
-source /home/agent/Dev/garmin-bc/scripts/env.sh
+source scripts/env.sh
 cd /tmp/ciqhello
 monkeyc -d epix2pro47mm -f monkey.jungle -o bin/hello.prg \
   -y ~/.Garmin/developer_key.der -w
@@ -156,17 +165,17 @@ monkeyc -d epix2pro51mm -f monkey.jungle \
 
 ## Headless simulator result
 
-The SDK 9.2.0 simulator links against libraries removed from Ubuntu 24.04, including WebKitGTK 4.0 and libsoup 2.4. Because system apt installation was unavailable, the required Ubuntu packages were extracted under `/home/agent/.local/opt/ciq-runtime`. Xvfb 21.1.12 was extracted from Ubuntu 24.04 packages. The legacy WebKitGTK 4.0 runtime was extracted from Ubuntu 22.04 packages. A user-local Xvfb copy under `/home/agent/.local/opt/ciq-runtime-patched-bin` redirects its compiled-in `/usr/bin/xkbcomp` lookup to `/tmp/ciq/xkbcomp`.
+The SDK 9.2.0 simulator links against libraries removed from Ubuntu 24.04, including WebKitGTK 4.0 and libsoup 2.4. The installer puts the required Ubuntu 22.04 libraries under `~/.Garmin/ConnectIQ/Runtime`. It installs Ubuntu 24.04 Xvfb through apt when root access is available, or extracts a user-local copy and redirects its compiled-in `xkbcomp` lookup when root access is unavailable.
 
 After sourcing `scripts/env.sh`, start the simulator with the helper function and launch the app from a second shell:
 
 ```bash
 # First shell
-source /home/agent/Dev/garmin-bc/scripts/env.sh
+source scripts/env.sh
 ciq_headless_simulator
 
 # Second shell
-source /home/agent/Dev/garmin-bc/scripts/env.sh
+source scripts/env.sh
 monkeydo /tmp/ciqhello/bin/hello.prg epix2pro47mm
 ```
 
@@ -175,7 +184,7 @@ monkeydo /tmp/ciqhello/bin/hello.prg epix2pro47mm
 The Xvfb display was captured successfully with the user-local `xwd` and ImageMagick tools. The proof image remains outside the repository at `/tmp/ciqhello-font-medium.png` (1280 × 1024 PNG). A repeatable capture while the simulator is on display `:99` is:
 
 ```bash
-source /home/agent/Dev/garmin-bc/scripts/env.sh
+source scripts/env.sh
 export DISPLAY=:99
 xwd -silent -root -out /tmp/ciqhello-font-medium.xwd
 export MAGICK_CONFIGURE_PATH="$CIQ_SIM_RUNTIME/etc/ImageMagick-6"
@@ -187,7 +196,7 @@ Before the shared font payload was installed, the same `Graphics.FONT_MEDIUM` vi
 
 ### Simulated time
 
-The simulator GUI is operable headlessly with `xdotool`; X11 automation opened its menus and captured the popup. However, for the requested `watch-app`/device-app, **Simulation → Time Simulation** is disabled. Garmin developers confirm that this control is only available for watch faces, not device apps or widgets. The simulator exposes no documented command-line or stable public control protocol for setting time. A minimal watch-face probe also left the menu disabled in this SDK 9.2.0 Linux session, so headless time changes are not verified on this host.
+The simulator GUI is operable headlessly with `xdotool`; X11 automation can open its menus and capture the popup. However, for the requested `watch-app`/device-app, **Simulation → Time Simulation** is disabled. Garmin developers confirm that this control is only available for watch faces, not device apps or widgets. The simulator exposes no documented command-line or stable public control protocol for setting time. A minimal watch-face probe also left the menu disabled in an SDK 9.2.0 Linux session, so headless time changes are not verified in this configuration.
 
 For deterministic device-app tests, inject a clock provider in application code or validate clock-dependent behavior on hardware. Changing the host timezone changes the simulator timezone, but is not a substitute for setting or accelerating simulated time.
 

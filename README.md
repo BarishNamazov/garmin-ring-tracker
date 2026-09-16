@@ -1,5 +1,7 @@
 # Ring Tracker
 
+[![CI](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml)
+
 Ring Tracker is a Garmin Connect IQ device app for tracking a NuvaRing schedule on an epix Pro (Gen 2). It records insertion, removal, and temporary-out times; anchors each next action to what actually happened; projects upcoming cycles; keeps cycle history; and posts local reminders.
 
 > This app is a scheduling aid, not medical advice. It cannot determine whether contraception is effective. Follow the instructions supplied with your ring and contact a qualified clinician or pharmacist if a ring is late, has been out too long, or pregnancy is possible.
@@ -37,7 +39,7 @@ Garmin's device definitions also use the 47 mm ID for the quatix 7 Pro and the 5
 ## Install on your watch
 
 1. Confirm that the watch is an **epix Pro (Gen 2)** and identify its 42, 47, or 51 mm case size from the original order or box, or by measuring the case body without the buttons. As a technical fallback, open `GARMIN/GarminDevice.xml` over USB and match `PartNumber`: `006-B4312-00` is 42 mm, `006-B4313-00` is 47 mm, and `006-B4314-00` is 51 mm.
-2. Download the matching `.prg` from [`release/`](release/) using the table above. You can verify the download against [`release/SHA256SUMS`](release/SHA256SUMS). Do not copy `RingTracker.iq`; that package is for Store submission.
+2. Download the matching `.prg` from the [latest GitHub Release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest), or use the copy in [`release/`](release/). Verify it with the accompanying `SHA256SUMS`. Do not copy `RingTracker.iq`; that package is for Store submission.
 3. Quit Garmin Express, BaseCamp, OpenMTP, and any other program that might already be using the watch's MTP connection.
 4. On the watch, hold **MENU**, open **System > USB Mode**, and select **MTP**. Connect it to the computer with a USB data cable.
 5. Open the watch's internal storage with File Explorer on Windows, OpenMTP on macOS, or an MTP client on Linux.
@@ -140,6 +142,7 @@ Build output under `bin/` is ignored. The checked-in install bundle under `relea
 Release history is recorded in [CHANGELOG.md](CHANGELOG.md).
 
 - [INSTALL.md](docs/INSTALL.md) — end-user sideloading, first-run setup, glance setup, removal, and troubleshooting.
+- [PUBLISHING.md](docs/PUBLISHING.md) — repository setup, signing-key custody, GitHub releases, and manual Connect IQ Store submission.
 - [IMPLEMENTATION.md](docs/IMPLEMENTATION.md) — implementation map, build variants, tests, memory evidence, and resolved review findings.
 - [REGIMEN.md](docs/REGIMEN.md) — medical schedule boundaries, supported regimen, warnings, source material, and review requirement.
 - [REVIEW.md](docs/REVIEW.md) — independent review findings and the regression cases subsequently resolved in the implementation.

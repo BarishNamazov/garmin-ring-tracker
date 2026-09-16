@@ -1,0 +1,155 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: Existing v-prefixed tag to publish
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build signed release
+    runs-on: ubuntu-24.04
+    timeout-minutes: 35
+    permissions:
+      contents: read
+    env:
+      RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+    outputs:
+      version: ${{ steps.release_info.outputs.version }}
+      tag: ${{ steps.release_info.outputs.tag }}
+    steps:
+      - name: Check out release tag
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ env.RELEASE_TAG }}
+          fetch-depth: 0
+
+      - name: Validate release tag
+        id: release_info
+        run: |
+          set -euo pipefail
+          [[ "${RELEASE_TAG}" == v* ]] || { echo 'Release tags must begin with v.' >&2; exit 1; }
+          git rev-parse --verify "refs/tags/${RELEASE_TAG}^{commit}" >/dev/null
+          [[ "$(git rev-parse HEAD)" == "$(git rev-parse "refs/tags/${RELEASE_TAG}^{commit}")" ]] || {
+            echo 'The checked-out commit does not match the requested tag.' >&2
+            exit 1
+          }
+          ./scripts/ci/check-version.sh "${RELEASE_TAG}"
+          echo "tag=${RELEASE_TAG}" >>"${GITHUB_OUTPUT}"
+          echo "version=${RELEASE_TAG#v}" >>"${GITHUB_OUTPUT}"
+
+      - name: Require the permanent signing key
+        env:
+          CIQ_DEVELOPER_KEY_B64: ${{ secrets.CIQ_DEVELOPER_KEY_B64 }}
+        run: |
+          set -euo pipefail
+          if [[ -z "${CIQ_DEVELOPER_KEY_B64}" ]]; then
+            echo 'CIQ_DEVELOPER_KEY_B64 is required for Store-compatible releases.' >&2
+            echo 'Add the base64-encoded permanent Garmin developer key as a repository secret.' >&2
+            exit 1
+          fi
+          umask 077
+          key_path="${RUNNER_TEMP}/developer_key.der"
+          printf '%s' "${CIQ_DEVELOPER_KEY_B64}" | base64 --decode >"${key_path}"
+          openssl pkey -inform DER -in "${key_path}" -noout
+          echo "CIQ_DEVELOPER_KEY=${key_path}" >>"${GITHUB_ENV}"
+
+      - name: Restore Connect IQ toolchain
+        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ~/.Garmin
+          key: ${{ runner.os }}-ciq-9.2.0-cd073d7-${{ hashFiles('scripts/ci/install-toolchain.sh') }}
+
+      - name: Install Connect IQ toolchain
+        run: ./scripts/ci/install-toolchain.sh
+
+      - name: Build release artifacts
+        run: |
+          ./scripts/build.sh release
+          cd bin/release
+          sha256sum RingTracker-*.prg RingTracker.iq >SHA256SUMS
+
+      - name: Check tracked release freshness
+        run: ./scripts/ci/check-release.sh bin/release
+
+      - name: Run simulator tests
+        id: tests
+        run: ./scripts/build.sh test
+
+      - name: Upload simulator log
+        if: failure() && steps.tests.outcome == 'failure'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: release-simulator-log-${{ github.run_id }}-${{ github.run_attempt }}
+          path: bin/test/simulator.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Build debug artifacts
+        run: ./scripts/build.sh debug
+
+      - name: Extract release notes
+        env:
+          VERSION: ${{ steps.release_info.outputs.version }}
+        run: |
+          awk -v version="${VERSION}" '
+            $0 ~ "^## \\[" version "\\]" {copy=1}
+            copy && $0 ~ "^## \\[" && $0 !~ "^## \\[" version "\\]" {exit}
+            copy {print}
+          ' CHANGELOG.md >bin/release/RELEASE_NOTES.md
+          [[ -s bin/release/RELEASE_NOTES.md ]] || {
+            echo "No CHANGELOG section found for ${VERSION}." >&2
+            exit 1
+          }
+
+      - name: Upload signed release bundle
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: signed-release-${{ steps.release_info.outputs.version }}
+          path: |
+            bin/release/RingTracker-*.prg
+            bin/release/RingTracker.iq
+            bin/release/SHA256SUMS
+            bin/release/RELEASE_NOTES.md
+          if-no-files-found: error
+          retention-days: 30
+
+  publish:
+    name: Publish GitHub Release
+    needs: build
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    steps:
+      - name: Download signed release bundle
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: signed-release-${{ needs.build.outputs.version }}
+          path: release-assets
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@efb35369e0ad2afab669f228072c1b0d510eae64 # v3.0.3
+        with:
+          tag_name: ${{ needs.build.outputs.tag }}
+          name: Ring Tracker ${{ needs.build.outputs.version }}
+          body_path: release-assets/RELEASE_NOTES.md
+          fail_on_unmatched_files: true
+          files: |
+            release-assets/RingTracker-epix2pro42mm.prg
+            release-assets/RingTracker-epix2pro47mm.prg
+            release-assets/RingTracker-epix2pro51mm.prg
+            release-assets/RingTracker.iq
+            release-assets/SHA256SUMS

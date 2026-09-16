@@ -3,6 +3,8 @@ bin/
 *.prg.debug.xml
 *.der
 *.key
+*.pem
+developer_key*.b64
 .vscode/
 sdk/
 

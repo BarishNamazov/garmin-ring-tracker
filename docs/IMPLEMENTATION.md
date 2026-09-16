@@ -91,7 +91,7 @@ to both new day-of ledger flags.
 Source the SDK environment, then use the checked-in driver:
 
 ```bash
-cd /home/agent/Dev/garmin-bc
+cd /path/to/garmin-ring-tracker
 source scripts/env.sh
 ./scripts/build.sh release
 ./scripts/build.sh debug
@@ -110,7 +110,7 @@ smoke test is:
 
 ```bash
 env -i HOME="$HOME" PATH=/usr/bin:/bin bash -lc \
-  'cd /home/agent/Dev/garmin-bc && ./scripts/build.sh release && ./scripts/build.sh test'
+  'cd /path/to/garmin-ring-tracker && ./scripts/build.sh release && ./scripts/build.sh test'
 ```
 
 Final verification on 2026-09-16:
