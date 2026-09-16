@@ -1,5 +1,14 @@
 #!/usr/bin/env bash
-set -euo pipefail
+set -Eeuo pipefail
+
+on_error() {
+    local status="$1" line="$2" command="$3"
+    trap - ERR
+    printf 'ERROR: command failed with exit status %s at line %s:\n  %s\n' \
+        "${status}" "${line}" "${command}" >&2
+    exit "${status}"
+}
+trap 'on_error "$?" "$LINENO" "$BASH_COMMAND"' ERR
 
 sdk_version="9.2.0"
 sdk_archive="connectiq-sdk-lin-9.2.0-2026-06-09-92a1605b2.zip"
@@ -74,8 +83,9 @@ if [[ "${have_root_apt}" == true ]]; then
     "${apt_prefix[@]}" apt-get install -y --no-install-recommends \
         ca-certificates curl jq openssl tar unzip \
         openjdk-17-jdk-headless xvfb xauth x11-xkb-utils \
-        libatomic1 libegl1 libgstreamer-gl1.0-0 libgtk-3-0t64 libsecret-1-0 \
-        libusb-1.0-0 libwayland-server0 libwebpdemux2
+        libatomic1 libegl1 libenchant-2-2 libgstreamer-gl1.0-0 \
+        libgtk-3-0t64 libmanette-0.2-0 libsecret-1-0 libusb-1.0-0 \
+        libwayland-server0 libwebpdemux2 libwoff1
 else
     printf 'Root apt is unavailable; installing Java and Xvfb support under %s.\n' "${ciq_root}"
 fi
@@ -170,6 +180,7 @@ apt_fetch_and_extract() {
     local apt_root="${work_dir}/apt-${series}" apt_user before after archive
     mkdir -p "${apt_root}/etc/apt" "${apt_root}/lists/partial" \
         "${apt_root}/cache/archives/partial" "${apt_root}/debs" "${destination}"
+    : >"${apt_root}/status"
     {
         printf 'deb https://archive.ubuntu.com/ubuntu %s main universe\n' "${series}"
         printf 'deb https://archive.ubuntu.com/ubuntu %s-updates main universe\n' "${series}"
@@ -180,12 +191,15 @@ apt_fetch_and_extract() {
         -o "Dir::Etc::sourcelist=${apt_root}/etc/apt/sources.list"
         -o "Dir::Etc::sourceparts=-"
         -o "Dir::State::lists=${apt_root}/lists"
+        -o "Dir::State::status=${apt_root}/status"
         -o "Dir::Cache=${apt_root}/cache"
         -o "APT::Get::List-Cleanup=0"
         -o "APT::Sandbox::User=${apt_user}"
     )
+    printf 'Refreshing Ubuntu %s package metadata.\n' "${series}"
     apt-get "${apt_options[@]}" update
     before="$(find "${apt_root}/debs" -type f -name '*.deb' -printf '%s\n' | awk '{s += $1} END {print s + 0}')"
+    printf 'Downloading Ubuntu %s packages: %s\n' "${series}" "$*"
     (
         cd "${apt_root}/debs"
         apt-get "${apt_options[@]}" download "$@"
@@ -197,11 +211,11 @@ apt_fetch_and_extract() {
     done
 }
 
-legacy_marker="${runtime_dir}/.ring-tracker-jammy-webkit4"
+legacy_marker="${runtime_dir}/.ring-tracker-jammy-webkit4-v2"
 if [[ ! -f "${legacy_marker}" ]]; then
     apt_fetch_and_extract jammy "${runtime_dir}" \
-        libenchant-2-2 libicu70 libjavascriptcoregtk-4.0-18 \
-        libmanette-0.2-0 libsoup2.4-1 libwebkit2gtk-4.0-37 libwoff1
+        libicu70 libjavascriptcoregtk-4.0-18 \
+        libsoup2.4-1 libwebkit2gtk-4.0-37
     : >"${legacy_marker}"
 fi
 
@@ -209,8 +223,9 @@ if [[ "${have_root_apt}" != true ]]; then
     native_marker="${runtime_dir}/.ring-tracker-noble-runtime-v4"
     if [[ ! -f "${native_marker}" ]]; then
         apt_fetch_and_extract noble "${runtime_dir}" \
-            libatomic1 libegl1 libfontenc1 libgstreamer-gl1.0-0 libsecret-1-0 \
-            libwayland-server0 libwebpdemux2 libxfont2 libxkbfile1 \
+            libatomic1 libegl1 libenchant-2-2 libfontenc1 \
+            libgstreamer-gl1.0-0 libmanette-0.2-0 libsecret-1-0 \
+            libwayland-server0 libwebpdemux2 libwoff1 libxfont2 libxkbfile1 \
             x11-xkb-utils xauth xserver-common xvfb
         if [[ ! -x "${runtime_dir}/usr/bin/Xvfb" || ! -x "${runtime_dir}/usr/bin/xkbcomp" ]]; then
             printf 'The local Xvfb runtime is incomplete.\n' >&2
