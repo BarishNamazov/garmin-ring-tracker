@@ -84,8 +84,8 @@ if [[ "${have_root_apt}" == true ]]; then
         ca-certificates curl jq openssl tar unzip \
         openjdk-17-jdk-headless xvfb xauth x11-xkb-utils \
         libatomic1 libegl1 libenchant-2-2 libgstreamer-gl1.0-0 \
-        libgtk-3-0t64 libmanette-0.2-0 libsecret-1-0 libusb-1.0-0 \
-        libwayland-server0 libwebpdemux2 libwoff1
+        libgtk-3-0t64 libharfbuzz-icu0 libhyphen0 libmanette-0.2-0 \
+        libsecret-1-0 libusb-1.0-0 libwayland-server0 libwebpdemux2 libwoff1
 else
     printf 'Root apt is unavailable; installing Java and Xvfb support under %s.\n' "${ciq_root}"
 fi
@@ -220,11 +220,12 @@ if [[ ! -f "${legacy_marker}" ]]; then
 fi
 
 if [[ "${have_root_apt}" != true ]]; then
-    native_marker="${runtime_dir}/.ring-tracker-noble-runtime-v4"
+    native_marker="${runtime_dir}/.ring-tracker-noble-runtime-v5"
     if [[ ! -f "${native_marker}" ]]; then
         apt_fetch_and_extract noble "${runtime_dir}" \
             libatomic1 libegl1 libenchant-2-2 libfontenc1 \
-            libgstreamer-gl1.0-0 libmanette-0.2-0 libsecret-1-0 \
+            libgstreamer-gl1.0-0 libharfbuzz-icu0 libhyphen0 \
+            libmanette-0.2-0 libsecret-1-0 \
             libwayland-server0 libwebpdemux2 libwoff1 libxfont2 libxkbfile1 \
             x11-xkb-utils xauth xserver-common xvfb
         if [[ ! -x "${runtime_dir}/usr/bin/Xvfb" || ! -x "${runtime_dir}/usr/bin/xkbcomp" ]]; then
