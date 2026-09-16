@@ -38,6 +38,9 @@ Garmin's device definitions also use the 47 mm ID for the quatix 7 Pro and the 5
 
 ## Install on your watch
 
+Ring Tracker has been submitted to the Connect IQ Store (listing: <https://apps.garmin.com/apps/5347b9a1-5dd1-4e0a-93bd-b5dcf2a1ef4f>). Until Garmin approves it, install from the release files below.
+
+
 1. Confirm that the watch is an **epix Pro (Gen 2)** and identify its 42, 47, or 51 mm case size from the original order or box, or by measuring the case body without the buttons. As a technical fallback, open `GARMIN/GarminDevice.xml` over USB and match `PartNumber`: `006-B4312-00` is 42 mm, `006-B4313-00` is 47 mm, and `006-B4314-00` is 51 mm.
 2. Download the matching `.prg` from the [latest GitHub Release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest), or use the copy in [`release/`](release/). Verify it with the accompanying `SHA256SUMS`. Do not copy `RingTracker.iq`; that package is for Store submission.
 3. Quit Garmin Express, BaseCamp, OpenMTP, and any other program that might already be using the watch's MTP connection.

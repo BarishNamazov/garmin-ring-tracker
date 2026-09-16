@@ -115,6 +115,11 @@ For a public listing, complete the dashboard metadata and submit it for review. 
 
 After upload, preview and install the pending version on the owner's watch. Garmin reviews the submission; it becomes searchable and installable by other users only after approval.
 
+
+### Submission record
+
+Version 1.1.0 was submitted to the Connect IQ Store on 2026-09-16 under the developer name BarishNamazov. Store app ID: `5347b9a1-5dd1-4e0a-93bd-b5dcf2a1ef4f` (listing: <https://apps.garmin.com/apps/5347b9a1-5dd1-4e0a-93bd-b5dcf2a1ef4f>). The upload validator reported `Status: Verified` alongside an informational `Signature check failed.` line and accepted the package; the listing stays hidden until Garmin approves it. Later versions must be signed with the same developer key.
+
 ## Toolchain cache and pin updates
 
 Both workflows cache `~/.Garmin` with a key containing the operating system, SDK version, device-archive commit, and `hashFiles('scripts/ci/install-toolchain.sh')`. On a cache hit, the installer still verifies the expected layout and installs any system packages needed by the fresh runner, but it does not re-download valid cached SDK, device, font, or fallback-JDK payloads.
