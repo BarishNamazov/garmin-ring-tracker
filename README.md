@@ -160,4 +160,4 @@ Release history is recorded in [CHANGELOG.md](CHANGELOG.md).
 
 ## License
 
-Ring Tracker is available under the [MIT License](LICENSE). Copyright © 2026 Hyemin Bang.
+Ring Tracker is available under the [MIT License](LICENSE). Copyright © 2026 Barish Namazov.
