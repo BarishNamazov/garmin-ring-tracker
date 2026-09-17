@@ -136,13 +136,20 @@ module ListUi {
     function drawHistoryRange(dc as Graphics.Dc, x as Lang.Number, y as Lang.Number,
                               startUtc as Lang.Number, endUtc as Lang.Number,
                               planned as Lang.Boolean) as Void {
-        var start = Ui.compactDate(startUtc) + Ui.s(Rez.Strings.ListRangeArrow);
+        var start = Ui.compactDate(startUtc);
         var end = Ui.compactDate(endUtc);
         dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(x, y, Graphics.FONT_SYSTEM_SMALL, start,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        var arrowStart = x + dc.getTextWidthInPixels(start, Graphics.FONT_SYSTEM_SMALL)
+            + Ui.px(dc, 8);
+        var arrowEnd = arrowStart + Ui.px(dc, 12);
+        dc.setPenWidth(Ui.px(dc, 2));
+        dc.drawLine(arrowStart, y, arrowEnd, y);
+        dc.drawLine(arrowEnd - Ui.px(dc, 4), y - Ui.px(dc, 4), arrowEnd, y);
+        dc.drawLine(arrowEnd - Ui.px(dc, 4), y + Ui.px(dc, 4), arrowEnd, y);
         dc.setColor(planned ? Ui.SECONDARY : Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(x + dc.getTextWidthInPixels(start, Graphics.FONT_SYSTEM_SMALL), y,
+        dc.drawText(arrowEnd + Ui.px(dc, 8), y,
             Graphics.FONT_SYSTEM_SMALL, end,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
