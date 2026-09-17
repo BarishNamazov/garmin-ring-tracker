@@ -37,6 +37,60 @@ class RingTrackerApp extends Application.AppBase {
 
 }
 
+module MenuActions {
+    function clearTemporaryReminder(ledger as Lang.Dictionary) as Void {
+        ledger[:lastTempOutSlot] = null;
+        ledger[:tempOutIdentity] = null;
+    }
+
+    function undoRingOut(active as Lang.Dictionary, ledger as Lang.Dictionary) as Lang.Boolean {
+        var open = ScheduleModel.tempOpen(active);
+        if (open == null) { return false; }
+        (active[:temporaryOut] as Lang.Array).remove(open);
+        clearTemporaryReminder(ledger);
+        return true;
+    }
+
+    function keepOut(active as Lang.Dictionary, regimen as Lang.Dictionary,
+                     ledger as Lang.Dictionary) as Lang.Boolean {
+        var open = ScheduleModel.tempOpen(active);
+        if (open == null) { return false; }
+        var removedAt = (open as Lang.Dictionary)[:outUtc] as Lang.Number;
+        if (!ScheduleModel.validRemovalEdit(active, removedAt)) { return false; }
+        (active[:temporaryOut] as Lang.Array).remove(open);
+        clearTemporaryReminder(ledger);
+        return ScheduleModel.recordRemoval(active, removedAt, regimen);
+    }
+
+    function syncRepeatPolicy(state as Lang.Dictionary, nowUtc as Lang.Number) as Void {
+        var reminders = state[:reminders] as Lang.Dictionary;
+        var ledger = state[:reminderLedger] as Lang.Dictionary;
+        if (reminders[:overdueRepeatHours] != 24) {
+            if (ledger[:lastOverdueSlot] == 2147483647) { ledger[:lastOverdueSlot] = null; }
+            if (ledger[:lastTempOutSlot] == 2147483647) {
+                ledger[:lastTempOutSlot] = null;
+                ledger[:tempOutIdentity] = null;
+            }
+            return;
+        }
+        if (state[:active] == null) { return; }
+        var active = state[:active] as Lang.Dictionary;
+        var status = ScheduleModel.deriveStatus(nowUtc, active,
+            state[:regimen] as Lang.Dictionary);
+        ledger[:cycleId] = active[:cycleId];
+        ledger[:actionKey] = ReminderPolicy.actionKey(status);
+        ledger[:lastOverdueSlot] = 2147483647;
+        var open = ScheduleModel.tempOpen(active);
+        if (open == null) {
+            ledger[:lastTempOutSlot] = null;
+            ledger[:tempOutIdentity] = null;
+        } else {
+            ledger[:lastTempOutSlot] = 2147483647;
+            ledger[:tempOutIdentity] = (open as Lang.Dictionary)[:outUtc];
+        }
+    }
+}
+
 class ForegroundController {
     private var _state as Lang.Dictionary;
     private var _launchAlert as Lang.Boolean;
@@ -84,8 +138,7 @@ class ForegroundController {
         if (_state[:migrationNoticePending] == true) {
             _state[:migrationNoticePending] = false;
             RingStore.save(_state);
-            return [new InfoView(Rez.Strings.MigrationTitle,
-                [Ui.s(Rez.Strings.MigrationBody)]), new ScrollDelegate()];
+            return [new MigrationView(), new MigrationDelegate()];
         }
         if (_state[:setupStep] == 0) {
             return [new DisclaimerView(), new DisclaimerDelegate()];
@@ -152,6 +205,7 @@ class ForegroundController {
 
 
     function saveOrRecover() as Lang.Boolean {
+        MenuActions.syncRepeatPolicy(_state, currentUtc());
         SettingsBridge.stageMirrors(_state);
         if (RingStore.save(_state)) {
             try {
@@ -188,14 +242,7 @@ class ForegroundController {
     }
 
     function showAlertMenu() as Void {
-        var focus = 0;
-        var active = _state[:active] as Lang.Dictionary?;
-        if (active != null) {
-            var status = ScheduleModel.deriveStatus(currentUtc(), active, _state[:regimen] as Lang.Dictionary);
-            if (status[:nextAction] == :remove) { focus = 1; }
-            else if (status[:nextAction] == :ringBackIn) { focus = 2; }
-        }
-        WatchUi.switchToView(Menus.mainMenuWithFocus(_state, focus), new MainMenuDelegate(), WatchUi.SLIDE_UP);
+        WatchUi.switchToView(Menus.mainMenuWithFocus(_state, 0), new MainMenuDelegate(), WatchUi.SLIDE_UP);
     }
 
     function showUpcoming() as Void {
@@ -207,11 +254,25 @@ class ForegroundController {
     }
 
     function showAbout() as Void {
-        WatchUi.pushView(new AboutView(), new ScrollDelegate(), WatchUi.SLIDE_UP);
+        WatchUi.pushView(new AboutView(), new AboutDelegate(), WatchUi.SLIDE_UP);
     }
 
     function showSettingsMenu() as Void {
         WatchUi.switchToView(Menus.settingsMenu(_state), new SettingsMenuDelegate(), WatchUi.SLIDE_RIGHT);
+    }
+
+    function setToggle(id, enabled as Lang.Boolean) as Void {
+        var reminders = _state[:reminders] as Lang.Dictionary;
+        if (id == :toggleReminder2) { reminders[:reminder2Enabled] = enabled; }
+        else if (id == :toggleDayBefore) { reminders[:dayBeforeEnabled] = enabled; }
+        else if (id == :toggleVibration) { reminders[:vibrationEnabled] = enabled; }
+        else if (id == :toggleSound) { reminders[:soundEnabled] = enabled; }
+        else { return; }
+        if (saveOrRecover()) {
+            WatchUi.switchToView(Menus.settingsMenuWithFocus(_state,
+                Menus.settingsFocusForId(_state, id)), new SettingsMenuDelegate(),
+                WatchUi.SLIDE_IMMEDIATE);
+        }
     }
 
     function showAlert() as Void {
@@ -319,6 +380,7 @@ class ForegroundController {
     private function prepareSettings() as Void {
         try {
             _pendingSettings = SettingsBridge.observe(_state, currentUtc());
+            MenuActions.syncRepeatPolicy(_state, currentUtc());
             RingStore.save(_state);
         } catch (ignored) {
             _pendingSettings = { :invalid => true };
@@ -327,39 +389,55 @@ class ForegroundController {
 
     function confirmAction(action as Lang.Symbol, atUtc as Lang.Number, data) as Void {
         var message = Ui.s(Rez.Strings.SaveChangeQuestion);
-        var clock = (_state[:reminders] as Lang.Dictionary)[:clockFormat];
-        var whenParts = [Ui.compactDate(atUtc), Ui.timeForUtc(atUtc, clock)];
+        var clock = 0;
+        var timestamp = Ui.shortTimestamp(atUtc, clock);
         if (action == :acceptDisclaimer) { message = Ui.s(Rez.Strings.ContinueQuestion); }
         else if (action == :acceptRegimen) { message = Ui.s(Rez.Strings.ConfirmRegimenQuestion); }
         else if (action == :insert) {
             message = data == null
-                ? Ui.fmt(Rez.Strings.InsertNowQuestion, [Ui.s(Rez.Strings.FirstCycle)])
-                : Ui.fmt(Rez.Strings.RecordInsertionQuestion, whenParts);
+                ? Ui.fmt(Rez.Strings.ConfirmInsertNow, [Ui.s(Rez.Strings.ConfirmFirstCycle)])
+                : Ui.fmt(Rez.Strings.ConfirmRecordInsertion, [timestamp]);
         }
         else if (action == :replace) {
             var replacing = _state[:active] as Lang.Dictionary;
             var replaceDue = replacing[:removalUtc] == null ? replacing[:removeDueUtc] : replacing[:insertDueUtc];
-            var replaceDelta = Ui.eventDelta(atUtc - replaceDue, false);
-            message = Ui.fmt(replacing[:removalUtc] == null
-                ? Rez.Strings.ReplaceRingQuestion : Rez.Strings.InsertNowQuestion, [replaceDelta]);
+            var scheduleFact = Menus.scheduleFact(replaceDue - atUtc);
+            if (replacing[:removalUtc] != null && atUtc < replaceDue) {
+                var day = CalendarMath.dayOfCycle(atUtc, replacing[:removalUtc]);
+                message = Ui.fmt(Rez.Strings.ConfirmEarlyInsert,
+                    [day, (_state[:regimen] as Lang.Dictionary)[:daysOut], scheduleFact]);
+            } else {
+                message = Ui.fmt(replacing[:removalUtc] == null
+                    ? Rez.Strings.ConfirmReplaceNow : Rez.Strings.ConfirmInsertNow, [scheduleFact]);
+            }
         }
         else if (action == :remove) {
             var removing = _state[:active] as Lang.Dictionary;
-            message = Ui.fmt(Rez.Strings.RemoveRingQuestion,
-                [Ui.eventDelta(atUtc - removing[:removeDueUtc], false)]);
+            message = Ui.fmt(Rez.Strings.ConfirmRemoveNow,
+                [Menus.scheduleFact(removing[:removeDueUtc] - atUtc)]);
         }
-        else if (action == :tempOut) { message = Ui.s(Rez.Strings.TempOutQuestion); }
+        else if (action == :tempOut) { message = Ui.s(Rez.Strings.ConfirmRingOutBriefly); }
         else if (action == :backIn) {
             var backInCycle = _state[:active] as Lang.Dictionary;
             var open = ScheduleModel.tempOpen(backInCycle);
             var outFor = open == null ? 0 : atUtc - open[:outUtc];
-            message = Ui.fmt(Rez.Strings.BackInQuestion, [Ui.compactElapsed(outFor)]);
+            message = Ui.fmt(Rez.Strings.ConfirmPutRingBack, [Ui.compactElapsed(outFor)]);
+        }
+        else if (action == :keepOut) {
+            var keepingOut = _state[:active] as Lang.Dictionary;
+            var keepOpen = ScheduleModel.tempOpen(keepingOut);
+            var removedAt = keepOpen == null ? atUtc : (keepOpen as Lang.Dictionary)[:outUtc];
+            message = Ui.fmt(Rez.Strings.ConfirmKeepOut,
+                [Ui.shortTimestamp(removedAt, clock)]);
+        }
+        else if (action == :undoRingOut) {
+            message = Ui.s(Rez.Strings.ConfirmUndoRingOut);
         }
         else if (action == :adjustInsertion) {
-            message = Ui.fmt(Rez.Strings.SetInsertionQuestion, whenParts);
+            message = Ui.fmt(Rez.Strings.ConfirmChangeInsertion, [timestamp]);
         }
         else if (action == :adjustRemoval) {
-            message = Ui.fmt(Rez.Strings.SetRemovalQuestion, whenParts);
+            message = Ui.fmt(Rez.Strings.ConfirmChangeRemoval, [timestamp]);
         }
         else if (action == :clearHistory) { message = Ui.s(Rez.Strings.ClearHistoryQuestion); }
         else if (action == :reset) { message = Ui.s(Rez.Strings.ResetQuestion); }
@@ -422,16 +500,12 @@ class ForegroundController {
             if (saveOrRecover()) {
                 if (_state[:setupStep] == 1) {
                     WatchUi.switchToView(new RegimenView(), new RegimenDelegate(), WatchUi.SLIDE_RIGHT);
-                } else if (active == null) {
-                    showMain();
-                } else { showMain(); }
+                } else { showSettingsMenu(); }
                 if (durationDstNotice) { showDstAdjustment(); }
             }
             return;
         }
-        if (action == :setReminder || action == :setReminder2 || action == :setRepeat
-            || action == :toggleReminder2 || action == :toggleDayBefore
-            || action == :toggleVibration || action == :toggleSound || action == :setClock) {
+        if (action == :setReminder || action == :setReminder2 || action == :setRepeat) {
             var settingReminders = _state[:reminders] as Lang.Dictionary;
             if (action == :setReminder || action == :setReminder2) {
                 var timeValues = data as Lang.Array<Lang.Number>;
@@ -444,18 +518,8 @@ class ForegroundController {
                 }
             } else if (action == :setRepeat) {
                 settingReminders[:overdueRepeatHours] = data;
-            } else if (action == :toggleReminder2) {
-                settingReminders[:reminder2Enabled] = !settingReminders[:reminder2Enabled];
-            } else if (action == :toggleDayBefore) {
-                settingReminders[:dayBeforeEnabled] = !settingReminders[:dayBeforeEnabled];
-            } else if (action == :toggleVibration) {
-                settingReminders[:vibrationEnabled] = !settingReminders[:vibrationEnabled];
-            } else if (action == :toggleSound) {
-                settingReminders[:soundEnabled] = !settingReminders[:soundEnabled];
-            } else if (action == :setClock) {
-                settingReminders[:clockFormat] = data;
             }
-            if (saveOrRecover()) { showMain(); }
+            if (saveOrRecover()) { showSettingsMenu(); }
             return;
         }
 
@@ -497,6 +561,7 @@ class ForegroundController {
 
         if (active == null) { return; }
         if ((action == :remove || action == :tempOut || action == :backIn
+            || action == :keepOut || action == :undoRingOut
             || action == :adjustInsertion || action == :adjustRemoval)
             && atUtc > currentUtc() + 60) {
             showInfo(Rez.Strings.AdjustDates, [Ui.s(Rez.Strings.FutureEvent)]);
@@ -520,6 +585,16 @@ class ForegroundController {
             wasOver = open != null && atUtc - open[:outUtc] > ScheduleModel.TEMP_LIMIT_SECONDS;
             if (!ScheduleModel.endTemporaryOut(active, atUtc)) { return; }
             if (wasOver) { closedAlertInterval = open; }
+        } else if (action == :keepOut) {
+            if (!MenuActions.keepOut(active, regimen,
+                    _state[:reminderLedger] as Lang.Dictionary)) {
+                showInfo(Rez.Strings.EditCorrectDates, [Ui.s(Rez.Strings.InvalidEventOrder)]);
+                return;
+            }
+            dstNotice = active[:dstAdjustment] != null;
+        } else if (action == :undoRingOut) {
+            if (!MenuActions.undoRingOut(active,
+                    _state[:reminderLedger] as Lang.Dictionary)) { return; }
         } else if (action == :adjustInsertion) {
             var rebuilt = ScheduleModel.rebuildForInsertion(active, atUtc, regimen);
             if (rebuilt == null) {

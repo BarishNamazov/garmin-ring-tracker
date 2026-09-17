@@ -208,8 +208,7 @@ class RingTimePicker extends WatchUi.Picker {
             f[:hour] = reminders[:reminder2Hour];
             f[:minute] = reminders[:reminder2Minute];
         }
-        var use24 = reminders[:clockFormat] == 24
-            || (reminders[:clockFormat] == 0 && System.getDeviceSettings().is24Hour);
+        var use24 = System.getDeviceSettings().is24Hour;
         _selection = new RingTimeSelection(f[:hour], f[:minute], use24);
 
         var hours = [];

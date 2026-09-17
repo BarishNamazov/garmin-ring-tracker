@@ -89,7 +89,7 @@ function v12LegacyPropertiesMigrateNumericsAndIso(logger as Test.Logger) as Bool
     Test.assertEqual((20 * 60) + 45, Properties.getValue("reminder2Minutes"));
     Test.assertEqual("2026-09-15T00:00", SettingsBridge.isoForPropertyPair(
         Properties.getValue("insertionDate"), Properties.getValue("insertionTime")));
-    Test.assertEqual(2, Properties.getValue("settingsSchemaVersion"));
+    Test.assertEqual(3, Properties.getValue("settingsSchemaVersion"));
     return true;
 }
 

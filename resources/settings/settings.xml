@@ -325,19 +325,11 @@
                     <listEntry value="1">@Strings.Repeat1Hour</listEntry>
                     <listEntry value="3">@Strings.Repeat3Hours</listEntry>
                     <listEntry value="6">@Strings.Repeat6Hours</listEntry>
-                    <listEntry value="12">@Strings.Repeat12Hours</listEntry>
                     <listEntry value="24">@Strings.Repeat24Hours</listEntry>
                 </settingConfig>
             </setting>
         </group>
         <group id="display" title="@Strings.DisplaySettingsGroup" description="@Strings.DisplaySettingsDescription">
-            <setting propertyKey="@Properties.clockFormat" title="@Strings.ClockFormatTitle" prompt="@Strings.ClockFormatPrompt">
-                <settingConfig type="list">
-                    <listEntry value="0">@Strings.ClockSystem</listEntry>
-                    <listEntry value="12">@Strings.Clock12Hour</listEntry>
-                    <listEntry value="24">@Strings.Clock24Hour</listEntry>
-                </settingConfig>
-            </setting>
             <setting propertyKey="@Properties.vibrationEnabled" title="@Strings.VibrationTitle" prompt="@Strings.ForegroundAttentionPrompt">
                 <settingConfig type="boolean" />
             </setting>
