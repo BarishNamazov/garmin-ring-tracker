@@ -234,47 +234,66 @@ Phone $2$</string>
     <string id="InvalidSettingsQuestion">Keep watch dates?</string>
     <string id="MigrationTitle">Dates updated</string>
     <string id="MigrationBody">Dates now follow actual insertions and removals. Check Edit dates.</string>
-    <string id="GlanceSetup" scope="glance">Add insertion date</string>
-    <string id="GlanceRemove" scope="glance">Remove in $1$</string>
-    <string id="GlanceInsert" scope="glance">Insert in $1$</string>
-    <string id="GlanceReplace" scope="glance">Replace in $1$</string>
-    <string id="GlanceOverdue" scope="glance">Overdue $1$</string>
-    <string id="GlanceOut" scope="glance">Ring out $1$</string>
-    <string id="GlanceNow" scope="glance">now</string>
+    <string id="GlanceSetupTitle" scope="glance">Ring Tracker</string>
+    <string id="GlanceSetupValue" scope="glance">Add insertion date</string>
+    <string id="GlanceRemoveTitle" scope="glance">Remove in</string>
+    <string id="GlanceInsertTitle" scope="glance">Insert in</string>
+    <string id="GlanceReplaceTitle" scope="glance">Replace in</string>
+    <string id="GlanceRemoveOverdueTitle" scope="glance">Remove overdue</string>
+    <string id="GlanceInsertOverdueTitle" scope="glance">Insert overdue</string>
+    <string id="GlanceReplaceOverdueTitle" scope="glance">Replace overdue</string>
+    <string id="GlanceOutTitle" scope="glance">Ring out</string>
     <string id="GlanceEllipsis" scope="glance">…</string>
-    <string id="GlanceRemovePrefix" scope="glance">Remove in </string>
-    <string id="GlanceInsertPrefix" scope="glance">Insert in </string>
-    <string id="GlanceReplacePrefix" scope="glance">Replace in </string>
-    <string id="GlanceOverduePrefix" scope="glance">Overdue </string>
-    <string id="GlanceOutPrefix" scope="glance">Ring out </string>
     <string id="GlanceOneDaySuffix" scope="glance"> day</string>
     <string id="GlanceDaysSuffix" scope="glance"> days</string>
-    <string id="GlanceOneHourSuffix" scope="glance"> hr</string>
-    <string id="GlanceHoursSuffix" scope="glance"> hrs</string>
-    <string id="GlanceOneMinuteSuffix" scope="glance"> min</string>
-    <string id="GlanceMinutesSuffix" scope="glance"> mins</string>
-    <string id="GlanceShortHourSuffix" scope="glance">h </string>
-    <string id="GlanceShortMinuteSuffix" scope="glance">m</string>
-    <string id="NotificationOverdueTitle" scope="background">Ring overdue $1$</string>
-    <string id="NotificationNow" scope="background">now</string>
-    <string id="NotificationRemoveTomorrow" scope="background">Remove ring tomorrow</string>
-    <string id="NotificationInsertTomorrow" scope="background">Insert ring tomorrow</string>
-    <string id="NotificationRemoveToday" scope="background">Remove ring today</string>
-    <string id="NotificationInsertToday" scope="background">Insert ring today</string>
-    <string id="NotificationReplaceTomorrow" scope="background">Replace ring tomorrow</string>
-    <string id="NotificationReplaceToday" scope="background">Replace ring today</string>
-    <string id="NotificationRemove" scope="background">Remove ring</string>
-    <string id="NotificationInsert" scope="background">Insert ring</string>
-    <string id="NotificationReplace" scope="background">Replace ring</string>
-    <string id="NotificationTemp" scope="background">Out over 3h</string>
-    <string id="NotificationFree" scope="background">Insert now</string>
-    <string id="NotificationFourWeeks" scope="background">Replace now</string>
-    <string id="NotificationScheduled" scope="background">Due $1$</string>
-    <string id="NotificationReinsertNow" scope="background">Reinsert now</string>
-    <string id="NotificationTempBody" scope="background">Use backup 7 days.</string>
-    <string id="NotificationFreeContext" scope="background">Ring out over 7d</string>
-    <string id="NotificationFreeBody" scope="background">Use backup 7 days.</string>
-    <string id="NotificationFourWeekContext" scope="background">Ring in over 4 weeks</string>
+    <string id="GlanceHourSuffix" scope="glance"> h </string>
+    <string id="GlanceMinuteSuffix" scope="glance"> min</string>
+    <string id="GlanceLeftSuffix" scope="glance"> left</string>
+    <string id="GlanceOverSuffix" scope="glance"> over</string>
+    <string id="NotifyRemoveTomorrow" scope="background">Remove tomorrow</string>
+    <string id="NotifyInsertTomorrow" scope="background">Insert tomorrow</string>
+    <string id="NotifyReplaceTomorrow" scope="background">Replace soon</string>
+    <string id="NotifyRemoveRing" scope="background">Remove ring</string>
+    <string id="NotifyInsertRing" scope="background">Insert ring</string>
+    <string id="NotifyReplaceRing" scope="background">Replace ring</string>
+    <string id="NotifyStillInRemove" scope="background">Still in — remove</string>
+    <string id="NotifyStillOutInsert" scope="background">Still out — insert</string>
+    <string id="NotifyStillInReplace" scope="background">Still in — replace</string>
+    <string id="NotifyRemoveNow" scope="background">Remove now</string>
+    <string id="NotifyInsertNow" scope="background">Insert now</string>
+    <string id="NotifyPutRingBack" scope="background">Put ring back</string>
+    <string id="NotifyDueToday" scope="background">Due today · $1$</string>
+    <string id="NotifyDueTimeToday" scope="background">Due $1$ today</string>
+    <string id="NotifyLogOnceOut" scope="background">Tap to log once out.</string>
+    <string id="NotifyLogOnceIn" scope="background">Tap to log once in.</string>
+    <string id="NotifyLogReplacement" scope="background">Tap to log replacement.</string>
+    <string id="NotifyLateDue" scope="background">$1$ late · due $2$</string>
+    <string id="NotifyOutFor" scope="background">Out $1$</string>
+    <string id="NotifyBackupDetail" scope="background">Backup advised — see detail.</string>
+    <string id="NotifyBreakLate" scope="background">Break over 7 days · $1$ late</string>
+    <string id="NotifyFourWeeksOver" scope="background">In over 4 weeks · $1$ over</string>
+    <string id="NotifyBackup" scope="background">Backup advised.</string>
+    <string id="NotifyDateTime" scope="background">$1$ · $2$</string>
+    <string id="NotifyDate" scope="background">$1$ $2$ $3$</string>
+    <string id="NotifyJan" scope="background">Jan</string>
+    <string id="NotifyFeb" scope="background">Feb</string>
+    <string id="NotifyMar" scope="background">Mar</string>
+    <string id="NotifyApr" scope="background">Apr</string>
+    <string id="NotifyMay" scope="background">May</string>
+    <string id="NotifyJun" scope="background">Jun</string>
+    <string id="NotifyJul" scope="background">Jul</string>
+    <string id="NotifyAug" scope="background">Aug</string>
+    <string id="NotifySep" scope="background">Sep</string>
+    <string id="NotifyOct" scope="background">Oct</string>
+    <string id="NotifyNov" scope="background">Nov</string>
+    <string id="NotifyDec" scope="background">Dec</string>
+    <string id="NotifySun" scope="background">Sun</string>
+    <string id="NotifyMon" scope="background">Mon</string>
+    <string id="NotifyTue" scope="background">Tue</string>
+    <string id="NotifyWed" scope="background">Wed</string>
+    <string id="NotifyThu" scope="background">Thu</string>
+    <string id="NotifyFri" scope="background">Fri</string>
+    <string id="NotifySat" scope="background">Sat</string>
     <string id="ScheduleSettingsGroup">Schedule</string>
     <string id="ScheduleSettingsDescription">Dates and ring schedule</string>
     <string id="ReminderSettingsGroup">Reminders</string>

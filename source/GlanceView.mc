@@ -9,6 +9,15 @@ import Toybox.WatchUi;
 // leaves enough heap headroom for device-specific firmware overhead.
 (:glance)
 class RingGlanceView extends WatchUi.GlanceView {
+    private const GREEN = 0x38D6A0;
+    private const PURPLE = 0xA690FF;
+    private const ORANGE = 0xFFB020;
+    private const WHITE = 0xF4F7F8;
+    private const NEUTRAL = 0xB2BAC1;
+    private const TRACK = 0x252B31;
+    private const DIM_GREEN = 0x1E6B52;
+    private const DIM_PURPLE = 0x56487D;
+
     function initialize() {
         GlanceView.initialize();
     }
@@ -40,27 +49,43 @@ class RingGlanceView extends WatchUi.GlanceView {
             markMirrorError();
         }
 
-        var text = gs(Rez.Strings.GlanceSetup);
+        var title = gs(Rez.Strings.GlanceSetupTitle);
+        var value = gs(Rez.Strings.GlanceSetupValue);
         var marker = 0.0;
         var overdue = false;
+        var ringOut = false;
+        var ringOutOver = false;
         if (active instanceof Lang.Array && active.size() >= 7) {
             var a = active as Lang.Array;
             var nowUtc = currentUtc();
             var deadline = a[2] as Lang.Number;
             var delta = deadline - nowUtc;
-            var count = compactDuration(delta);
+            var removed = a[1] != null;
             if (a[6] != null) {
-                text = gs(Rez.Strings.GlanceOutPrefix) + elapsed(nowUtc - a[6]);
+                ringOut = true;
+                var remaining = 10800 - (nowUtc - (a[6] as Lang.Number));
+                ringOutOver = remaining < 0;
+                title = gs(Rez.Strings.GlanceOutTitle);
+                value = temporaryText(remaining);
             } else if (delta <= 0) {
                 overdue = true;
-                text = gs(Rez.Strings.GlanceOverduePrefix)
-                    + (delta == 0 ? gs(Rez.Strings.GlanceNow) : compactDuration(-delta));
-            } else if (a[1] != null) {
-                text = gs(Rez.Strings.GlanceInsertPrefix) + count;
-            } else if (daysOut == 0) {
-                text = gs(Rez.Strings.GlanceReplacePrefix) + count;
+                if (removed) {
+                    title = gs(Rez.Strings.GlanceInsertOverdueTitle);
+                } else if (daysOut == 0) {
+                    title = gs(Rez.Strings.GlanceReplaceOverdueTitle);
+                } else {
+                    title = gs(Rez.Strings.GlanceRemoveOverdueTitle);
+                }
+                value = durationText(-delta);
             } else {
-                text = gs(Rez.Strings.GlanceRemovePrefix) + count;
+                if (removed) {
+                    title = gs(Rez.Strings.GlanceInsertTitle);
+                } else if (daysOut == 0) {
+                    title = gs(Rez.Strings.GlanceReplaceTitle);
+                } else {
+                    title = gs(Rez.Strings.GlanceRemoveTitle);
+                }
+                value = durationText(delta);
             }
             var duration = a[3] - a[0];
             marker = duration <= 0 ? 1.0 : (nowUtc - a[0]).toFloat() / duration;
@@ -70,38 +95,120 @@ class RingGlanceView extends WatchUi.GlanceView {
 
         var width = dc.getWidth();
         var height = dc.getHeight();
-        var pad = 8;
-        var font = Graphics.FONT_SYSTEM_XTINY;
-        text = ellipsis(dc, text, font, width - (pad * 2));
-        dc.setColor(0xF4F7F8, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(pad, (height / 2) - 7, font, text,
-                    Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
-
+        var pad = (width * 3) / 100;
+        if (pad < 8) { pad = 8; }
         var left = pad;
         var right = width - pad;
-        var barY = height - 6;
+        var maxWidth = right - left;
+        var titleFont = Graphics.FONT_GLANCE;
+        var valueFont = Graphics.FONT_GLANCE_NUMBER;
+        var titleHeight = dc.getFontHeight(titleFont);
+        var valueHeight = dc.getFontHeight(valueFont);
+        var rowGap = -2;
+        var barGap = 7;
         var barWidth = right - left;
+        var blockHeight = titleHeight + rowGap + valueHeight + barGap + 5;
+        var top = (height - blockHeight) / 2;
+        if (top < 1) { top = 1; }
+        var valueY = top + titleHeight + rowGap;
+        var barY = valueY + valueHeight + barGap;
+        if (barY > height - 6) { barY = height - 6; }
+
+        title = ellipsis(dc, title, titleFont, maxWidth);
+        dc.setColor(overdue ? ORANGE : NEUTRAL, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, top, titleFont, title, Graphics.TEXT_JUSTIFY_LEFT);
+        dc.setColor(overdue || ringOutOver ? ORANGE : WHITE, Graphics.COLOR_TRANSPARENT);
+        drawValue(dc, left, right, valueY, value, valueFont, titleFont);
+
         var totalDays = daysIn + daysOut;
         var split = totalDays <= 0 ? right : left + ((barWidth * daysIn) / totalDays);
+        var green = ringOut ? DIM_GREEN : GREEN;
+        var purple = ringOut ? DIM_PURPLE : PURPLE;
         dc.setPenWidth(5);
-        dc.setColor(0x20262C, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(left, barY, right, barY);
+        drawRoundedLine(dc, left, right, barY, TRACK);
         if (overdue) {
-            dc.setColor(0xFFB020, Graphics.COLOR_TRANSPARENT);
-            dc.drawLine(left, barY, right, barY);
+            // Leave a short orange tail after the pinned marker so lateness
+            // reads as overflow rather than an in-range progress position.
+            var pinned = right - 9;
+            drawRoundedLine(dc, left, pinned, barY, ORANGE);
+            dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(pinned, barY, right, barY);
+            marker = (pinned - left).toFloat() / barWidth;
         } else {
-            dc.setColor(0x38D6A0, Graphics.COLOR_TRANSPARENT);
-            dc.drawLine(left, barY, split, barY);
-            if (daysOut > 0) {
-                dc.setColor(0x9C7CFF, Graphics.COLOR_TRANSPARENT);
-                dc.drawLine(split, barY, right, barY);
-            }
+            drawRoundedLine(dc, left, split, barY, green);
+            if (daysOut > 0) { drawRoundedLine(dc, split, right, barY, purple); }
         }
+
         var markerX = left + (barWidth * marker).toNumber();
-        dc.setColor(0xF4F7F8, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(markerX, barY, 4);
+        if (markerX < left + 5) { markerX = left + 5; }
+        if (markerX > right - 5) { markerX = right - 5; }
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(markerX, barY, 2);
+        dc.fillCircle(markerX, barY, 5);
+        dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
+        if (ringOut) {
+            dc.setPenWidth(2);
+            dc.drawCircle(markerX, barY, 4);
+        } else {
+            dc.fillCircle(markerX, barY, 4);
+        }
+    }
+
+    function durationText(seconds as Lang.Number) as Lang.String {
+        if (seconds < 0) { seconds = -seconds; }
+        if (seconds >= 86400) {
+            var days = (seconds + 86399) / 86400;
+            return days.toString() + gs(days == 1
+                ? Rez.Strings.GlanceOneDaySuffix : Rez.Strings.GlanceDaysSuffix);
+        }
+        var hours = seconds / 3600;
+        var minutes = ((seconds % 3600) + 59) / 60;
+        if (hours > 0) {
+            var result = hours.toString() + gs(Rez.Strings.GlanceHourSuffix);
+            return minutes > 0 ? result + minutes.toString()
+                + gs(Rez.Strings.GlanceMinuteSuffix) : result;
+        }
+        if (minutes < 1) { minutes = 1; }
+        return minutes.toString() + gs(Rez.Strings.GlanceMinuteSuffix);
+    }
+
+    function temporaryText(remaining as Lang.Number) as Lang.String {
+        if (remaining < 0) {
+            return durationText(-remaining) + gs(Rez.Strings.GlanceOverSuffix);
+        }
+        return durationText(remaining) + gs(Rez.Strings.GlanceLeftSuffix);
+    }
+
+    private function drawRoundedLine(dc as Graphics.Dc, left as Lang.Number,
+                                     right as Lang.Number, y as Lang.Number,
+                                     color as Lang.Number) as Void {
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.drawLine(left, y, right, y);
+        dc.fillCircle(left, y, 2);
+        dc.fillCircle(right, y, 2);
+    }
+
+    private function drawValue(dc as Graphics.Dc, left as Lang.Number,
+                               right as Lang.Number, y as Lang.Number,
+                               value as Lang.String, numberFont, unitFont) as Void {
+        var numberHeight = dc.getFontHeight(numberFont);
+        var unitHeight = dc.getFontHeight(unitFont);
+        var unitY = y + numberHeight - unitHeight - 7;
+        if (unitY < y) { unitY = y; }
+        var x = left;
+        for (var i = 0; i < value.length(); i += 1) {
+            var character = value.substring(i, i + 1);
+            var numeric = "0123456789".find(character) != null;
+            var font = numeric ? numberFont : unitFont;
+            var width = dc.getTextWidthInPixels(character, font);
+            if (x + width > right) {
+                dc.drawText(x, unitY, unitFont, gs(Rez.Strings.GlanceEllipsis),
+                    Graphics.TEXT_JUSTIFY_LEFT);
+                return;
+            }
+            dc.drawText(x, numeric ? y : unitY, font, character,
+                Graphics.TEXT_JUSTIFY_LEFT);
+            x += width;
+        }
     }
 
     private function gs(id as Lang.ResourceId) as Lang.String {
@@ -122,32 +229,8 @@ class RingGlanceView extends WatchUi.GlanceView {
         try { Storage.setValue("ringTrackerMirrorError", "glance mirror invalid"); } catch (ignored) { }
     }
 
-    private function compactDuration(seconds as Lang.Number) as Lang.String {
-        if (seconds <= 0) { return gs(Rez.Strings.GlanceNow); }
-        if (seconds > 86400) {
-            var days = (seconds + 86399) / 86400;
-            return days.toString() + gs(days == 1 ? Rez.Strings.GlanceOneDaySuffix : Rez.Strings.GlanceDaysSuffix);
-        }
-        if (seconds >= 3600) {
-            var hours = (seconds + 3599) / 3600;
-            return hours.toString() + gs(hours == 1 ? Rez.Strings.GlanceOneHourSuffix : Rez.Strings.GlanceHoursSuffix);
-        }
-        var minutes = (seconds + 59) / 60;
-        return minutes.toString() + gs(minutes == 1 ? Rez.Strings.GlanceOneMinuteSuffix : Rez.Strings.GlanceMinutesSuffix);
-    }
-
-    private function elapsed(seconds as Lang.Number) as Lang.String {
-        if (seconds < 0) { seconds = 0; }
-        var hours = seconds / 3600;
-        var minutes = (seconds % 3600) / 60;
-        if (hours > 0) {
-            return hours.toString() + gs(Rez.Strings.GlanceShortHourSuffix)
-                + minutes.toString() + gs(Rez.Strings.GlanceShortMinuteSuffix);
-        }
-        return ((seconds + 59) / 60).toString() + gs(Rez.Strings.GlanceShortMinuteSuffix);
-    }
-
-    private function ellipsis(dc as Graphics.Dc, value as Lang.String, font, maxWidth as Lang.Number) as Lang.String {
+    private function ellipsis(dc as Graphics.Dc, value as Lang.String, font,
+                              maxWidth as Lang.Number) as Lang.String {
         if (dc.getTextWidthInPixels(value, font) <= maxWidth) { return value; }
         var suffix = gs(Rez.Strings.GlanceEllipsis);
         var end = value.length();

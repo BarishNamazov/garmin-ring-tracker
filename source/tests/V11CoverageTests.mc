@@ -234,23 +234,26 @@ function v11ThresholdThenDayOfThenOverdueProgression(logger as Test.Logger) as B
 function v11NotificationCopyCoversEveryKindAndBody(logger as Test.Logger) as Boolean {
     var service = new RingServiceDelegate();
     var due = testWall(2026, 9, 2, 9, 0);
-    var tomorrow = ["Remove ring tomorrow", "Insert ring tomorrow", "Replace ring tomorrow"];
-    var today = ["Remove ring today", "Insert ring today", "Replace ring today"];
-    var action = ["Remove ring", "Insert ring", "Replace ring"];
+    var tomorrow = ["Remove tomorrow", "Insert tomorrow", "Replace soon"];
+    var today = ["Remove ring", "Insert ring", "Replace ring"];
+    var second = ["Still in — remove", "Still out — insert", "Still in — replace"];
+    var overdueTitle = ["Remove now", "Insert now", "Replace ring"];
     for (var i = 0; i < 3; i += 1) {
-        var before = service.notificationIds(5, i, due, 24, due - 1);
-        var dayOf = service.notificationIds(4, i, due, 24, due - 1);
-        var overdue = service.notificationIds(3, i, due, 24, due + 100800);
-        Test.assertEqual(tomorrow[i], before[0]); Test.assertEqual("Due 09:00", before[1]); Test.assert(before[2] == null);
-        Test.assertEqual(today[i], dayOf[0]); Test.assertEqual("Due 09:00", dayOf[1]); Test.assert(dayOf[2] == null);
-        Test.assertEqual("Ring overdue 1d 4h", overdue[0]); Test.assertEqual(action[i], overdue[1]); Test.assert(overdue[2] == null);
+        var before = service.notificationIds(5, i, due, 24, due - 1, 0);
+        var dayOf = service.notificationIds(4, i, due, 24, due - 1, 1);
+        var dayOf2 = service.notificationIds(4, i, due, 24, due - 1, 2);
+        var overdue = service.notificationIds(3, i, due, 24, due + 100800, 0);
+        Test.assertEqual(tomorrow[i], before[0]); Test.assertEqual("Wed 2 Sep · 09:00", before[1]); Test.assert(before[2] == null);
+        Test.assertEqual(today[i], dayOf[0]); Test.assertEqual("Due today · 09:00", dayOf[1]); Test.assert(dayOf[2] == null);
+        Test.assertEqual(second[i], dayOf2[0]); Test.assertEqual("Due 09:00 today", dayOf2[1]); Test.assert(dayOf2[2] != null);
+        Test.assertEqual(overdueTitle[i], overdue[0]); Test.assertEqual("1d 4h late · due Wed 2 Sep", overdue[1]); Test.assert(overdue[2] == null);
     }
-    var temp = service.notificationIds(1, 0, due, 24, due);
-    Test.assertEqual("Out over 3h", temp[0]); Test.assertEqual("Reinsert now", temp[1]); Test.assertEqual("Use backup 7 days.", temp[2]);
-    var free = service.notificationIds(0, 1, due, 24, due);
-    Test.assertEqual("Insert now", free[0]); Test.assertEqual("Ring out over 7d", free[1]); Test.assertEqual("Use backup 7 days.", free[2]);
-    var longIn = service.notificationIds(2, 0, due, 24, due);
-    Test.assertEqual("Replace now", longIn[0]); Test.assertEqual("Ring in over 4 weeks", longIn[1]); Test.assert(longIn[2] == null);
+    var temp = service.notificationIds(1, 0, due, 24, due + 11400, 0);
+    Test.assertEqual("Put ring back", temp[0]); Test.assertEqual("Out 3h 10m", temp[1]); Test.assertEqual("Backup advised — see detail.", temp[2]);
+    var free = service.notificationIds(0, 1, due, 24, due + 86400, 0);
+    Test.assertEqual("Insert ring", free[0]); Test.assertEqual("Break over 7 days · 1d late", free[1]); Test.assertEqual("Backup advised.", free[2]);
+    var longIn = service.notificationIds(2, 0, due, 24, due + 86400, 0);
+    Test.assertEqual("Replace ring", longIn[0]); Test.assertEqual("In over 4 weeks · 1d over", longIn[1]); Test.assertEqual("Backup advised.", longIn[2]);
     return true;
 }
 
