@@ -135,6 +135,9 @@ class ForegroundController {
         if (_state[:loadError] != null) {
             return [new InfoView(Rez.Strings.AppName, [Ui.s(Rez.Strings.RecoveredError)]), new ScrollDelegate()];
         }
+        if (SettingsBridge.migrateLegacyProperties(_state, currentUtc())) {
+            RingStore.save(_state);
+        }
         if (_state[:migrationNoticePending] == true) {
             _state[:migrationNoticePending] = false;
             RingStore.save(_state);

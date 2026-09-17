@@ -251,7 +251,7 @@ Have the actual insertion date and time available before starting. If uncertain,
 do not guess for contraceptive decisions; check the product instructions or ask
 a qualified clinician.
 
-1. **Read the safety text.** Scroll through it, then choose **Continue**. The
+1. **Read the safety text.** Scroll through it, then choose **I understand**. The
    app will not start reminders before that acknowledgement.
 2. **Confirm the schedule.** The default is 21 days in and 7 days out for
    NuvaRing. Change it only to match instructions from a clinician.
@@ -263,8 +263,8 @@ a qualified clinician.
    center identifies **RING IN**, **RING FREE**, or **OVERDUE**, gives the time
    until removal/insertion, and shows the next-action date.
 5. **Set reminders.** From the main screen, hold **MENU**, open **Settings**, and
-   set **Reminder 1**, optional **Reminder 2**, the **Day-before reminder**,
-   overdue repeat interval, vibration, sound, and clock format. Reminder 1
+   set **Reminder 1**, optional **Reminder 2**, **Day before**,
+   **Repeat if missed**, vibration, and sound. Reminder 1
    defaults to 09:00; Reminder 2 defaults to 20:00 and Off; day-before defaults
    On and uses Reminder 1's time. On a pure sideload, this on-watch screen is
    the authoritative editor.
@@ -274,10 +274,10 @@ a qualified clinician.
 From Main, press **UP** for six projected **Upcoming** cycles, **DOWN** for
 **History**, **START** or tap for the context menu, and hold **MENU** for the
 same menu. Within Upcoming or History, UP/DOWN scrolls and BACK returns. In
-normal use, choose **Remove ring**, **Insert ring**, **Ring out**, or **Ring back
-in** as the event occurs. State-changing actions require confirmation. The
+normal use, choose **Remove ring**, **Insert ring**, **Ring out briefly**, or
+**Put ring back** as the event occurs. State-changing actions require confirmation. The
 actual removal anchors the next insertion; the actual insertion anchors the
-next removal. Use **Edit dates** to correct only recorded insertion/removal
+next removal. Use **Correct dates** to correct only recorded insertion/removal
 timestamps rather than recording a false event.
 
 ## What reminders look like—and their limits
@@ -401,6 +401,9 @@ The complete phone settings list is:
 | Day-before reminder | On or Off; uses Reminder 1's time |
 | Repeat if missed | Every hour, every 3 hours, every 6 hours, or Off |
 | Vibration / sound | On or Off for foreground feedback |
+
+Ring Tracker always follows the watch's 12/24-hour setting; there is no
+separate Clock control on the watch or phone.
 
 ## Remove Ring Tracker
 

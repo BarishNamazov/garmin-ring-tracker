@@ -96,22 +96,6 @@ module Menus {
         return menu;
     }
 
-    function adjustMenu(state as Lang.Dictionary) as WatchUi.Menu2 {
-        var active = state[:active] as Lang.Dictionary;
-        var focus = active[:removalUtc] == null ? 0 : 1;
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.EditCorrectDates, :focus => focus});
-        menu.addItem(item(Rez.Strings.EditInserted,
-            Ui.shortTimestamp(active[:insertionUtc], 0), :adjustInsertion));
-        if (active[:removalUtc] != null) {
-            menu.addItem(item(Rez.Strings.EditRemoved,
-                Ui.shortTimestamp(active[:removalUtc], 0), :adjustRemoval));
-        } else {
-            menu.addItem(item(Rez.Strings.EditRemoved,
-                Ui.fmt(Rez.Strings.EditNotYetDue, [Ui.shortDate(active[:removeDueUtc])]), :removedPending));
-        }
-        return menu;
-    }
-
     function settingsMenu(state as Lang.Dictionary) as WatchUi.Menu2 {
         return settingsMenuWithFocus(state, 0);
     }
@@ -253,7 +237,7 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         else if (id == :backIn) { app.confirmAction(:backIn, currentUtc(), null); }
         else if (id == :keepOut) { app.confirmAction(:keepOut, currentUtc(), null); }
         else if (id == :undoRingOut) { app.confirmAction(:undoRingOut, currentUtc(), null); }
-        else if (id == :adjust) { WatchUi.switchToView(Menus.adjustMenu(app.getState()), new AdjustMenuDelegate(), WatchUi.SLIDE_LEFT); }
+        else if (id == :adjust) { WatchUi.switchToView(new CorrectDatesView(), new CorrectDatesDelegate(), WatchUi.SLIDE_LEFT); }
         else if (id == :upcoming) { app.showUpcoming(); }
         else if (id == :settings) { app.showSettingsMenu(); }
         else if (id == :history) { app.showHistory(); }
@@ -261,20 +245,6 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         else { openOptionalMenu(id); }
     }
     function onBack() as Void { getApp().showMain(); }
-}
-
-class AdjustMenuDelegate extends WatchUi.Menu2InputDelegate {
-    function initialize() { Menu2InputDelegate.initialize(); }
-    function onSelect(item as WatchUi.MenuItem) as Void {
-        var state = getApp().getState();
-        var active = state[:active] as Lang.Dictionary;
-        var id = item.getId() as Lang.Symbol;
-        if (id != :adjustInsertion && id != :adjustRemoval) { return; }
-        var start = active[:insertionUtc];
-        if (id == :adjustRemoval) { start = active[:removalUtc]; }
-        PickerFlow.openDate(id, start);
-    }
-    function onBack() as Void { getApp().showMainMenu(); }
 }
 
 class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {

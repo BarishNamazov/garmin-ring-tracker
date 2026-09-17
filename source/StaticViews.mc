@@ -60,7 +60,7 @@ class TextActionView extends InfoView {
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
             _visibleLines, Ui.RING_IN);
         var actionText = _action instanceof Lang.ResourceId ? Ui.s(_action) : _action as Lang.String;
-        Ui.centered(dc, Ui.px(dc, 332), actionText, Graphics.FONT_SYSTEM_XTINY,
+        Ui.centered(dc, Ui.px(dc, 332), "[ " + actionText + " ]", Graphics.FONT_SYSTEM_XTINY,
             Ui.RING_IN, Ui.px(dc, 280));
     }
 }
@@ -78,7 +78,9 @@ class DisclaimerDelegate extends ScrollDelegate {
         getApp().performConfirmed(:acceptDisclaimer, currentUtc(), null);
         return true;
     }
-    function onTap(event as WatchUi.ClickEvent) as Boolean { return onSelect(); }
+    function onTap(event as WatchUi.ClickEvent) as Boolean {
+        return event.getCoordinates()[1] >= 290 ? onSelect() : true;
+    }
 }
 
 class RegimenView extends WatchUi.View {
@@ -169,7 +171,7 @@ class AboutView extends TextActionView {
         _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
             _visibleLines, Ui.RING_IN);
-        Ui.centered(dc, Ui.px(dc, 332), Ui.s(Rez.Strings.TextDone),
+        Ui.centered(dc, Ui.px(dc, 332), "[ " + Ui.s(Rez.Strings.TextDone) + " ]",
             Graphics.FONT_SYSTEM_XTINY, Ui.RING_IN, Ui.px(dc, 280));
     }
 }
@@ -198,7 +200,7 @@ class MigrationView extends TextActionView {
         _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
             _visibleLines, Ui.RING_IN);
-        Ui.centered(dc, Ui.px(dc, 332), Ui.s(Rez.Strings.TextOK),
+        Ui.centered(dc, Ui.px(dc, 332), "[ " + Ui.s(Rez.Strings.TextOK) + " ]",
             Graphics.FONT_SYSTEM_XTINY, Ui.RING_IN, Ui.px(dc, 280));
     }
 }
@@ -207,7 +209,101 @@ class MigrationDelegate extends ScrollDelegate {
     function initialize() { ScrollDelegate.initialize(); }
     function onSelect() as Boolean { getApp().showMain(); return true; }
     function onBack() as Boolean { getApp().showMain(); return true; }
-    function onTap(event as WatchUi.ClickEvent) as Boolean { return onSelect(); }
+    function onTap(event as WatchUi.ClickEvent) as Boolean {
+        return event.getCoordinates()[1] >= 290 ? onSelect() : true;
+    }
+}
+
+class CorrectDatesView extends WatchUi.View {
+    private var _focus as Lang.Number;
+
+    function initialize() {
+        View.initialize();
+        var active = getApp().getState()[:active] as Lang.Dictionary;
+        _focus = active[:removalUtc] == null ? 0 : 1;
+    }
+
+    function focus() as Lang.Number { return _focus; }
+
+    function setFocus(value as Lang.Number) as Lang.Boolean {
+        var active = getApp().getState()[:active] as Lang.Dictionary;
+        if (value == 1 && active[:removalUtc] == null) { return false; }
+        _focus = value;
+        WatchUi.requestUpdate();
+        return true;
+    }
+
+    function moveFocus(delta as Lang.Number) as Void {
+        var active = getApp().getState()[:active] as Lang.Dictionary;
+        if (active[:removalUtc] == null) { return; }
+        _focus = _focus == 0 ? 1 : 0;
+        WatchUi.requestUpdate();
+    }
+
+    private function row(dc as Graphics.Dc, y as Lang.Number, label as Lang.String,
+                         value as Lang.String, focused as Lang.Boolean,
+                         editable as Lang.Boolean) as Void {
+        var left = Ui.px(dc, 48);
+        var right = dc.getWidth() - Ui.px(dc, 48);
+        if (focused) {
+            dc.setColor(Ui.RING_FREE, Graphics.COLOR_TRANSPARENT);
+            dc.fillRectangle(Ui.px(dc, 31), y - Ui.px(dc, 35), Ui.px(dc, 4), Ui.px(dc, 72));
+        }
+        dc.setColor(editable ? Ui.PRIMARY : Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, y - Ui.px(dc, 13), Graphics.FONT_SYSTEM_SMALL,
+            Ui.ellipsize(dc, label, Graphics.FONT_SYSTEM_SMALL, right - left),
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(editable ? Ui.SECONDARY : 0x78858C, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, y + Ui.px(dc, 21), Graphics.FONT_SYSTEM_XTINY,
+            Ui.ellipsize(dc, value, Graphics.FONT_SYSTEM_XTINY, right - left),
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    function onUpdate(dc as Graphics.Dc) as Void {
+        Ui.clear(dc);
+        var active = getApp().getState()[:active] as Lang.Dictionary;
+        Ui.centered(dc, Ui.px(dc, 58), Ui.s(Rez.Strings.EditCorrectDates),
+            Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
+        row(dc, Ui.px(dc, 151), Ui.s(Rez.Strings.EditInserted),
+            Ui.shortTimestamp(active[:insertionUtc], 0), _focus == 0, true);
+        var removed = active[:removalUtc];
+        var removalText = removed == null
+            ? Ui.fmt(Rez.Strings.EditNotYetDue, [Ui.shortDate(active[:removeDueUtc])])
+            : Ui.shortTimestamp(removed as Lang.Number, 0);
+        row(dc, Ui.px(dc, 266), Ui.s(Rez.Strings.EditRemoved), removalText,
+            _focus == 1, removed != null);
+    }
+}
+
+class CorrectDatesDelegate extends WatchUi.BehaviorDelegate {
+    function initialize() { BehaviorDelegate.initialize(); }
+    private function view() as CorrectDatesView {
+        return WatchUi.getCurrentView()[0] as CorrectDatesView;
+    }
+    function onSelect() as Boolean {
+        var state = getApp().getState();
+        var active = state[:active] as Lang.Dictionary;
+        var id = view().focus() == 0 ? :adjustInsertion : :adjustRemoval;
+        var start = id == :adjustInsertion ? active[:insertionUtc] : active[:removalUtc];
+        if (start == null) { return true; }
+        PickerFlow.openDate(id, start as Lang.Number);
+        return true;
+    }
+    function onNextPage() as Boolean { view().moveFocus(1); return true; }
+    function onPreviousPage() as Boolean { view().moveFocus(-1); return true; }
+    function onBack() as Boolean { getApp().showMainMenu(); return true; }
+    function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
+        return false;
+    }
+    function onTap(event as WatchUi.ClickEvent) as Boolean {
+        var y = event.getCoordinates()[1];
+        if (y < 105 || y > 325) { return true; }
+        if (!view().setFocus(y < 210 ? 0 : 1)) { return true; }
+        return onSelect();
+    }
 }
 
 class AlertView extends WatchUi.View {

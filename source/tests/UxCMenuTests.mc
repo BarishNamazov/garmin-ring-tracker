@@ -12,17 +12,61 @@ function uxCConfirmationFactsUseFlooredWrittenUnits(logger as Test.Logger) as Bo
 }
 
 (:test)
+function uxCMenuTitlesDescribeCurrentState(logger as Test.Logger) as Boolean {
+    var state = ScheduleModel.defaultState();
+    var start = testWall(2026, 9, 1, 9, 0);
+    Test.assertEqual("No cycle", Menus.mainTitle(state, start));
+    var active = ScheduleModel.insertOrReplace(state, start);
+    Test.assertEqual("Ring in · day 5", Menus.mainTitle(state,
+        testWall(2026, 9, 5, 9, 0)));
+    var removed = testWall(2026, 9, 22, 9, 0);
+    Test.assert(ScheduleModel.recordRemoval(active, removed,
+        state[:regimen] as Lang.Dictionary));
+    Test.assertEqual("Ring-free · day 3", Menus.mainTitle(state,
+        testWall(2026, 9, 24, 9, 0)));
+
+    var temporary = ScheduleModel.defaultState();
+    var tempActive = ScheduleModel.insertOrReplace(temporary, start);
+    var out = testWall(2026, 9, 5, 8, 0);
+    Test.assert(ScheduleModel.startTemporaryOut(tempActive, out));
+    Test.assertEqual("Ring out · 0:42", Menus.mainTitle(temporary, out + (42 * 60)));
+    return true;
+}
+
+(:test)
 function uxCClockOverrideMigratesSilentlyToWatchFormat(logger as Test.Logger) as Boolean {
     var state = ScheduleModel.defaultState();
     var reminders = state[:reminders] as Lang.Dictionary;
     reminders[:clockFormat] = 12;
+    reminders[:overdueRepeatHours] = 12;
     Properties.setValue("settingsSchemaVersion", 2);
     Properties.setValue("clockFormat", 24);
+    Properties.setValue("overdueRepeatHours", 12);
     Test.assert(SettingsBridge.migrateLegacyProperties(state,
         testWall(2026, 9, 16, 12, 0)));
     Test.assertEqual(0, (state[:reminders] as Lang.Dictionary)[:clockFormat]);
+    Test.assertEqual(24, (state[:reminders] as Lang.Dictionary)[:overdueRepeatHours]);
     Test.assertEqual(0, Properties.getValue("clockFormat"));
+    Test.assertEqual(24, Properties.getValue("overdueRepeatHours"));
     Test.assertEqual(3, Properties.getValue("settingsSchemaVersion"));
+    return true;
+}
+
+(:test)
+function uxCRepeatOffSuppressesMissedReminderSlots(logger as Test.Logger) as Boolean {
+    var state = ScheduleModel.defaultState();
+    var start = testWall(2026, 9, 1, 9, 0);
+    var active = ScheduleModel.insertOrReplace(state, start);
+    var reminders = state[:reminders] as Lang.Dictionary;
+    reminders[:overdueRepeatHours] = 24;
+    MenuActions.syncRepeatPolicy(state, start);
+    var ledger = state[:reminderLedger] as Lang.Dictionary;
+    Test.assertEqual(ReminderPolicy.actionKey(ScheduleModel.deriveStatus(start,
+        active, state[:regimen] as Lang.Dictionary)), ledger[:actionKey]);
+    Test.assertEqual(2147483647, ledger[:lastOverdueSlot]);
+    reminders[:overdueRepeatHours] = 6;
+    MenuActions.syncRepeatPolicy(state, start);
+    Test.assert(ledger[:lastOverdueSlot] == null);
     return true;
 }
 

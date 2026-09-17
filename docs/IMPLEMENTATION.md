@@ -40,7 +40,7 @@ appears only on first run and About.
 
 The Workstream C regression suite covers confirmation units and direction,
 clock-format migration, and undo/keep-out state transitions. The complete test
-personality currently passes **133 tests with 0 failures and 0 errors**.
+personality currently passes **135 tests with 0 failures and 0 errors**.
 
 `SPEC-1.1.md` remains the reminder and settings-conflict contract. `SPEC.md`
 and `UI.md` remain the v1.0 base where later requirements do not override them,
@@ -92,7 +92,7 @@ The visible settings page now has three groups and this order:
 | --- | --- |
 | Schedule | Insertion date, Insertion time, Days ring in, Days ring out |
 | Reminders | Reminder 1, Reminder 2 On/Off, Reminder 2 time, Day-before reminder, Overdue repeat |
-| Display | Clock format, Vibration, Sound |
+| Display | Vibration, Sound |
 
 `Insertion date` uses the native `date` control. Garmin stores that control as
 a UTC epoch value, so `Gregorian.utcInfo()` supplies its year, month, and day;
@@ -105,7 +105,8 @@ Every visible control has a clear title and applicable short prompt. The
 schema's `helpUrl` attribute is deprecated, and `enableIfTrue` applies to an
 entire group rather than an individual setting, so neither is appropriate for
 this page; Reminder 2's time remains visible and retained while its switch is
-Off.
+Off. The v1.3.0 schema removes Clock from the phone page; the retained hidden
+property exists only to clear a legacy override during migration.
 
 Watch values remain exact to the minute. A watch-to-phone mirror rounds only
 the property representation to the nearest quarter-hour; values at minutes
@@ -189,7 +190,7 @@ the compiled settings schema are the available visual/build evidence.
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
 | Tests | `source/tests/*.mc` | 129 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
 | Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, portable `grep` background resource/exit guard, simulator tests, and Store-package PRG hashes |
-| Visual evidence | `docs/screenshots/` | 102 native-resolution captures, including nine v1.2 picker states |
+| Visual evidence | `docs/screenshots/` | 106 native-resolution captures, including nine v1.2 picker states |
 
 The canonical document excludes archived history. History is split across two
 revisioned values in alternating parity slots. Glance and background each use a
@@ -397,7 +398,7 @@ it cannot exceed the foreground watchdog; storage stress remains persistent in
 the automated suite.
 
 The native screenshot crops are 390×390 at `+118+259`, 416×416 at `+122+263`,
-and 454×454 at `+146+281`. The repository contains 102 native-size images.
+and 454×454 at `+146+281`. The repository contains 106 native-size images.
 The nine v1.2 captures cover 12-hour time, 24-hour time, and date pickers on all
 three sizes; each was checked for title updates, clipping, overlap, and
 round-edge clearance. Button navigation, BACK-to-previous-column behavior, and
@@ -417,17 +418,19 @@ when needed, and only an over-width compact pair splits into `In` and `Out`
 lines. The regression fixture covers `Wed 30 Sep` and all nine native captures
 were checked for clipping, separator loss, and `if done today` crowding.
 
-For every size, 26 captures cover the three v1.2 pickers plus ring-in, ring-free, overdue removal,
+For every size, 28 captures cover the three v1.2 pickers plus ring-in, ring-free, overdue removal,
 overdue insertion, temporary out at 2h50 and 3h10, >7d and >28d warnings,
 Upcoming rows 1–3 and 4–6, long 12-hour and 24-hour formatting, maximum
 countdown, warning wrapping, all four glance states, custom History and cycle
-detail, and early-removal, late-insertion, and edit-removal confirmations. The
+detail, early-removal, late-insertion, and edit-removal confirmations, and the
+recorded and pending Correct dates states. The
 six Upcoming captures now use the overdue-removal fixture: row 1 retains its
 actual past dates, rows 2–6 remain non-past, and each affected projected row
 shows `if done today` without clipping on 390, 416, or 454 px. The
-47 mm interaction set adds 24 captures covering first run, regimen, four context menus, Edit
-dates, Reminder 2 Off/On/submenus/picker, day-before, overdue repeat, clock,
-About, migration notice, and all seven native notification kinds. Obsolete Schedule, planned-override, and
+47 mm interaction set adds 22 captures covering first run, regimen, four context menus,
+Reminder 2 Off/On/time picker, day-before, overdue repeat, ring durations,
+vibration and sound, About, migration notice, and all seven native notification kinds. Obsolete Clock,
+Reminder 2 submenu, Schedule, planned-override, and
 v1.0-jargon screenshots were removed.
 
 ## Memory verification
