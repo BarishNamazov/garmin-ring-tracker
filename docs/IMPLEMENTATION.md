@@ -1,6 +1,6 @@
 # Ring Tracker implementation and verification
 
-Ring Tracker v1.2 is a Garmin Connect IQ device app for the epix Pro (Gen 2)
+Ring Tracker is a Garmin Connect IQ device app for the epix Pro (Gen 2)
 42 mm, 47 mm, and 51 mm family. It tracks NuvaRing insertion, removal, and
 temporary-out events; derives each next deadline from the event that actually
 happened; projects upcoming cycles; keeps 24 archived cycles; and evaluates
@@ -118,9 +118,10 @@ future or nonexistent local times are rejected, and a valid changed tuple is
 confirmed in the foreground. Pending mirrors and the watch-wins conflict rule
 remain in force.
 
-The one-time property-schema migration reads v1.1's numeric reminder hour and
-minute fields and ISO insertion string, writes the new lists/native date, and
-marks schema version 2. The legacy property IDs remain declared in
+The schema-2 property migration reads v1.1's numeric reminder hour and minute
+fields and ISO insertion string and writes the new lists/native date. The
+schema-3 follow-up silently clears any clock override and maps the former
+12/24-hour repeat values to Off. The legacy property IDs remain declared in
 `properties.xml` but are absent from `settings.xml`; retaining the declarations
 makes synchronized upgrade values readable without exposing obsolete controls.
 
@@ -188,7 +189,7 @@ the compiled settings schema are the available visual/build evidence.
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Reduced mirror codecs, glance rendering, and hourly reminder service |
 | Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production seams and debug-only clock, fixtures, notification previews, temporal-event diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
-| Tests | `source/tests/*.mc` | 129 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Tests | `source/tests/*.mc` | 135 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
 | Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, portable `grep` background resource/exit guard, simulator tests, and Store-package PRG hashes |
 | Visual evidence | `docs/screenshots/` | 106 native-resolution captures, including nine v1.2 picker states |
 
@@ -239,13 +240,13 @@ env -i HOME="$HOME" PATH=/usr/bin:/bin bash -lc \
   'cd /path/to/garmin-ring-tracker && source scripts/env.sh && ./scripts/build.sh test'
 ```
 
-Final verification on 2026-09-16:
+Final verification on 2026-09-17:
 
 | Configuration | 42 mm | 47 mm | 51 mm |
 | --- | --- | --- | --- |
 | Release | success, zero warnings | success, zero warnings | success, zero warnings |
 | Debug | success, zero warnings | success, zero warnings | success, zero warnings |
-| Unit-test personality | — | success, zero warnings; 129/0/0 | — |
+| Unit-test personality | — | success, zero warnings; 135/0/0 | — |
 
 The generated 47 mm debug annotation map contains no `background` or `glance`
 entry for `ForegroundController`, `ForegroundRuntime`, `ForegroundEntryView`,
@@ -254,7 +255,7 @@ and the dedicated constrained implementations are tagged into those scopes.
 
 ## Tests
 
-The final simulator result is **129 passed, 0 failed, 0 errors**:
+The final simulator result is **135 passed, 0 failed, 0 errors**:
 
 | File | Tests |
 | --- | ---: |
@@ -267,6 +268,7 @@ The final simulator result is **129 passed, 0 failed, 0 errors**:
 | `V11Tests.mc` | 12 |
 | `V11CoverageTests.mc` | 16 |
 | `V12Tests.mc` | 9 |
+| `UxCMenuTests.mc` | 6 |
 
 The suite covers exact and crossed regimen boundaries, leap/month/year and DST
 calendar behavior, per-minute picker values, quarter-hour phone rounding and
@@ -458,14 +460,10 @@ peak above. The background idle diagnostic after the v1.2 settings changes was
 15,816/61,256 bytes; the existing injected-exception peak remains the larger
 background measurement reported in the table.
 
-## Deliberate deviation
+## UX decision conformance
 
-No functional requirement in SPEC-1.1 is omitted. There is one narrow copy
-presentation override:
-
-- The About version is `Ring Tracker v1.2.0`, following the release instruction
-  to put the full semantic version in both the manifest and About; the earlier
-  copy table abbreviated that line to a major/minor version.
+No Workstream C review item is intentionally omitted. About shows
+`Ring Tracker 1.3.0` exactly as specified by the consolidated UX decision.
 
 ## Release contents
 

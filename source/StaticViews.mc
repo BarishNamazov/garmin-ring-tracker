@@ -56,6 +56,7 @@ class TextActionView extends InfoView {
         var startY = Ui.px(dc, 116);
         var bottomY = Ui.px(dc, 286);
         _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
+        if (_lineCount > 0) { _lineCount -= 1; }
         _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
             _visibleLines, Ui.RING_IN);
@@ -168,6 +169,7 @@ class AboutView extends TextActionView {
         var startY = Ui.px(dc, 126);
         var bottomY = Ui.px(dc, 286);
         _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
+        if (_lineCount > 0) { _lineCount -= 1; }
         _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
             _visibleLines, Ui.RING_IN);
@@ -197,9 +199,8 @@ class MigrationView extends TextActionView {
         var startY = Ui.px(dc, 158);
         var bottomY = Ui.px(dc, 266);
         _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
+        if (_lineCount > 0) { _lineCount -= 1; }
         _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
-        Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
-            _visibleLines, Ui.RING_IN);
         Ui.centered(dc, Ui.px(dc, 332), "[ " + Ui.s(Rez.Strings.TextOK) + " ]",
             Graphics.FONT_SYSTEM_XTINY, Ui.RING_IN, Ui.px(dc, 280));
     }

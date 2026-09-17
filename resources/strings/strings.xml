@@ -19,12 +19,7 @@
     <string id="DaysInPrompt">Use only with your clinician's advice.</string>
     <string id="DaysOutTitle">Days ring-free</string>
     <string id="DaysOutPrompt">0 means replace immediately.</string>
-    <string id="OverdueRepeatTitle">Repeat if missed</string>
-    <string id="Repeat1Hour">Every hour</string>
-    <string id="Repeat3Hours">Every 3 hours</string>
-    <string id="Repeat6Hours">Every 6 hours</string>
     <string id="Repeat12Hours">12 hours</string>
-    <string id="Repeat24Hours">Off</string>
     <string id="VibrationTitle">Vibration</string>
     <string id="SoundTitle">Sound</string>
     <string id="ForegroundAttentionPrompt">When the app opens.</string>
@@ -347,7 +342,7 @@ Phone $2$</string>
     <string id="ReminderSettingsGroup">Reminders</string>
     <string id="ReminderSettingsDescription">Times and repeat behavior</string>
     <string id="DisplaySettingsGroup">Display</string>
-    <string id="DisplaySettingsDescription">Foreground alerts</string>
+    <string id="SettingsDisplayDescription">Foreground alerts</string>
     <string id="InsertionDateTitle">Insertion date</string>
     <string id="InsertionDatePrompt">Choose the actual insertion date.</string>
     <string id="InsertionTimeTitle">Insertion time</string>
