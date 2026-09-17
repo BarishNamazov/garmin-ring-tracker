@@ -116,7 +116,7 @@ function settingsConfigurationMirrorIsDurablyPending(logger as Test.Logger) as B
     var interrupted = RingStore.load();
     Test.assert((interrupted[:settingsSync] as Lang.Dictionary)[:pendingConfigSnapshot] instanceof Lang.Array);
     SettingsBridge.completePendingMirrors(interrupted);
-    Test.assertEqual(17, Properties.getValue("reminderHour"));
+    Test.assertEqual(17 * 60, Properties.getValue("reminder1Minutes"));
     Test.assert((interrupted[:settingsSync] as Lang.Dictionary)[:pendingConfigSnapshot] == null);
     Test.assert(RingStore.save(interrupted));
     Test.assert(SettingsBridge.observe(interrupted, testWall(2026, 9, 1, 9, 0)) == null);
@@ -143,13 +143,14 @@ function emptySettingsInsertionCreatesRepairMarker(logger as Test.Logger) as Boo
     var start = testWall(2026, 9, 1, 9, 0);
     ScheduleModel.insertOrReplace(state, start);
     SettingsBridge.mirrorAll(state);
-    Properties.setValue("insertionIso", "");
+    Properties.setValue("insertionDate", 0);
     var result = SettingsBridge.observe(state, start + 10) as Lang.Dictionary;
     Test.assert(result[:invalid]);
-    Test.assertEqual("emptyInsertionIso",
+    Test.assertEqual("insertionDateTime",
         (state[:settingsSync] as Lang.Dictionary)[:pendingSettingsError]);
     SettingsBridge.mirrorAll(state);
-    Test.assertEqual(SettingsBridge.isoForUtc(start), Properties.getValue("insertionIso"));
+    Test.assertEqual(SettingsBridge.isoForUtc(start), SettingsBridge.isoForPropertyPair(
+        Properties.getValue("insertionDate"), Properties.getValue("insertionTime")));
     return true;
 }
 

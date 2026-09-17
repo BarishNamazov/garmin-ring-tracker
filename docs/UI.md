@@ -387,7 +387,7 @@ Use a two-step `WatchUi.Picker`: date, then time.
                  '--------------------'
 ```
 
-Use 5-minute increments by default but include every minute reachable with continued scrolling; existing event seconds normalize to zero only when edited. Respect 12/24-hour selection, including an AM/PM column for 12-hour mode. Review then opens a confirmation with the assembled full timestamp. Invalid/nonexistent local times display an explanatory adjustment before confirmation.
+Use separate hour and minute columns. The minute column contains every value from `00` through `59` and wraps; selecting a minute never scrolls through hours. Respect 12/24-hour selection, including an AM/PM column for 12-hour mode. Existing event seconds normalize to zero only when edited. Review then opens a confirmation with the assembled full timestamp. Invalid/nonexistent local times display an explanatory adjustment before confirmation.
 
 ## 12. Settings
 

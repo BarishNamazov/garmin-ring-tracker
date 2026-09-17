@@ -363,11 +363,16 @@ function historyCompactsOlderShortIntervals(logger as Test.Logger) as Boolean {
 }
 
 (:test)
-function settingsMirrorClearsInsertionWithoutActiveCycle(logger as Test.Logger) as Boolean {
+function settingsMirrorSeedsInsertionControlsWithoutActiveCycle(logger as Test.Logger) as Boolean {
     var state = ScheduleModel.defaultState();
-    Toybox.Application.Properties.setValue("insertionIso", "2026-09-14T09:00");
+    Toybox.Application.Properties.setValue("settingsSchemaVersion", 2);
+    Toybox.Application.Properties.setValue("insertionDate", 0);
     SettingsBridge.mirrorAll(state);
-    Test.assertEqual("", Toybox.Application.Properties.getValue("insertionIso"));
+    var mirrored = SettingsBridge.isoForPropertyPair(
+        Toybox.Application.Properties.getValue("insertionDate"),
+        Toybox.Application.Properties.getValue("insertionTime"));
+    Test.assert(mirrored instanceof Lang.String);
+    Test.assert(SettingsBridge.observe(state, currentUtc()) == null);
     return true;
 }
 

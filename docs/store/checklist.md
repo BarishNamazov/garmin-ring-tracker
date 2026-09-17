@@ -1,14 +1,14 @@
 # Submit Ring Tracker 1.1.0 to the Connect IQ Store
 
-This procedure reflects Garmin's current dashboard and documentation as checked on 2026-09-16. Use the public v1.1.0 Store package for the production listing. A beta that must coexist with production needs a separate package built with an alternate application UUID.
+This procedure reflects Garmin's current dashboard and documentation as checked on 2026-09-16. Use the public v1.2.0 Store package for the production listing. A beta that must coexist with production needs a separate package built with an alternate application UUID.
 
 ## Pre-flight
 
 - Sign in to Garmin with the account that owns the developer profile. For beta installation and App Settings testing, this must also be the Garmin account paired with the watch.
 - Confirm that the developer profile has a unique **Developer Name** and a monitored public support email address. Garmin requires the email in Step 2 and displays it publicly.
-- For the public listing, download **`RingTracker.iq` from the v1.1.0 GitHub Release**, not the similarly named tracked file under `release/` and not a device-specific `.prg`:
-  - Asset: <https://github.com/BarishNamazov/garmin-ring-tracker/releases/download/v1.1.0/RingTracker.iq>
-  - Release page: <https://github.com/BarishNamazov/garmin-ring-tracker/releases/tag/v1.1.0>
+- For the public listing, download **`RingTracker.iq` from the v1.2.0 GitHub Release**, not the similarly named tracked file under `release/` and not a device-specific `.prg`:
+  - Asset: <https://github.com/BarishNamazov/garmin-ring-tracker/releases/download/v1.2.0/RingTracker.iq>
+  - Release page: <https://github.com/BarishNamazov/garmin-ring-tracker/releases/tag/v1.2.0>
   - Size: 392,294 bytes
   - SHA-256: `1795944035c08b4dc9d145a01df316168dddfa46df4789a7634073d2d942d429`
 - Verify the downloaded asset against the release's `SHA256SUMS`. The checked-in `release/RingTracker.iq` is a convenience artifact from a different build environment and has a different checksum; do not substitute it when the GitHub Release asset is available.
@@ -27,7 +27,7 @@ This procedure reflects Garmin's current dashboard and documentation as checked 
 
 Garmin beta apps are visible and downloadable only to the submitting account. A beta link is not an unlisted distribution link for outside testers.
 
-1. Before exporting, replace the application UUID in `manifest.xml` with a newly generated **beta-only UUID**. Keep the production UUID above reserved for the public package. Export a complete v1.1.0 `.iq` with all three device binaries and the permanent developer signing key.
+1. Before exporting, replace the application UUID in `manifest.xml` with a newly generated **beta-only UUID**. Keep the production UUID above reserved for the public package. Export a complete v1.2.0 `.iq` with all three device binaries and the permanent developer signing key.
 2. Open [Connect IQ Developer Dashboard](https://apps-developer.garmin.com/en-US/developer/dashboard).
 3. Select **Uploaded Apps**, then **Upload an App**.
 4. In **Step 1: Attach File**:
@@ -44,7 +44,7 @@ If the unmodified public GitHub Release asset is uploaded as a beta, its embedde
 
 ## Submit the public listing
 
-1. Download and verify the canonical v1.1.0 `RingTracker.iq` GitHub Release asset listed in Pre-flight. Do not modify the archive after export; Garmin warns that modified packages can fail signature validation.
+1. Download and verify the canonical v1.2.0 `RingTracker.iq` GitHub Release asset listed in Pre-flight. Do not modify the archive after export; Garmin warns that modified packages can fail signature validation.
 2. Open [Connect IQ Developer Dashboard](https://apps-developer.garmin.com/en-US/developer/dashboard).
 3. Select **Uploaded Apps**, then **Upload an App**.
 4. In **Step 1: Attach File**:

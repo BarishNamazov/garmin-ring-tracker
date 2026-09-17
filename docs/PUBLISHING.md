@@ -71,15 +71,15 @@ Delete the unencrypted `developer_key.der.b64` file after setting the secret. Ke
 
 4. Commit the version, CHANGELOG, and refreshed `release/` files. Wait for CI to pass on that commit.
 
-5. Tag that exact commit and push the tag. For version 1.1.0:
+5. Tag that exact commit and push the tag. For version 1.2.0:
 
    ```bash
-   git tag v1.1.0
+   git tag v1.2.0
    git push origin main
    git push --tags
    ```
 
-The release workflow checks that `v1.1.0`, the manifest, the About text, and the top CHANGELOG entry all say `1.1.0`. It rebuilds and tests with the permanent key, then creates [a GitHub Release](https://github.com/BarishNamazov/garmin-ring-tracker/releases) containing three device-specific PRGs, `RingTracker.iq`, and `SHA256SUMS`. The matching CHANGELOG section becomes the release body. The workflow fails before publishing if the repository secret is missing or invalid.
+The release workflow checks that `v1.2.0`, the manifest, the About text, and the top CHANGELOG entry all say `1.2.0`. It rebuilds and tests with the permanent key, then creates [a GitHub Release](https://github.com/BarishNamazov/garmin-ring-tracker/releases) containing three device-specific PRGs, `RingTracker.iq`, and `SHA256SUMS`. The matching CHANGELOG section becomes the release body. The workflow fails before publishing if the repository secret is missing or invalid.
 
 The checked-in `release/RingTracker.iq` embeds paths from the computer that produced it in its debug maps. The `RingTracker.iq` attached to the GitHub Release is rebuilt on the GitHub runner and is the canonical Store-upload package. The tracked copy remains a convenience artifact and should not be submitted when the corresponding GitHub Release asset is available.
 

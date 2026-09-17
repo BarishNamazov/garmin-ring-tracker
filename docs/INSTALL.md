@@ -7,7 +7,7 @@ the first-run setup, add the glance, and troubleshoot reminders.
 > **Health disclaimer:** Ring Tracker records dates and shows reminders. It does
 > not determine whether contraception is effective and is not a substitute for
 > the product label or advice from a qualified clinician. Read the in-app
-> safety text before use. Ring Tracker v1.1.0 is for NuvaRing only. See [the
+> safety text before use. Ring Tracker v1.2.0 is for NuvaRing only. See [the
 > regimen and source notes](REGIMEN.md).
 
 Information and menu names were checked on 14 September 2026. Garmin sometimes
@@ -256,8 +256,9 @@ a qualified clinician.
 2. **Confirm the schedule.** The default is 21 days in and 7 days out for
    NuvaRing. Change it only to match instructions from a clinician.
 3. **Set the insertion time.** Choose **Insert now** only if it just happened.
-   Otherwise choose **Choose date & time**, use the picker, review the summary,
-   and confirm it.
+   Otherwise choose **Choose date & time**. Select day, short month, and year,
+   then select the hour and minute in separate columns. In 12-hour mode, select
+   AM or PM as the final column. Review the summary and confirm it.
 4. **Review the main screen.** The outer arc shows the configured cycle. The
    center identifies **RING IN**, **RING FREE**, or **OVERDUE**, gives the time
    until removal/insertion, and shows the next-action date.
@@ -375,23 +376,32 @@ watch when possible. Garmin App Settings offers a native **Date** input but no
 native time-only or combined date-time input; Garmin lists the supported setting
 types in its [workflow and interaction
 guidelines](https://developer.garmin.com/connect-iq/user-experience-guidelines/designing-workflows-and-interactions/).
-Ring Tracker therefore represents a remote exact date/time as a validated ISO
-text value. A remote insertion-time change made after a watch edit is presented
-for reconciliation rather than silently replacing the watch record.
+Ring Tracker therefore pairs the native **Insertion date** control with an
+**Insertion time** list at 15-minute intervals. Date controls are stored as UTC
+epoch values by Garmin; Ring Tracker reads their UTC year, month, and day so the
+selected calendar date does not shift in another timezone. A change to either
+field is reconciled as one local date/time and is presented for confirmation
+rather than silently replacing the watch record.
+
+The watch editor keeps exact minutes from `00` through `59`. When a watch value
+does not fall on a phone-list quarter-hour, only the mirrored phone property is
+rounded to the nearest 15 minutes. The canonical watch value remains exact. A
+time selected on the phone is already a list value and is accepted exactly.
 
 The complete phone settings list is:
 
 | Setting | Value |
 | --- | --- |
-| Insertion date & time | Local `YYYY-MM-DDTHH:mm` |
-| Reminder 1 hour / minute | `0–23` / `0–59`; always enabled |
-| Reminder 2 | On or Off |
-| Reminder 2 hour / minute | `0–23` / `0–59`; editable and retained while Off |
-| Day-before reminder | On or Off; uses Reminder 1's time |
+| Insertion date | Native date control |
+| Insertion time | 12-hour AM/PM list at 15-minute intervals |
 | Days ring in / ring-free | `21–35` / `0–7` |
+| Reminder 1 | 12-hour AM/PM list at 15-minute intervals; always enabled |
+| Reminder 2 | On or Off |
+| Reminder 2 time | 12-hour AM/PM list at 15-minute intervals; retained while Off |
+| Day-before reminder | On or Off; uses Reminder 1's time |
 | Overdue repeat | `1`, `3`, `6`, `12`, or `24` hours |
-| Vibration / sound | On or Off for foreground feedback |
 | Clock | System, 12-hour, or 24-hour |
+| Vibration / sound | On or Off for foreground feedback |
 
 ## Remove Ring Tracker
 

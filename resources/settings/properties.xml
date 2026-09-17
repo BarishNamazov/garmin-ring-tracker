@@ -2,6 +2,12 @@
 <resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
     <properties>
+        <property id="insertionDate" type="number">0</property>
+        <property id="insertionTime" type="number">540</property>
+        <property id="reminder1Minutes" type="number">540</property>
+        <property id="reminder2Minutes" type="number">1200</property>
+        <property id="settingsSchemaVersion" type="number">0</property>
+        <!-- Retained without settings controls so v1.1 synchronized values can migrate. -->
         <property id="insertionIso" type="string"></property>
         <property id="reminderHour" type="number">9</property>
         <property id="reminderMinute" type="number">0</property>

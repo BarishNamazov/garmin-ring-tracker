@@ -1,15 +1,101 @@
 # Ring Tracker implementation and verification
 
-Ring Tracker v1.1 is a Garmin Connect IQ device app for the epix Pro (Gen 2)
+Ring Tracker v1.2 is a Garmin Connect IQ device app for the epix Pro (Gen 2)
 42 mm, 47 mm, and 51 mm family. It tracks NuvaRing insertion, removal, and
 temporary-out events; derives each next deadline from the event that actually
 happened; projects upcoming cycles; keeps 24 archived cycles; and evaluates
 local reminder slots. The manifest application UUID is
 `99f92e0c-a120-4641-b832-6da4d958585b`; the minimum API is 5.1.0.
 
-`SPEC-1.1.md` is the v1.1 delta contract. `SPEC.md` and `UI.md` remain the v1.0
-base where the delta does not override them, and `REGIMEN.md` remains the
-medical-model source record.
+`SPEC-1.1.md` remains the reminder and settings-conflict contract. `SPEC.md`
+and `UI.md` remain the v1.0 base where later requirements do not override them,
+and `REGIMEN.md` remains the medical-model source record.
+
+## v1.2 changes
+
+### Native-style watch pickers
+
+The installed SDK 9.2.0 `Picker` sample and Garmin's `WatchUi.Picker` contract
+establish the native progressive model used here: `:pattern` contains one
+factory or fixed drawable per column, `:defaults` selects each initial index,
+and the device supplies the next, previous, and confirm controls unless the app
+overrides `:nextArrow`, `:previousArrow`, or `:confirm`. START advances from
+one selectable column to the next; BACK returns to the preceding column and
+then cancels. The stock control supplies button, touch, wrap, and device repeat
+behavior.
+
+The time picker follows the epix alarm arrangement within that model:
+
+- 12-hour mode uses hour `1–12`, minute `00–59`, and AM/PM factories;
+- 24-hour mode uses hour `00–23` and minute `00–59` factories;
+- the minute factory is independent from the hour factory, so scrolling a
+  minute never traverses an hour boundary;
+- the colon is kept in the live title instead of consuming a picker pattern
+  slot, leaving hour, minute, and AM/PM visible together at minute focus;
+- the native title slot redraws the assembled time after each selection; and
+- Reminder 1, Reminder 2, and the time half of every date edit use the same
+  picker.
+
+`PickerDelegate` exposes accept, cancel, and action-menu callbacks, but no raw
+key-pressed/key-released callbacks. `InputDelegate` exposes those raw callbacks,
+but it is not the delegate contract for the stock Picker. Ring Tracker therefore
+does not add an app-level hold timer; it retains the stock control's native
+wrap and key-repeat behavior.
+
+The date picker uses day, short-month, and year factories. Its year range is
+the current local year ±2, its live title is `Wed 16 Sep 2026`-style copy, and
+the selected day is clamped for the chosen month and year before the time picker
+opens. Leap-year and month-length helpers are shared with the tests. Native
+390×390, 416×416, and 454×454 captures verify the longest visible year/date
+forms without clipping.
+
+### Phone App Settings schema and migration
+
+The visible settings page now has three groups and this order:
+
+| Group | Controls |
+| --- | --- |
+| Schedule | Insertion date, Insertion time, Days ring in, Days ring out |
+| Reminders | Reminder 1, Reminder 2 On/Off, Reminder 2 time, Day-before reminder, Overdue repeat |
+| Display | Clock format, Vibration, Sound |
+
+`Insertion date` uses the native `date` control. Garmin stores that control as
+a UTC epoch value, so `Gregorian.utcInfo()` supplies its year, month, and day;
+the epoch is never treated as the intended local instant. `Insertion time`,
+Reminder 1, and Reminder 2 are 96-entry lists from `12:00 AM` through
+`11:45 PM`. Garmin's schema has no time-only control. Each list value is
+minutes since midnight at a 15-minute interval.
+
+Every visible control has a clear title and applicable short prompt. The
+schema's `helpUrl` attribute is deprecated, and `enableIfTrue` applies to an
+entire group rather than an individual setting, so neither is appropriate for
+this page; Reminder 2's time remains visible and retained while its switch is
+Off.
+
+Watch values remain exact to the minute. A watch-to-phone mirror rounds only
+the property representation to the nearest quarter-hour; values at minutes
+`00–07` round down, `08–14` round up, and a late-night result may wrap to the
+next date. The canonical state is not changed. A phone list selection is
+already a quarter-hour value and is accepted exactly. Insertion date and time
+are observed as one local tuple: changing either field is a settings edit,
+future or nonexistent local times are rejected, and a valid changed tuple is
+confirmed in the foreground. Pending mirrors and the watch-wins conflict rule
+remain in force.
+
+The one-time property-schema migration reads v1.1's numeric reminder hour and
+minute fields and ISO insertion string, writes the new lists/native date, and
+marks schema version 2. The legacy property IDs remain declared in
+`properties.xml` but are absent from `settings.xml`; retaining the declarations
+makes synchronized upgrade values readable without exposing obsolete controls.
+
+SDK 9.2.0 validates the grouped schema during every build. The documented
+interactive editor is **File > Edit Persistent Storage > Edit
+Application.Properties data**. In this headless Linux environment the editor's
+WebKit child cannot create an EGL display under Xvfb, even after its packaged
+network-process path is made available, and the SDK contains no standalone
+settings HTML/preview command. The phone settings page therefore could not be
+captured on any of the three simulated targets; the watch picker captures and
+the compiled settings schema are the available visual/build evidence.
 
 ## v1.1 changes
 
@@ -60,15 +146,15 @@ medical-model source record.
 | QA builds | `monkey.debug.jungle`, `monkey.tests.jungle` | Debug resources/clock/scenarios and Toybox.Test personality |
 | Domain | `source/CalendarMath.mc`, `source/ScheduleModel.mc`, `source/ReminderPolicy.mc` | DST-safe local calendar math, actual-event transitions/validation, status, and reminder selection/deduplication |
 | Persistence | `source/RingStore.mc` | Schema-v3 codecs; v1/v2 migration; revisioned canonical/history/mirror writes; 24 KiB preflight and compaction |
-| Settings | `source/SettingsBridge.mc`, `resources/settings/` | 12-item configuration contract, App Settings validation, conflict review, and durable canonical mirrors |
+| Settings | `source/SettingsBridge.mc`, `resources/settings/` | Grouped native-date/quarter-hour App Settings, legacy property migration, conflict review, and durable canonical mirrors |
 | App shell | `source/RingTrackerApp.mc` | Minimal scoped `AppBase` bridge plus unscoped foreground controller, navigation, confirmations, and settings orchestration |
 | Foreground UI | `source/MainView.mc`, `source/UpcomingView.mc`, `source/HistoryView.mc`, `source/StaticViews.mc`, `source/Menus.mc`, `source/Pickers.mc`, `source/UiUtils.mc` | Main, six-cycle Upcoming, custom scrollable History/detail, setup/About, menus, confirmations, and native pickers |
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Reduced mirror codecs, glance rendering, and hourly reminder service |
 | Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production seams and debug-only clock, fixtures, notification previews, temporal-event diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
-| Tests | `source/tests/*.mc` | 120 deterministic domain, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Tests | `source/tests/*.mc` | 129 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
 | Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, portable `grep` background resource/exit guard, simulator tests, and Store-package PRG hashes |
-| Visual evidence | `docs/screenshots/` | 93 native-resolution v1.1 captures |
+| Visual evidence | `docs/screenshots/` | 102 native-resolution captures, including nine v1.2 picker states |
 
 The canonical document excludes archived history. History is split across two
 revisioned values in alternating parity slots. Glance and background each use a
@@ -110,7 +196,11 @@ smoke test is:
 
 ```bash
 env -i HOME="$HOME" PATH=/usr/bin:/bin bash -lc \
-  'cd /path/to/garmin-ring-tracker && ./scripts/build.sh release && ./scripts/build.sh test'
+  'cd /path/to/garmin-ring-tracker && source scripts/env.sh && ./scripts/build.sh release'
+env -i HOME="$HOME" PATH=/usr/bin:/bin bash -lc \
+  'cd /path/to/garmin-ring-tracker && source scripts/env.sh && ./scripts/build.sh debug'
+env -i HOME="$HOME" PATH=/usr/bin:/bin bash -lc \
+  'cd /path/to/garmin-ring-tracker && source scripts/env.sh && ./scripts/build.sh test'
 ```
 
 Final verification on 2026-09-16:
@@ -119,7 +209,7 @@ Final verification on 2026-09-16:
 | --- | --- | --- | --- |
 | Release | success, zero warnings | success, zero warnings | success, zero warnings |
 | Debug | success, zero warnings | success, zero warnings | success, zero warnings |
-| Unit-test personality | — | success, zero warnings; 120/0/0 | — |
+| Unit-test personality | — | success, zero warnings; 129/0/0 | — |
 
 The generated 47 mm debug annotation map contains no `background` or `glance`
 entry for `ForegroundController`, `ForegroundRuntime`, `ForegroundEntryView`,
@@ -128,7 +218,7 @@ and the dedicated constrained implementations are tagged into those scopes.
 
 ## Tests
 
-The final simulator result is **120 passed, 0 failed, 0 errors**:
+The final simulator result is **129 passed, 0 failed, 0 errors**:
 
 | File | Tests |
 | --- | ---: |
@@ -140,9 +230,12 @@ The final simulator result is **120 passed, 0 failed, 0 errors**:
 | `Review3ResolutionTests.mc` | 3 |
 | `V11Tests.mc` | 12 |
 | `V11CoverageTests.mc` | 16 |
+| `V12Tests.mc` | 9 |
 
 The suite covers exact and crossed regimen boundaries, leap/month/year and DST
-calendar behavior, actual-event re-anchoring, early/late deltas, six-cycle
+calendar behavior, per-minute picker values, quarter-hour phone rounding and
+conversion, native-date UTC calendar semantics, legacy property migration,
+picker day clamping, actual-event re-anchoring, early/late deltas, six-cycle
 projection, compact confirmation timestamps, measured date-pair fallbacks,
 sentence-boundary warning splits, History variance/scroll bounds, reminder priority and per-slot deduplication, v1/v2 migration,
 pending settings mirrors, schema validation, split-history recovery and
@@ -269,9 +362,11 @@ it cannot exceed the foreground watchdog; storage stress remains persistent in
 the automated suite.
 
 The native screenshot crops are 390×390 at `+118+259`, 416×416 at `+122+263`,
-and 454×454 at `+146+281`. All 93 images in `docs/screenshots/` were regenerated
-and visually checked at native size for clipping, overlap, round-edge clearance,
-warning wrapping, and correct local date/time content.
+and 454×454 at `+146+281`. The repository contains 102 native-size images.
+The nine v1.2 captures cover 12-hour time, 24-hour time, and date pickers on all
+three sizes; each was checked for title updates, clipping, overlap, and
+round-edge clearance. Button navigation, BACK-to-previous-column behavior, and
+touch selection were also exercised in the simulator.
 
 The final layout follow-up regenerated `history` and `cycle-detail` on all
 three sizes. The 390 px History capture exercises the longest fixture
@@ -287,7 +382,7 @@ when needed, and only an over-width compact pair splits into `In` and `Out`
 lines. The regression fixture covers `Wed 30 Sep` and all nine native captures
 were checked for clipping, separator loss, and `if done today` crowding.
 
-For every size, 23 captures cover ring-in, ring-free, overdue removal,
+For every size, 26 captures cover the three v1.2 pickers plus ring-in, ring-free, overdue removal,
 overdue insertion, temporary out at 2h50 and 3h10, >7d and >28d warnings,
 Upcoming rows 1–3 and 4–6, long 12-hour and 24-hour formatting, maximum
 countdown, warning wrapping, all four glance states, custom History and cycle
@@ -319,14 +414,20 @@ temporal evaluation immediately before the short-lived process exits. Neither
 constrained personality loads the full history, foreground controller, or
 foreground view graph.
 
+The 47 mm v1.2 visual run reported 123.0 KiB on the 12-hour picker and
+122.1 KiB on the date picker, both below the retained maximum-history foreground
+peak above. The background idle diagnostic after the v1.2 settings changes was
+15,816/61,256 bytes; the existing injected-exception peak remains the larger
+background measurement reported in the table.
+
 ## Deliberate deviation
 
 No functional requirement in SPEC-1.1 is omitted. There is one narrow copy
 presentation override:
 
-- The About version is `Ring Tracker v1.1.0`, following the release instruction
-  to put the full semantic version in both the manifest and About; section A's
-  table abbreviates that line to `v1.1`.
+- The About version is `Ring Tracker v1.2.0`, following the release instruction
+  to put the full semantic version in both the manifest and About; the earlier
+  copy table abbreviated that line to a major/minor version.
 
 ## Release contents
 

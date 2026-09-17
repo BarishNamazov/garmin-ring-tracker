@@ -199,14 +199,15 @@ function adversarialInvalidInsertionAcknowledgementStagesRepair(logger as Test.L
     var inserted = testWall(2026, 8, 1, 9, 0);
     ScheduleModel.insertOrReplace(state, inserted);
     SettingsBridge.mirrorAll(state);
-    Properties.setValue("insertionIso", "");
+    Properties.setValue("insertionDate", 0);
     Test.assert((SettingsBridge.observe(state, inserted + 60) as Lang.Dictionary)[:invalid]);
     SettingsBridge.stageMirrors(state);
     Test.assertEqual(SettingsBridge.isoForUtc(inserted),
         (state[:settingsSync] as Lang.Dictionary)[:pendingMirrorIso]);
     Test.assert(RingStore.save(state));
     SettingsBridge.completePendingMirrors(state);
-    Test.assertEqual(SettingsBridge.isoForUtc(inserted), Properties.getValue("insertionIso"));
+    Test.assertEqual(SettingsBridge.isoForUtc(inserted), SettingsBridge.isoForPropertyPair(
+        Properties.getValue("insertionDate"), Properties.getValue("insertionTime")));
     clearRound2Storage();
     return true;
 }

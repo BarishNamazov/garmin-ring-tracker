@@ -25,7 +25,8 @@ class RingTrackerApp extends Application.AppBase {
     (:typecheck(disableBackgroundCheck))
     function onValidateProperty(key as Lang.String, value as Properties.ValueType) as Lang.Boolean or Lang.String {
         return SettingsBridge.validate(key, value, currentUtc())
-            ? true : Ui.s(key.equals("insertionIso") ? Rez.Strings.InsertionDateTimeError : Rez.Strings.SettingValueError);
+            ? true : Ui.s(SettingsBridge.isInsertionKey(key)
+                ? Rez.Strings.InsertionDateTimeError : Rez.Strings.SettingValueError);
     }
 
     (:glance)
@@ -311,7 +312,8 @@ class ForegroundController {
 
     function onValidateProperty(key as Lang.String, value as Properties.ValueType) as Lang.Boolean or Lang.String {
         return SettingsBridge.validate(key, value, currentUtc())
-            ? true : Ui.s(key.equals("insertionIso") ? Rez.Strings.InsertionDateTimeError : Rez.Strings.SettingValueError);
+            ? true : Ui.s(SettingsBridge.isInsertionKey(key)
+                ? Rez.Strings.InsertionDateTimeError : Rez.Strings.SettingValueError);
     }
 
     private function prepareSettings() as Void {

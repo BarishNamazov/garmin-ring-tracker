@@ -177,7 +177,9 @@ function reviewPendingInsertionMirrorDoesNotBoomerang(logger as Test.Logger) as 
     sync[:pendingMirrorIso] = SettingsBridge.isoForUtc(edited);
     Test.assert(SettingsBridge.observe(state, edited) == null);
     Test.assertEqual(SettingsBridge.isoForUtc(edited),
-        Toybox.Application.Properties.getValue("insertionIso"));
+        SettingsBridge.isoForPropertyPair(
+            Toybox.Application.Properties.getValue("insertionDate"),
+            Toybox.Application.Properties.getValue("insertionTime")));
     return true;
 }
 
@@ -187,7 +189,7 @@ function reviewEmptySettingsInsertionDoesNotClearActiveCycle(logger as Test.Logg
     var start = testWall(2026, 9, 1, 9, 0);
     ScheduleModel.insertOrReplace(state, start);
     SettingsBridge.mirrorAll(state);
-    Toybox.Application.Properties.setValue("insertionIso", "");
+    Toybox.Application.Properties.setValue("insertionDate", 0);
     SettingsBridge.observe(state, start + 100);
     Test.assert(state[:active] != null);
     Test.assertEqual(start, (state[:active] as Dictionary)[:insertionUtc]);

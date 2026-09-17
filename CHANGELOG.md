@@ -2,6 +2,21 @@
 
 All notable changes to Ring Tracker are documented in this file.
 
+## [1.2.0] - 2026-09-16
+
+### Added
+
+- Garmin-style separate hour, per-minute, and AM/PM watch picker columns,
+  live time/date headings, and a day/month/year date picker.
+
+### Changed
+
+- Polished phone App Settings with Schedule, Reminders, and Display sections,
+  native insertion-date input, and AM/PM time lists at 15-minute intervals.
+- Preserved existing reminder and insertion values during the v1.2 settings
+  migration; exact watch minutes remain canonical when the phone mirror rounds
+  to its nearest available quarter-hour.
+
 ## [1.1.0] - 2026-09-15
 
 ### Added

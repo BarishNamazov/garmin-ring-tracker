@@ -1,6 +1,6 @@
 # Ring Tracker — Connect IQ Store listing
 
-This is the English (`en`) listing copy for version 1.1.0. Character counts include spaces and punctuation. Limits were checked against Garmin's current submission form on 2026-09-16.
+This is the English (`en`) listing copy for version 1.2.0. Character counts include spaces and punctuation. Limits were checked against Garmin's current submission form on 2026-09-16.
 
 ## Store fields
 
@@ -43,10 +43,10 @@ Support: https://github.com/BarishNamazov/garmin-ring-tracker/issues
 Ring Tracker is an independent project and is not affiliated with or endorsed by Garmin or the manufacturer of NuvaRing.
 ```
 
-### What's New — 394/4,000 characters
+### What's New — 378/4,000 characters
 
 ```text
-Version 1.1.0 adds Reminder 1, optional Reminder 2, and an optional day-before reminder; a six-cycle Upcoming view; early/late timing in confirmations and History; and a migration review for existing dates. Deadlines now anchor to actual insertion and removal times. Main-screen navigation, notification handling, daylight-saving-time behavior, and persisted-state validation were also refined.
+Version 1.2.0 makes watch time entry match Garmin alarms: hour and minute are separate, every minute is selectable, 12-hour mode adds AM/PM, and date/time headings update as you scroll. Phone App Settings now uses a native insertion-date picker, clear AM/PM time lists, and Schedule, Reminders, and Display sections. Existing insertion and reminder values migrate automatically.
 ```
 
 ### Category — required
@@ -66,7 +66,7 @@ The `.iq` manifest is authoritative for Store compatibility and contains `epix2p
 ### App version — 5/20 characters
 
 ```text
-1.1.0
+1.2.0
 ```
 
 ### Support URL — no current dedicated field or confirmed limit

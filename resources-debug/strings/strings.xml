@@ -17,6 +17,9 @@
     <string id="DemoLargestCountdown">Largest countdown</string>
     <string id="DemoClock12Long">Long 12-hour time</string>
     <string id="DemoClock24">24-hour time</string>
+    <string id="DemoPicker12">Picker · 12-hour</string>
+    <string id="DemoPicker24">Picker · 24-hour</string>
+    <string id="DemoPickerDate">Picker · date</string>
     <string id="DemoMigration">Migration notice</string>
     <string id="DemoMaximumState">Maximum stored history</string>
     <string id="DemoNotificationDayBefore">Notification · day before</string>

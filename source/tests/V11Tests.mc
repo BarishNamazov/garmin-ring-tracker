@@ -231,7 +231,7 @@ function v11RejectedPhoneValuesStageDurableCanonicalMirror(logger as Test.Logger
     var inserted = testWall(2026, 9, 1, 9, 0);
     ScheduleModel.insertOrReplace(state, inserted);
     SettingsBridge.mirrorAll(state);
-    Properties.setValue("insertionIso", "");
+    Properties.setValue("insertionDate", 0);
     Properties.setValue("daysIn", 35);
     var observed = SettingsBridge.observe(state, inserted + 60) as Lang.Dictionary;
     Test.assert(observed[:invalid]);
@@ -241,7 +241,8 @@ function v11RejectedPhoneValuesStageDurableCanonicalMirror(logger as Test.Logger
     Test.assert(sync[:pendingConfigSnapshot] instanceof Lang.Array);
     Test.assert(RingStore.save(state));
     SettingsBridge.completePendingMirrors(state);
-    Test.assertEqual(SettingsBridge.isoForUtc(inserted), Properties.getValue("insertionIso"));
+    Test.assertEqual(SettingsBridge.isoForUtc(inserted), SettingsBridge.isoForPropertyPair(
+        Properties.getValue("insertionDate"), Properties.getValue("insertionTime")));
     Test.assertEqual(21, Properties.getValue("daysIn"));
     clearReviewStorage();
     return true;

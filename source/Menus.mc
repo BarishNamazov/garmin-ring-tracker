@@ -129,6 +129,9 @@ module Menus {
         menu.addItem(item(Rez.Strings.DemoLargestCountdown, null, :largestCountdown));
         menu.addItem(item(Rez.Strings.DemoClock12Long, null, :clock12Long));
         menu.addItem(item(Rez.Strings.DemoClock24, null, :clock24));
+        menu.addItem(item(Rez.Strings.DemoPicker12, null, :picker12));
+        menu.addItem(item(Rez.Strings.DemoPicker24, null, :picker24));
+        menu.addItem(item(Rez.Strings.DemoPickerDate, null, :pickerDate));
         menu.addItem(item(Rez.Strings.DemoMigration, null, :migration));
         menu.addItem(item(Rez.Strings.DemoMaximumState, null, :maximumState));
         menu.addItem(item(Rez.Strings.DemoNotificationDayBefore, null, :notificationDayBefore));
@@ -240,6 +243,17 @@ class ValueMenuDelegate extends WatchUi.Menu2InputDelegate {
 (:debug)
 class DemoMenuDelegate extends WatchUi.Menu2InputDelegate {
     function initialize() { Menu2InputDelegate.initialize(); }
-    function onSelect(item as WatchUi.MenuItem) as Void { getApp().confirmAction(:demo, currentUtc(), item.getId()); }
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        var id = item.getId();
+        if (id == :picker12 || id == :picker24) {
+            var reminders = getApp().getState()[:reminders] as Lang.Dictionary;
+            reminders[:clockFormat] = id == :picker12 ? 12 : 24;
+            PickerFlow.openTime(:setReminder, currentUtc());
+        } else if (id == :pickerDate) {
+            PickerFlow.openDate(:insert, currentUtc());
+        } else {
+            getApp().confirmAction(:demo, currentUtc(), id);
+        }
+    }
     function onBack() as Void { getApp().showMainMenu(); }
 }

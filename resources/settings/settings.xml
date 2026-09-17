@@ -1,55 +1,349 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <resources xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
            xsi:noNamespaceSchemaLocation="https://developer.garmin.com/downloads/connect-iq/resources.xsd">
-    <settings>
-        <setting propertyKey="@Properties.insertionIso" title="@Strings.SetInsertionDateTimeTitle" prompt="@Strings.SetInsertionDateTimePrompt">
-            <settingConfig type="alphaNumeric" maxLength="16" errorMessage="@Strings.InsertionDateTimeError" />
-        </setting>
-        <setting propertyKey="@Properties.reminderHour" title="@Strings.ReminderHourTitle">
-            <settingConfig type="numeric" min="0" max="23" />
-        </setting>
-        <setting propertyKey="@Properties.reminderMinute" title="@Strings.ReminderMinuteTitle">
-            <settingConfig type="numeric" min="0" max="59" />
-        </setting>
-        <setting propertyKey="@Properties.reminder2Enabled" title="@Strings.Reminder2EnabledTitle">
-            <settingConfig type="boolean" />
-        </setting>
-        <setting propertyKey="@Properties.reminder2Hour" title="@Strings.Reminder2HourTitle">
-            <settingConfig type="numeric" min="0" max="23" />
-        </setting>
-        <setting propertyKey="@Properties.reminder2Minute" title="@Strings.Reminder2MinuteTitle">
-            <settingConfig type="numeric" min="0" max="59" />
-        </setting>
-        <setting propertyKey="@Properties.dayBeforeEnabled" title="@Strings.DayBeforeReminder">
-            <settingConfig type="boolean" />
-        </setting>
-        <setting propertyKey="@Properties.daysIn" title="@Strings.DaysInTitle" prompt="@Strings.DaysInPrompt">
-            <settingConfig type="numeric" min="21" max="35" />
-        </setting>
-        <setting propertyKey="@Properties.daysOut" title="@Strings.DaysOutTitle" prompt="@Strings.DaysOutPrompt">
-            <settingConfig type="numeric" min="0" max="7" />
-        </setting>
-        <setting propertyKey="@Properties.overdueRepeatHours" title="@Strings.OverdueRepeatTitle">
-            <settingConfig type="list">
-                <listEntry value="1">@Strings.Repeat1Hour</listEntry>
-                <listEntry value="3">@Strings.Repeat3Hours</listEntry>
-                <listEntry value="6">@Strings.Repeat6Hours</listEntry>
-                <listEntry value="12">@Strings.Repeat12Hours</listEntry>
-                <listEntry value="24">@Strings.Repeat24Hours</listEntry>
-            </settingConfig>
-        </setting>
-        <setting propertyKey="@Properties.vibrationEnabled" title="@Strings.VibrationTitle" prompt="@Strings.ForegroundAttentionPrompt">
-            <settingConfig type="boolean" />
-        </setting>
-        <setting propertyKey="@Properties.soundEnabled" title="@Strings.SoundTitle" prompt="@Strings.ForegroundAttentionPrompt">
-            <settingConfig type="boolean" />
-        </setting>
-        <setting propertyKey="@Properties.clockFormat" title="@Strings.ClockFormatTitle">
-            <settingConfig type="list">
-                <listEntry value="0">@Strings.ClockSystem</listEntry>
-                <listEntry value="12">@Strings.Clock12Hour</listEntry>
-                <listEntry value="24">@Strings.Clock24Hour</listEntry>
-            </settingConfig>
-        </setting>
+    <settings liveValidation="true">
+        <group id="schedule" title="@Strings.ScheduleSettingsGroup" description="@Strings.ScheduleSettingsDescription">
+            <setting propertyKey="@Properties.insertionDate" title="@Strings.InsertionDateTitle" prompt="@Strings.InsertionDatePrompt">
+                <settingConfig type="date" required="true" errorMessage="@Strings.InsertionDateTimeError" />
+            </setting>
+            <setting propertyKey="@Properties.insertionTime" title="@Strings.InsertionTimeTitle" prompt="@Strings.InsertionTimePrompt">
+                <settingConfig type="list">
+                    <listEntry value="0">@Strings.PhoneTime0000</listEntry>
+                    <listEntry value="15">@Strings.PhoneTime0015</listEntry>
+                    <listEntry value="30">@Strings.PhoneTime0030</listEntry>
+                    <listEntry value="45">@Strings.PhoneTime0045</listEntry>
+                    <listEntry value="60">@Strings.PhoneTime0100</listEntry>
+                    <listEntry value="75">@Strings.PhoneTime0115</listEntry>
+                    <listEntry value="90">@Strings.PhoneTime0130</listEntry>
+                    <listEntry value="105">@Strings.PhoneTime0145</listEntry>
+                    <listEntry value="120">@Strings.PhoneTime0200</listEntry>
+                    <listEntry value="135">@Strings.PhoneTime0215</listEntry>
+                    <listEntry value="150">@Strings.PhoneTime0230</listEntry>
+                    <listEntry value="165">@Strings.PhoneTime0245</listEntry>
+                    <listEntry value="180">@Strings.PhoneTime0300</listEntry>
+                    <listEntry value="195">@Strings.PhoneTime0315</listEntry>
+                    <listEntry value="210">@Strings.PhoneTime0330</listEntry>
+                    <listEntry value="225">@Strings.PhoneTime0345</listEntry>
+                    <listEntry value="240">@Strings.PhoneTime0400</listEntry>
+                    <listEntry value="255">@Strings.PhoneTime0415</listEntry>
+                    <listEntry value="270">@Strings.PhoneTime0430</listEntry>
+                    <listEntry value="285">@Strings.PhoneTime0445</listEntry>
+                    <listEntry value="300">@Strings.PhoneTime0500</listEntry>
+                    <listEntry value="315">@Strings.PhoneTime0515</listEntry>
+                    <listEntry value="330">@Strings.PhoneTime0530</listEntry>
+                    <listEntry value="345">@Strings.PhoneTime0545</listEntry>
+                    <listEntry value="360">@Strings.PhoneTime0600</listEntry>
+                    <listEntry value="375">@Strings.PhoneTime0615</listEntry>
+                    <listEntry value="390">@Strings.PhoneTime0630</listEntry>
+                    <listEntry value="405">@Strings.PhoneTime0645</listEntry>
+                    <listEntry value="420">@Strings.PhoneTime0700</listEntry>
+                    <listEntry value="435">@Strings.PhoneTime0715</listEntry>
+                    <listEntry value="450">@Strings.PhoneTime0730</listEntry>
+                    <listEntry value="465">@Strings.PhoneTime0745</listEntry>
+                    <listEntry value="480">@Strings.PhoneTime0800</listEntry>
+                    <listEntry value="495">@Strings.PhoneTime0815</listEntry>
+                    <listEntry value="510">@Strings.PhoneTime0830</listEntry>
+                    <listEntry value="525">@Strings.PhoneTime0845</listEntry>
+                    <listEntry value="540">@Strings.PhoneTime0900</listEntry>
+                    <listEntry value="555">@Strings.PhoneTime0915</listEntry>
+                    <listEntry value="570">@Strings.PhoneTime0930</listEntry>
+                    <listEntry value="585">@Strings.PhoneTime0945</listEntry>
+                    <listEntry value="600">@Strings.PhoneTime1000</listEntry>
+                    <listEntry value="615">@Strings.PhoneTime1015</listEntry>
+                    <listEntry value="630">@Strings.PhoneTime1030</listEntry>
+                    <listEntry value="645">@Strings.PhoneTime1045</listEntry>
+                    <listEntry value="660">@Strings.PhoneTime1100</listEntry>
+                    <listEntry value="675">@Strings.PhoneTime1115</listEntry>
+                    <listEntry value="690">@Strings.PhoneTime1130</listEntry>
+                    <listEntry value="705">@Strings.PhoneTime1145</listEntry>
+                    <listEntry value="720">@Strings.PhoneTime1200</listEntry>
+                    <listEntry value="735">@Strings.PhoneTime1215</listEntry>
+                    <listEntry value="750">@Strings.PhoneTime1230</listEntry>
+                    <listEntry value="765">@Strings.PhoneTime1245</listEntry>
+                    <listEntry value="780">@Strings.PhoneTime1300</listEntry>
+                    <listEntry value="795">@Strings.PhoneTime1315</listEntry>
+                    <listEntry value="810">@Strings.PhoneTime1330</listEntry>
+                    <listEntry value="825">@Strings.PhoneTime1345</listEntry>
+                    <listEntry value="840">@Strings.PhoneTime1400</listEntry>
+                    <listEntry value="855">@Strings.PhoneTime1415</listEntry>
+                    <listEntry value="870">@Strings.PhoneTime1430</listEntry>
+                    <listEntry value="885">@Strings.PhoneTime1445</listEntry>
+                    <listEntry value="900">@Strings.PhoneTime1500</listEntry>
+                    <listEntry value="915">@Strings.PhoneTime1515</listEntry>
+                    <listEntry value="930">@Strings.PhoneTime1530</listEntry>
+                    <listEntry value="945">@Strings.PhoneTime1545</listEntry>
+                    <listEntry value="960">@Strings.PhoneTime1600</listEntry>
+                    <listEntry value="975">@Strings.PhoneTime1615</listEntry>
+                    <listEntry value="990">@Strings.PhoneTime1630</listEntry>
+                    <listEntry value="1005">@Strings.PhoneTime1645</listEntry>
+                    <listEntry value="1020">@Strings.PhoneTime1700</listEntry>
+                    <listEntry value="1035">@Strings.PhoneTime1715</listEntry>
+                    <listEntry value="1050">@Strings.PhoneTime1730</listEntry>
+                    <listEntry value="1065">@Strings.PhoneTime1745</listEntry>
+                    <listEntry value="1080">@Strings.PhoneTime1800</listEntry>
+                    <listEntry value="1095">@Strings.PhoneTime1815</listEntry>
+                    <listEntry value="1110">@Strings.PhoneTime1830</listEntry>
+                    <listEntry value="1125">@Strings.PhoneTime1845</listEntry>
+                    <listEntry value="1140">@Strings.PhoneTime1900</listEntry>
+                    <listEntry value="1155">@Strings.PhoneTime1915</listEntry>
+                    <listEntry value="1170">@Strings.PhoneTime1930</listEntry>
+                    <listEntry value="1185">@Strings.PhoneTime1945</listEntry>
+                    <listEntry value="1200">@Strings.PhoneTime2000</listEntry>
+                    <listEntry value="1215">@Strings.PhoneTime2015</listEntry>
+                    <listEntry value="1230">@Strings.PhoneTime2030</listEntry>
+                    <listEntry value="1245">@Strings.PhoneTime2045</listEntry>
+                    <listEntry value="1260">@Strings.PhoneTime2100</listEntry>
+                    <listEntry value="1275">@Strings.PhoneTime2115</listEntry>
+                    <listEntry value="1290">@Strings.PhoneTime2130</listEntry>
+                    <listEntry value="1305">@Strings.PhoneTime2145</listEntry>
+                    <listEntry value="1320">@Strings.PhoneTime2200</listEntry>
+                    <listEntry value="1335">@Strings.PhoneTime2215</listEntry>
+                    <listEntry value="1350">@Strings.PhoneTime2230</listEntry>
+                    <listEntry value="1365">@Strings.PhoneTime2245</listEntry>
+                    <listEntry value="1380">@Strings.PhoneTime2300</listEntry>
+                    <listEntry value="1395">@Strings.PhoneTime2315</listEntry>
+                    <listEntry value="1410">@Strings.PhoneTime2330</listEntry>
+                    <listEntry value="1425">@Strings.PhoneTime2345</listEntry>
+                </settingConfig>
+            </setting>
+            <setting propertyKey="@Properties.daysIn" title="@Strings.DaysInTitle" prompt="@Strings.DaysInPrompt">
+                <settingConfig type="numeric" min="21" max="35" required="true" />
+            </setting>
+            <setting propertyKey="@Properties.daysOut" title="@Strings.DaysOutTitle" prompt="@Strings.DaysOutPrompt">
+                <settingConfig type="numeric" min="0" max="7" required="true" />
+            </setting>
+        </group>
+        <group id="reminders" title="@Strings.ReminderSettingsGroup" description="@Strings.ReminderSettingsDescription">
+            <setting propertyKey="@Properties.reminder1Minutes" title="@Strings.Reminder1TimeTitle" prompt="@Strings.Reminder1TimePrompt">
+                <settingConfig type="list">
+                    <listEntry value="0">@Strings.PhoneTime0000</listEntry>
+                    <listEntry value="15">@Strings.PhoneTime0015</listEntry>
+                    <listEntry value="30">@Strings.PhoneTime0030</listEntry>
+                    <listEntry value="45">@Strings.PhoneTime0045</listEntry>
+                    <listEntry value="60">@Strings.PhoneTime0100</listEntry>
+                    <listEntry value="75">@Strings.PhoneTime0115</listEntry>
+                    <listEntry value="90">@Strings.PhoneTime0130</listEntry>
+                    <listEntry value="105">@Strings.PhoneTime0145</listEntry>
+                    <listEntry value="120">@Strings.PhoneTime0200</listEntry>
+                    <listEntry value="135">@Strings.PhoneTime0215</listEntry>
+                    <listEntry value="150">@Strings.PhoneTime0230</listEntry>
+                    <listEntry value="165">@Strings.PhoneTime0245</listEntry>
+                    <listEntry value="180">@Strings.PhoneTime0300</listEntry>
+                    <listEntry value="195">@Strings.PhoneTime0315</listEntry>
+                    <listEntry value="210">@Strings.PhoneTime0330</listEntry>
+                    <listEntry value="225">@Strings.PhoneTime0345</listEntry>
+                    <listEntry value="240">@Strings.PhoneTime0400</listEntry>
+                    <listEntry value="255">@Strings.PhoneTime0415</listEntry>
+                    <listEntry value="270">@Strings.PhoneTime0430</listEntry>
+                    <listEntry value="285">@Strings.PhoneTime0445</listEntry>
+                    <listEntry value="300">@Strings.PhoneTime0500</listEntry>
+                    <listEntry value="315">@Strings.PhoneTime0515</listEntry>
+                    <listEntry value="330">@Strings.PhoneTime0530</listEntry>
+                    <listEntry value="345">@Strings.PhoneTime0545</listEntry>
+                    <listEntry value="360">@Strings.PhoneTime0600</listEntry>
+                    <listEntry value="375">@Strings.PhoneTime0615</listEntry>
+                    <listEntry value="390">@Strings.PhoneTime0630</listEntry>
+                    <listEntry value="405">@Strings.PhoneTime0645</listEntry>
+                    <listEntry value="420">@Strings.PhoneTime0700</listEntry>
+                    <listEntry value="435">@Strings.PhoneTime0715</listEntry>
+                    <listEntry value="450">@Strings.PhoneTime0730</listEntry>
+                    <listEntry value="465">@Strings.PhoneTime0745</listEntry>
+                    <listEntry value="480">@Strings.PhoneTime0800</listEntry>
+                    <listEntry value="495">@Strings.PhoneTime0815</listEntry>
+                    <listEntry value="510">@Strings.PhoneTime0830</listEntry>
+                    <listEntry value="525">@Strings.PhoneTime0845</listEntry>
+                    <listEntry value="540">@Strings.PhoneTime0900</listEntry>
+                    <listEntry value="555">@Strings.PhoneTime0915</listEntry>
+                    <listEntry value="570">@Strings.PhoneTime0930</listEntry>
+                    <listEntry value="585">@Strings.PhoneTime0945</listEntry>
+                    <listEntry value="600">@Strings.PhoneTime1000</listEntry>
+                    <listEntry value="615">@Strings.PhoneTime1015</listEntry>
+                    <listEntry value="630">@Strings.PhoneTime1030</listEntry>
+                    <listEntry value="645">@Strings.PhoneTime1045</listEntry>
+                    <listEntry value="660">@Strings.PhoneTime1100</listEntry>
+                    <listEntry value="675">@Strings.PhoneTime1115</listEntry>
+                    <listEntry value="690">@Strings.PhoneTime1130</listEntry>
+                    <listEntry value="705">@Strings.PhoneTime1145</listEntry>
+                    <listEntry value="720">@Strings.PhoneTime1200</listEntry>
+                    <listEntry value="735">@Strings.PhoneTime1215</listEntry>
+                    <listEntry value="750">@Strings.PhoneTime1230</listEntry>
+                    <listEntry value="765">@Strings.PhoneTime1245</listEntry>
+                    <listEntry value="780">@Strings.PhoneTime1300</listEntry>
+                    <listEntry value="795">@Strings.PhoneTime1315</listEntry>
+                    <listEntry value="810">@Strings.PhoneTime1330</listEntry>
+                    <listEntry value="825">@Strings.PhoneTime1345</listEntry>
+                    <listEntry value="840">@Strings.PhoneTime1400</listEntry>
+                    <listEntry value="855">@Strings.PhoneTime1415</listEntry>
+                    <listEntry value="870">@Strings.PhoneTime1430</listEntry>
+                    <listEntry value="885">@Strings.PhoneTime1445</listEntry>
+                    <listEntry value="900">@Strings.PhoneTime1500</listEntry>
+                    <listEntry value="915">@Strings.PhoneTime1515</listEntry>
+                    <listEntry value="930">@Strings.PhoneTime1530</listEntry>
+                    <listEntry value="945">@Strings.PhoneTime1545</listEntry>
+                    <listEntry value="960">@Strings.PhoneTime1600</listEntry>
+                    <listEntry value="975">@Strings.PhoneTime1615</listEntry>
+                    <listEntry value="990">@Strings.PhoneTime1630</listEntry>
+                    <listEntry value="1005">@Strings.PhoneTime1645</listEntry>
+                    <listEntry value="1020">@Strings.PhoneTime1700</listEntry>
+                    <listEntry value="1035">@Strings.PhoneTime1715</listEntry>
+                    <listEntry value="1050">@Strings.PhoneTime1730</listEntry>
+                    <listEntry value="1065">@Strings.PhoneTime1745</listEntry>
+                    <listEntry value="1080">@Strings.PhoneTime1800</listEntry>
+                    <listEntry value="1095">@Strings.PhoneTime1815</listEntry>
+                    <listEntry value="1110">@Strings.PhoneTime1830</listEntry>
+                    <listEntry value="1125">@Strings.PhoneTime1845</listEntry>
+                    <listEntry value="1140">@Strings.PhoneTime1900</listEntry>
+                    <listEntry value="1155">@Strings.PhoneTime1915</listEntry>
+                    <listEntry value="1170">@Strings.PhoneTime1930</listEntry>
+                    <listEntry value="1185">@Strings.PhoneTime1945</listEntry>
+                    <listEntry value="1200">@Strings.PhoneTime2000</listEntry>
+                    <listEntry value="1215">@Strings.PhoneTime2015</listEntry>
+                    <listEntry value="1230">@Strings.PhoneTime2030</listEntry>
+                    <listEntry value="1245">@Strings.PhoneTime2045</listEntry>
+                    <listEntry value="1260">@Strings.PhoneTime2100</listEntry>
+                    <listEntry value="1275">@Strings.PhoneTime2115</listEntry>
+                    <listEntry value="1290">@Strings.PhoneTime2130</listEntry>
+                    <listEntry value="1305">@Strings.PhoneTime2145</listEntry>
+                    <listEntry value="1320">@Strings.PhoneTime2200</listEntry>
+                    <listEntry value="1335">@Strings.PhoneTime2215</listEntry>
+                    <listEntry value="1350">@Strings.PhoneTime2230</listEntry>
+                    <listEntry value="1365">@Strings.PhoneTime2245</listEntry>
+                    <listEntry value="1380">@Strings.PhoneTime2300</listEntry>
+                    <listEntry value="1395">@Strings.PhoneTime2315</listEntry>
+                    <listEntry value="1410">@Strings.PhoneTime2330</listEntry>
+                    <listEntry value="1425">@Strings.PhoneTime2345</listEntry>
+                </settingConfig>
+            </setting>
+            <setting propertyKey="@Properties.reminder2Enabled" title="@Strings.Reminder2EnabledTitle" prompt="@Strings.Reminder2EnabledPrompt">
+                <settingConfig type="boolean" />
+            </setting>
+            <setting propertyKey="@Properties.reminder2Minutes" title="@Strings.Reminder2TimeTitle" prompt="@Strings.Reminder2TimePrompt">
+                <settingConfig type="list">
+                    <listEntry value="0">@Strings.PhoneTime0000</listEntry>
+                    <listEntry value="15">@Strings.PhoneTime0015</listEntry>
+                    <listEntry value="30">@Strings.PhoneTime0030</listEntry>
+                    <listEntry value="45">@Strings.PhoneTime0045</listEntry>
+                    <listEntry value="60">@Strings.PhoneTime0100</listEntry>
+                    <listEntry value="75">@Strings.PhoneTime0115</listEntry>
+                    <listEntry value="90">@Strings.PhoneTime0130</listEntry>
+                    <listEntry value="105">@Strings.PhoneTime0145</listEntry>
+                    <listEntry value="120">@Strings.PhoneTime0200</listEntry>
+                    <listEntry value="135">@Strings.PhoneTime0215</listEntry>
+                    <listEntry value="150">@Strings.PhoneTime0230</listEntry>
+                    <listEntry value="165">@Strings.PhoneTime0245</listEntry>
+                    <listEntry value="180">@Strings.PhoneTime0300</listEntry>
+                    <listEntry value="195">@Strings.PhoneTime0315</listEntry>
+                    <listEntry value="210">@Strings.PhoneTime0330</listEntry>
+                    <listEntry value="225">@Strings.PhoneTime0345</listEntry>
+                    <listEntry value="240">@Strings.PhoneTime0400</listEntry>
+                    <listEntry value="255">@Strings.PhoneTime0415</listEntry>
+                    <listEntry value="270">@Strings.PhoneTime0430</listEntry>
+                    <listEntry value="285">@Strings.PhoneTime0445</listEntry>
+                    <listEntry value="300">@Strings.PhoneTime0500</listEntry>
+                    <listEntry value="315">@Strings.PhoneTime0515</listEntry>
+                    <listEntry value="330">@Strings.PhoneTime0530</listEntry>
+                    <listEntry value="345">@Strings.PhoneTime0545</listEntry>
+                    <listEntry value="360">@Strings.PhoneTime0600</listEntry>
+                    <listEntry value="375">@Strings.PhoneTime0615</listEntry>
+                    <listEntry value="390">@Strings.PhoneTime0630</listEntry>
+                    <listEntry value="405">@Strings.PhoneTime0645</listEntry>
+                    <listEntry value="420">@Strings.PhoneTime0700</listEntry>
+                    <listEntry value="435">@Strings.PhoneTime0715</listEntry>
+                    <listEntry value="450">@Strings.PhoneTime0730</listEntry>
+                    <listEntry value="465">@Strings.PhoneTime0745</listEntry>
+                    <listEntry value="480">@Strings.PhoneTime0800</listEntry>
+                    <listEntry value="495">@Strings.PhoneTime0815</listEntry>
+                    <listEntry value="510">@Strings.PhoneTime0830</listEntry>
+                    <listEntry value="525">@Strings.PhoneTime0845</listEntry>
+                    <listEntry value="540">@Strings.PhoneTime0900</listEntry>
+                    <listEntry value="555">@Strings.PhoneTime0915</listEntry>
+                    <listEntry value="570">@Strings.PhoneTime0930</listEntry>
+                    <listEntry value="585">@Strings.PhoneTime0945</listEntry>
+                    <listEntry value="600">@Strings.PhoneTime1000</listEntry>
+                    <listEntry value="615">@Strings.PhoneTime1015</listEntry>
+                    <listEntry value="630">@Strings.PhoneTime1030</listEntry>
+                    <listEntry value="645">@Strings.PhoneTime1045</listEntry>
+                    <listEntry value="660">@Strings.PhoneTime1100</listEntry>
+                    <listEntry value="675">@Strings.PhoneTime1115</listEntry>
+                    <listEntry value="690">@Strings.PhoneTime1130</listEntry>
+                    <listEntry value="705">@Strings.PhoneTime1145</listEntry>
+                    <listEntry value="720">@Strings.PhoneTime1200</listEntry>
+                    <listEntry value="735">@Strings.PhoneTime1215</listEntry>
+                    <listEntry value="750">@Strings.PhoneTime1230</listEntry>
+                    <listEntry value="765">@Strings.PhoneTime1245</listEntry>
+                    <listEntry value="780">@Strings.PhoneTime1300</listEntry>
+                    <listEntry value="795">@Strings.PhoneTime1315</listEntry>
+                    <listEntry value="810">@Strings.PhoneTime1330</listEntry>
+                    <listEntry value="825">@Strings.PhoneTime1345</listEntry>
+                    <listEntry value="840">@Strings.PhoneTime1400</listEntry>
+                    <listEntry value="855">@Strings.PhoneTime1415</listEntry>
+                    <listEntry value="870">@Strings.PhoneTime1430</listEntry>
+                    <listEntry value="885">@Strings.PhoneTime1445</listEntry>
+                    <listEntry value="900">@Strings.PhoneTime1500</listEntry>
+                    <listEntry value="915">@Strings.PhoneTime1515</listEntry>
+                    <listEntry value="930">@Strings.PhoneTime1530</listEntry>
+                    <listEntry value="945">@Strings.PhoneTime1545</listEntry>
+                    <listEntry value="960">@Strings.PhoneTime1600</listEntry>
+                    <listEntry value="975">@Strings.PhoneTime1615</listEntry>
+                    <listEntry value="990">@Strings.PhoneTime1630</listEntry>
+                    <listEntry value="1005">@Strings.PhoneTime1645</listEntry>
+                    <listEntry value="1020">@Strings.PhoneTime1700</listEntry>
+                    <listEntry value="1035">@Strings.PhoneTime1715</listEntry>
+                    <listEntry value="1050">@Strings.PhoneTime1730</listEntry>
+                    <listEntry value="1065">@Strings.PhoneTime1745</listEntry>
+                    <listEntry value="1080">@Strings.PhoneTime1800</listEntry>
+                    <listEntry value="1095">@Strings.PhoneTime1815</listEntry>
+                    <listEntry value="1110">@Strings.PhoneTime1830</listEntry>
+                    <listEntry value="1125">@Strings.PhoneTime1845</listEntry>
+                    <listEntry value="1140">@Strings.PhoneTime1900</listEntry>
+                    <listEntry value="1155">@Strings.PhoneTime1915</listEntry>
+                    <listEntry value="1170">@Strings.PhoneTime1930</listEntry>
+                    <listEntry value="1185">@Strings.PhoneTime1945</listEntry>
+                    <listEntry value="1200">@Strings.PhoneTime2000</listEntry>
+                    <listEntry value="1215">@Strings.PhoneTime2015</listEntry>
+                    <listEntry value="1230">@Strings.PhoneTime2030</listEntry>
+                    <listEntry value="1245">@Strings.PhoneTime2045</listEntry>
+                    <listEntry value="1260">@Strings.PhoneTime2100</listEntry>
+                    <listEntry value="1275">@Strings.PhoneTime2115</listEntry>
+                    <listEntry value="1290">@Strings.PhoneTime2130</listEntry>
+                    <listEntry value="1305">@Strings.PhoneTime2145</listEntry>
+                    <listEntry value="1320">@Strings.PhoneTime2200</listEntry>
+                    <listEntry value="1335">@Strings.PhoneTime2215</listEntry>
+                    <listEntry value="1350">@Strings.PhoneTime2230</listEntry>
+                    <listEntry value="1365">@Strings.PhoneTime2245</listEntry>
+                    <listEntry value="1380">@Strings.PhoneTime2300</listEntry>
+                    <listEntry value="1395">@Strings.PhoneTime2315</listEntry>
+                    <listEntry value="1410">@Strings.PhoneTime2330</listEntry>
+                    <listEntry value="1425">@Strings.PhoneTime2345</listEntry>
+                </settingConfig>
+            </setting>
+            <setting propertyKey="@Properties.dayBeforeEnabled" title="@Strings.DayBeforeReminder" prompt="@Strings.DayBeforePrompt">
+                <settingConfig type="boolean" />
+            </setting>
+            <setting propertyKey="@Properties.overdueRepeatHours" title="@Strings.OverdueRepeatTitle" prompt="@Strings.OverdueRepeatPrompt">
+                <settingConfig type="list">
+                    <listEntry value="1">@Strings.Repeat1Hour</listEntry>
+                    <listEntry value="3">@Strings.Repeat3Hours</listEntry>
+                    <listEntry value="6">@Strings.Repeat6Hours</listEntry>
+                    <listEntry value="12">@Strings.Repeat12Hours</listEntry>
+                    <listEntry value="24">@Strings.Repeat24Hours</listEntry>
+                </settingConfig>
+            </setting>
+        </group>
+        <group id="display" title="@Strings.DisplaySettingsGroup" description="@Strings.DisplaySettingsDescription">
+            <setting propertyKey="@Properties.clockFormat" title="@Strings.ClockFormatTitle" prompt="@Strings.ClockFormatPrompt">
+                <settingConfig type="list">
+                    <listEntry value="0">@Strings.ClockSystem</listEntry>
+                    <listEntry value="12">@Strings.Clock12Hour</listEntry>
+                    <listEntry value="24">@Strings.Clock24Hour</listEntry>
+                </settingConfig>
+            </setting>
+            <setting propertyKey="@Properties.vibrationEnabled" title="@Strings.VibrationTitle" prompt="@Strings.ForegroundAttentionPrompt">
+                <settingConfig type="boolean" />
+            </setting>
+            <setting propertyKey="@Properties.soundEnabled" title="@Strings.SoundTitle" prompt="@Strings.ForegroundAttentionPrompt">
+                <settingConfig type="boolean" />
+            </setting>
+        </group>
     </settings>
 </resources>

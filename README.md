@@ -24,6 +24,7 @@ Garmin's device definitions also use the 47 mm ID for the quatix 7 Pro and the 5
 - A read-only glance, six projected Upcoming cycles, confirmed event recording, editable actual dates, and history for up to 24 cycles.
 - Hourly background checks and native Garmin notifications for the day before, two same-day reminder slots, overdue actions, extended duration, temporary-out, and ring-free-limit events.
 - Watch settings for Reminder 1, optional Reminder 2, the day-before reminder, overdue repeats, clock format, foreground sound/vibration, and clinician-directed schedules from 21–35 days in and 0–7 days out.
+- Garmin-style date and time pickers with separate hour, minute, and AM/PM columns, per-minute time selection, live assembled headings, and 12/24-hour formatting.
 - Button and touch operation, local on-watch storage, and neutral notification wording.
 
 ### Screenshots
@@ -35,6 +36,7 @@ Garmin's device definitions also use the 47 mm ID for the quatix 7 Pro and the 5
 | ![Ring Tracker glance](docs/screenshots/epix2pro47mm-glance-ring-in.png)<br>**Glance.** A private one-line schedule summary. | ![Upcoming cycles](docs/screenshots/epix2pro47mm-upcoming-rows-1-3.png)<br>**Upcoming.** Six projected in/out date pairs with colour bars. |
 | ![Cycle history](docs/screenshots/epix2pro47mm-history.png)<br>**History.** Actual events, variance, and temporary-out details. | ![Reminder settings](docs/screenshots/epix2pro47mm-settings-reminder2-on.png)<br>**Settings.** Two reminder times and a day-before option. |
 | ![Early removal confirmation](docs/screenshots/epix2pro47mm-confirmation-early-removal.png)<br>**Confirmations.** Early or late event variance is shown before saving. | ![Native reminder](docs/screenshots/epix2pro47mm-notification-overdue.png)<br>**Notifications.** Garmin-native local reminder cards. |
+| ![12-hour time picker](docs/screenshots/epix2pro47mm-picker-time-12h.png)<br>**Time.** Separate hour, minute, and AM/PM columns with a live heading. | ![Date picker](docs/screenshots/epix2pro47mm-picker-date.png)<br>**Date.** Day, short month, and year columns with a live weekday heading. |
 
 ## Install on your watch
 
@@ -67,18 +69,19 @@ A beta URL works only for the Garmin account that submitted it; it is not an unl
 
 | Phone-editable setting | Accepted value |
 | --- | --- |
-| Insertion date and time | Local time as `YYYY-MM-DDTHH:mm`, for example `2026-09-15T09:00` |
-| Reminder 1 hour / minute | Separate numeric fields: hour `0–23`, minute `0–59`; always enabled |
-| Reminder 2 | On or off; defaults Off |
-| Reminder 2 hour / minute | Separate numeric fields: hour `0–23`, minute `0–59`; retained while Off |
-| Day-before reminder | On or off; uses Reminder 1's time |
+| Insertion date | Native date control; interpreted as a calendar date, not as a UTC instant |
+| Insertion time | 15-minute list in 12-hour AM/PM form |
 | Days ring in | `21–35` |
 | Days ring-free | `0–7`; `0` means replace immediately |
+| Reminder 1 | 15-minute list in 12-hour AM/PM form; always enabled |
+| Reminder 2 | On or off; defaults Off |
+| Reminder 2 time | 15-minute list in 12-hour AM/PM form; retained while Off |
+| Day-before reminder | On or off; uses Reminder 1's time |
 | Repeat overdue | `1`, `3`, `6`, `12`, or `24` hours |
-| Vibration / sound | On or off; these control foreground feedback after Ring Tracker opens |
 | Clock format | System, 12-hour, or 24-hour |
+| Vibration / sound | On or off; these control foreground feedback after Ring Tracker opens |
 
-Phone settings are configuration only: Ring Tracker has no phone dashboard, phone status push, or phone-generated reminder. The watch remains the canonical schedule and asks before accepting a changed phone insertion time.
+Phone settings are configuration only: Ring Tracker has no phone dashboard, phone status push, or phone-generated reminder. Watch pickers retain exact minutes. When an exact watch value is mirrored into a 15-minute phone list, only the phone property is rounded to the nearest quarter-hour; the canonical watch value is unchanged. The watch remains the canonical schedule and asks before accepting a changed phone insertion date or time.
 
 ## How reminders work
 
@@ -99,7 +102,7 @@ All settings can be changed on the watch. Ring Tracker is for NuvaRing only. Non
 | Input | Main screen | Menus, pickers, and dialogs |
 | --- | --- | --- |
 | **START/ENTER** or tap | Open the context menu; while temporarily out, open the ring-back-in confirmation | Select or confirm |
-| **BACK/LAP** or swipe right | Exit the app | Go back or cancel without saving |
+| **BACK/LAP** or swipe right | Exit the app | Go to the preceding picker column, then cancel or go back without saving |
 | **UP** or swipe down | Open Upcoming | Move, scroll, or change a value |
 | **DOWN** or swipe up | Open History | Move, scroll, or change a value |
 | Hold **UP/MENU** | Open the context menu | Open a context menu when available |
@@ -118,7 +121,7 @@ After configuring `scripts/env.sh`, run:
 ```
 
 - `release` writes three signed PRGs and the Store package to `bin/release/`.
-- `debug` writes three PRGs to `bin/debug/`; its on-watch **Demo scenarios** menu can seed first-run, active, overdue, ring-free, temporary-out, extended-duration, early/late, Reminder 2, Upcoming, notification, migration, and maximum-history states. In the simulator object-store editor, set numeric epoch seconds at `debugNowUtc` to override the clock, or remove the key to resume real time.
+- `debug` writes three PRGs to `bin/debug/`; its on-watch **Demo scenarios** menu can open 12-hour, 24-hour, and date pickers and seed first-run, active, overdue, ring-free, temporary-out, extended-duration, early/late, Reminder 2, Upcoming, notification, migration, and maximum-history states. In the simulator object-store editor, set numeric epoch seconds at `debugNowUtc` to override the clock, or remove the key to resume real time.
 - `test` builds `bin/test/RingTracker-tests.prg`, starts a headless simulator when needed, and fails if the test summary reports failures or errors.
 
 Build output under `bin/` is ignored. The checked-in install bundle under `release/` is copied from a verified release build.
