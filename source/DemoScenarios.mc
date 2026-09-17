@@ -116,7 +116,29 @@ function reportOptionalServiceResult(kind, notificationShown as Lang.Boolean,
 }
 
 (:debug)
+function mainDemoReferenceUtc(fallback as Lang.Number) as Lang.Number {
+    var wall = {
+        :year=>2026, :month=>9, :day=>17,
+        :hour=>12, :minute=>26, :second=>0
+    };
+    var resolved = CalendarMath.wallToUtcUsingDevice(wall);
+    return resolved == null ? fallback : resolved[:utc];
+}
+
+(:debug)
+function mainDemoWallUtc(year as Lang.Number, month as Lang.Number, day as Lang.Number,
+                         hour as Lang.Number, minute as Lang.Number,
+                         fallback as Lang.Number) as Lang.Number {
+    var resolved = CalendarMath.wallToUtcUsingDevice({
+        :year=>year, :month=>month, :day=>day,
+        :hour=>hour, :minute=>minute, :second=>0
+    });
+    return resolved == null ? fallback : resolved[:utc];
+}
+
+(:debug)
 function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dictionary {
+    nowUtc = mainDemoReferenceUtc(nowUtc);
     Storage.setValue("debugNowUtc", nowUtc);
     var state = ScheduleModel.defaultState();
     if (scenario == :fresh) { return state; }
@@ -126,33 +148,51 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     var regimen = state[:regimen] as Lang.Dictionary;
     var insertion = nowUtc - (4 * CalendarMath.SECONDS_PER_DAY);
     if (scenario == :day5) { insertion = nowUtc - (4 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :beforeRemoval) { insertion = nowUtc - (19 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :overdueRemoval) { insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :overdueLarge) {
-        insertion = nowUtc - (33 * CalendarMath.SECONDS_PER_DAY) - (23 * CalendarMath.SECONDS_PER_HOUR);
+    else if (scenario == :beforeRemoval) {
+        insertion = nowUtc - (19 * CalendarMath.SECONDS_PER_DAY)
+            - CalendarMath.SECONDS_PER_HOUR;
+    }
+    else if (scenario == :overdueRemoval || scenario == :overdue29h) {
+        insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY)
+            - (5 * CalendarMath.SECONDS_PER_HOUR);
+    }
+    else if (scenario == :overdueLarge || scenario == :overdue2d) {
+        insertion = nowUtc - (23 * CalendarMath.SECONDS_PER_DAY);
     }
     else if (scenario == :ringFree) { insertion = nowUtc - (23 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :freeDay3) {
         regimen[:daysOut] = 3;
         insertion = nowUtc - (28 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR);
     }
-    else if (scenario == :freeExceeded || scenario == :notificationFree || scenario == :backgroundFree) { insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :freeExceeded || scenario == :ringFree8d
+        || scenario == :notificationFree || scenario == :backgroundFree) {
+        insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY);
+    }
     else if (scenario == :temp250 || scenario == :temp310 || scenario == :notificationTemp
-        || scenario == :backgroundTemp || scenario == :reminder2) { insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY); }
+        || scenario == :backgroundTemp) {
+        insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY);
+    }
+    else if (scenario == :ringIn14h || scenario == :reminder2) {
+        insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY)
+            - (10 * CalendarMath.SECONDS_PER_HOUR);
+    }
+    else if (scenario == :ringIn45m || scenario == :backgroundNil) {
+        insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY)
+            - (23 * CalendarMath.SECONDS_PER_HOUR) - (15 * 60);
+    }
+    else if (scenario == :warningWrapLong || scenario == :backgroundNoOp) {
+        insertion = nowUtc + CalendarMath.SECONDS_PER_HOUR;
+    }
     else if (scenario == :extended35 || scenario == :notificationFourWeeks
-        || scenario == :backgroundFourWeeks || scenario == :largestCountdown) {
+        || scenario == :backgroundFourWeeks || scenario == :largestCountdown
+        || scenario == :ringIn29d) {
         regimen[:daysIn] = 35;
         insertion = (scenario == :extended35 || scenario == :notificationFourWeeks
-            || scenario == :backgroundFourWeeks)
+            || scenario == :backgroundFourWeeks || scenario == :ringIn29d)
             ? nowUtc - (29 * CalendarMath.SECONDS_PER_DAY) : nowUtc;
     }
     else if (scenario == :clock12Long || scenario == :clock24) {
-        var targetWall = CalendarMath.localFields(nowUtc - (4 * CalendarMath.SECONDS_PER_DAY));
-        targetWall[:hour] = 23;
-        targetWall[:minute] = 59;
-        targetWall[:second] = 0;
-        var target = CalendarMath.wallToUtcUsingDevice(targetWall);
-        if (target != null) { insertion = target[:utc]; }
+        insertion = mainDemoWallUtc(2026, 9, 9, 23, 59, insertion);
     }
     else if (scenario == :notificationDayBefore || scenario == :backgroundDayBefore) {
         insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY);
@@ -168,7 +208,10 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     var active = ScheduleModel.insertOrReplace(state, insertion);
     if (scenario == :ringFree) { ScheduleModel.recordRemoval(active, nowUtc - (2 * CalendarMath.SECONDS_PER_DAY), regimen); }
     else if (scenario == :freeDay3) { ScheduleModel.recordRemoval(active, nowUtc - (3 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR), regimen); }
-    else if (scenario == :freeExceeded || scenario == :notificationFree || scenario == :backgroundFree) { ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen); }
+    else if (scenario == :freeExceeded || scenario == :ringFree8d
+        || scenario == :notificationFree || scenario == :backgroundFree) {
+        ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen);
+    }
     else if (scenario == :temp250) { ScheduleModel.startTemporaryOut(active, nowUtc - (2 * 3600) - (50 * 60)); }
     else if (scenario == :temp310 || scenario == :notificationTemp || scenario == :backgroundTemp) { ScheduleModel.startTemporaryOut(active, nowUtc - (3 * 3600) - (10 * 60)); }
     else if (scenario == :reminder2) {
