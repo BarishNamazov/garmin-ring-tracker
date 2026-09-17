@@ -394,19 +394,22 @@ three sizes; each was checked for title updates, clipping, overlap, and
 round-edge clearance. Button navigation, BACK-to-previous-column behavior, and
 touch selection were also exercised in the simulator.
 
-The final layout follow-up regenerated `history` and `cycle-detail` on all
-three sizes. The 390 px History capture exercises the longest fixture
-(`Removed 15d early` / `Inserted 15d late`) and confirms the adaptive two-line
-variance, bar clearance, and round-edge margins. The three detail captures
-confirm that the date and time share a right edge and `First cycle` occupies
-its own line beneath them.
+The list UX round regenerated `history` and `cycle-detail` on all three sizes.
+History captures exercise the 24-cycle fixture and its longest scoped variance,
+`Out 15d early · In 15d late`, in one line. They also verify the date-range
+hierarchy, grey planned endpoint for the current cycle, symmetric focus shape,
+neutral scroll rail, and round-edge clearance. The detail captures verify the
+single label/value edges, weekday timestamps, variance plus planned-date
+context, omitted unavailable rows, `First recorded` caption, and the relocated
+`Removals (all)` lifetime statistic.
 
-The final date-pair polish regenerated both Upcoming pages and History on all
-three sizes. Date pairs are measured as a composed string: the full weekday
-form is preferred, an XTINY weekday-free form preserves the ` · ` separator
-when needed, and only an over-width compact pair splits into `In` and `Out`
-lines. The regression fixture covers `Wed 30 Sep` and all nine native captures
-were checked for clipping, separator loss, and `if done today` crowding.
+Both Upcoming pages were regenerated on all three sizes from the overdue
+December fixture. The captures verify fixed right-aligned `IN`/`OUT` columns,
+the single current-row schedule bar and today tick, amber overdue treatment,
+one `if removed today` divider, the first-January year cue, a fourth-row peek,
+and the neutral scroll rail. The same list fixture includes the `Wed 30 Sep`
+history edge case; every capture was checked for clipping and round-edge
+clearance at 390, 416, and 454 px.
 
 For every size, 26 captures cover the three v1.2 pickers plus ring-in, ring-free, overdue removal,
 overdue insertion, temporary out at 2h50 and 3h10, >7d and >28d warnings,
@@ -414,8 +417,9 @@ Upcoming rows 1–3 and 4–6, long 12-hour and 24-hour formatting, maximum
 countdown, warning wrapping, all four glance states, custom History and cycle
 detail, and early-removal, late-insertion, and edit-removal confirmations. The
 six Upcoming captures now use the overdue-removal fixture: row 1 retains its
-actual past dates, rows 2–6 remain non-past, and each affected projected row
-shows `if done today` without clipping on 390, 416, or 454 px. The
+actual past dates, rows 2–6 are re-anchored after the single explanatory
+divider, and the January transition carries one year cue without clipping on
+390, 416, or 454 px. The
 47 mm interaction set adds 24 captures covering first run, regimen, four context menus, Edit
 dates, Reminder 2 Off/On/submenus/picker, day-before, overdue repeat, clock,
 About, migration notice, and all seven native notification kinds. Obsolete Schedule, planned-override, and

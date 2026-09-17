@@ -91,7 +91,7 @@ class UpcomingView extends WatchUi.View {
         var peekIndex = _topIndex + 3;
         if (peekIndex < _rows.size()) {
             drawRow(dc, _rows[peekIndex] as Lang.Dictionary, peekIndex,
-                Ui.px(dc, firstPageWithDivider ? 341 : 336), false);
+                Ui.px(dc, 363), false);
         }
         Ui.drawScrollIndicator(dc, Ui.px(dc, 72), Ui.px(dc, 348),
             _topIndex, 6, 3, Ui.SECONDARY);

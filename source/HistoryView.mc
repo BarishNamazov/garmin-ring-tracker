@@ -241,21 +241,21 @@ class CycleDetailView extends WatchUi.View {
         var daysOut = activeRow ? (state[:regimen] as Lang.Dictionary)[:daysOut] : cycle[:regimenDaysOut];
         dc.setPenWidth(Ui.px(dc, 1));
         dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(Ui.px(dc, 48), Ui.px(dc, 270),
-            dc.getWidth() - Ui.px(dc, 48), Ui.px(dc, 270));
+        dc.drawLine(Ui.px(dc, 66), Ui.px(dc, 270),
+            dc.getWidth() - Ui.px(dc, 66), Ui.px(dc, 270));
         drawStat(dc, Ui.px(dc, 294), Ui.s(Rez.Strings.RegimenLabel),
             Ui.fmt(Rez.Strings.PlanTemplate, [daysIn, daysOut]));
         drawStat(dc, Ui.px(dc, 324), Ui.s(Rez.Strings.ListBriefOuts),
             ListUi.briefOutCount(cycle).toString());
-        drawStat(dc, Ui.px(dc, 354), Ui.s(Rez.Strings.ListRemovalsAll),
+        drawStat(dc, Ui.px(dc, 348), Ui.s(Rez.Strings.ListRemovalsAll),
             ListUi.removalCount(state).toString());
     }
 
     private function drawRecordedEvent(dc as Graphics.Dc, y as Lang.Number,
                                        label as Lang.String, utc as Lang.Number,
                                        plannedUtc, delta, clock as Lang.Number) as Void {
-        var xLeft = Ui.px(dc, 48);
-        var xRight = dc.getWidth() - Ui.px(dc, 48);
+        var xLeft = Ui.px(dc, 66);
+        var xRight = dc.getWidth() - Ui.px(dc, 66);
         dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY, label,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
@@ -268,8 +268,8 @@ class CycleDetailView extends WatchUi.View {
 
     private function drawDueEvent(dc as Graphics.Dc, y as Lang.Number,
                                   label as Lang.String, dueUtc as Lang.Number) as Void {
-        var xLeft = Ui.px(dc, 48);
-        var xRight = dc.getWidth() - Ui.px(dc, 48);
+        var xLeft = Ui.px(dc, 66);
+        var xRight = dc.getWidth() - Ui.px(dc, 66);
         dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY, label,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
@@ -279,8 +279,8 @@ class CycleDetailView extends WatchUi.View {
 
     private function drawStat(dc as Graphics.Dc, y as Lang.Number,
                               label as Lang.String, value as Lang.String) as Void {
-        var xLeft = Ui.px(dc, 48);
-        var xRight = dc.getWidth() - Ui.px(dc, 48);
+        var xLeft = Ui.px(dc, 66);
+        var xRight = dc.getWidth() - Ui.px(dc, 66);
         dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY, label,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
