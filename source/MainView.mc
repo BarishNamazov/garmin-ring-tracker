@@ -266,8 +266,8 @@ class MainView extends WatchUi.View {
         drawActionDate(dc, dateY, status[:nextAction], status[:underlyingActionUtc],
             reminders[:clockFormat]);
         if (warning != null) {
-            drawWarning(dc, warning as Lang.String, Ui.px(dc, 306),
-                Ui.px(dc, 350), Ui.RED);
+            drawWarning(dc, warning as Lang.String, Ui.px(dc, 292),
+                Ui.px(dc, 370), Ui.RED);
         }
     }
 
@@ -306,7 +306,8 @@ class MainView extends WatchUi.View {
                 Ui.s(Rez.Strings.DayUnit)]], suffix, Ui.PRIMARY);
         drawDueLine(dc, Ui.px(dc, 258), dueUtc, reminders[:clockFormat]);
         Ui.centered(dc, Ui.px(dc, 322), Ui.s(Rez.Strings.MainBackupAdvised),
-            Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.mainChordBudget(dc, Ui.px(dc, 322)));
+            Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY,
+            Ui.mainChordClearanceBudget(dc, Ui.px(dc, 322)));
     }
 
     private function actionPrefix(action as Lang.Symbol) as Lang.String {
@@ -364,15 +365,19 @@ class MainView extends WatchUi.View {
         var time = Ui.timeForUtc(dueUtc, clockFormat);
         var text = prefix + Ui.shortDate(dueUtc) + separator + time;
         var font = Graphics.FONT_SYSTEM_TINY;
-        var budget = Ui.mainChordBudget(dc, y);
+        var budget = Ui.mainChordClearanceBudget(dc, y);
+        if (dc.getTextWidthInPixels(text, font) > budget) {
+            text = prefix + Ui.compactDate(dueUtc) + separator + time;
+        }
+        if (dc.getTextWidthInPixels(text, font) > budget) {
+            font = Graphics.FONT_SYSTEM_XTINY;
+            text = prefix + Ui.shortDate(dueUtc) + separator + time;
+        }
         if (dc.getTextWidthInPixels(text, font) > budget) {
             text = prefix + Ui.compactDate(dueUtc) + separator + time;
         }
         if (dc.getTextWidthInPixels(text, font) > budget) {
             text = Ui.compactDate(dueUtc) + separator + time;
-        }
-        if (dc.getTextWidthInPixels(text, font) > budget) {
-            font = Graphics.FONT_SYSTEM_XTINY;
         }
         Ui.centered(dc, y, text, font, Ui.SECONDARY, budget);
     }
@@ -399,7 +404,7 @@ class MainView extends WatchUi.View {
                 Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 270));
             Ui.centered(dc, Ui.px(dc, 326), Ui.s(Rez.Strings.MainBackupAdvised),
                 Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY,
-                Ui.mainChordBudget(dc, Ui.px(dc, 326)));
+                Ui.mainChordClearanceBudget(dc, Ui.px(dc, 326)));
         }
     }
 

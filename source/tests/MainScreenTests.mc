@@ -10,7 +10,11 @@ function mainCountdownUsesDaysOnlyAtFortyEightHours(logger as Test.Logger) as La
 
 (:test)
 function mainCountdownKeepsHoursBetweenOneAndTwoDays(logger as Test.Logger) as Lang.Boolean {
+    Test.assertEqual("1d 12h", Ui.mainCountdownText(
+        CalendarMath.SECONDS_PER_DAY + (12 * CalendarMath.SECONDS_PER_HOUR)));
     Test.assertEqual("1d 23h", Ui.mainCountdownText(47 * CalendarMath.SECONDS_PER_HOUR));
+    Test.assertEqual("1d 23h", Ui.mainCountdownText(
+        (2 * CalendarMath.SECONDS_PER_DAY) - 1));
     Test.assertEqual("1d", Ui.mainCountdownText(CalendarMath.SECONDS_PER_DAY));
     return true;
 }
@@ -82,10 +86,15 @@ function mainLongestDateFixtureUsesExpectedCalendarLabel(logger as Test.Logger) 
 (:test)
 function mainDemoFixturesCoverCountdownAndLatenessTiers(logger as Test.Logger) as Lang.Boolean {
     var now = mainDemoReferenceUtc(testWall(2026, 9, 17, 12, 26));
+    var dayAndHalf = demoState(:ringIn1d12h, now);
     var fourteen = demoState(:ringIn14h, now);
     var fortyFive = demoState(:ringIn45m, now);
     var lateHours = demoState(:overdue29h, now);
     var lateDays = demoState(:overdue2d, now);
+    Test.assertEqual(CalendarMath.SECONDS_PER_DAY
+        + (12 * CalendarMath.SECONDS_PER_HOUR),
+        ScheduleModel.deriveStatus(now, dayAndHalf[:active],
+            dayAndHalf[:regimen])[:secondsRemaining]);
     Test.assertEqual(14 * CalendarMath.SECONDS_PER_HOUR,
         ScheduleModel.deriveStatus(now, fourteen[:active], fourteen[:regimen])[:secondsRemaining]);
     Test.assertEqual(45 * CalendarMath.SECONDS_PER_MINUTE,
@@ -113,6 +122,7 @@ function mainDemoFixturesCoverSeriousTemporaryAndLongDateStates(logger as Test.L
     Test.assertEqual((3 * CalendarMath.SECONDS_PER_HOUR) + (10 * CalendarMath.SECONDS_PER_MINUTE),
         ScheduleModel.deriveStatus(now, tempAfter[:active], tempAfter[:regimen])[:tempElapsed]);
     Test.assert(ScheduleModel.deriveStatus(now, warning[:active], warning[:regimen])[:clockBeforeInsertion]);
+    Test.assert(Ui.s(Rez.Strings.MainClockBeforeInsertion).length() > 60);
     Test.assertEqual("Wed 30 Sep", Ui.shortDate((longDate[:active] as Lang.Dictionary)[:removeDueUtc]));
     return true;
 }

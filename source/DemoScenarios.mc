@@ -172,6 +172,10 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
         || scenario == :backgroundTemp || scenario == :reminder2) {
         insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY);
     }
+    else if (scenario == :ringIn1d12h) {
+        insertion = nowUtc - (19 * CalendarMath.SECONDS_PER_DAY)
+            - (12 * CalendarMath.SECONDS_PER_HOUR);
+    }
     else if (scenario == :ringIn14h || scenario == :backgroundCorrupt) {
         insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY)
             - (10 * CalendarMath.SECONDS_PER_HOUR);

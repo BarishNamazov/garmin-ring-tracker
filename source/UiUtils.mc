@@ -115,8 +115,18 @@ module Ui {
         var halfChord = Math.sqrt((radius * radius) - (dy * dy));
         var chord = Math.floor(halfChord * 2).toNumber();
         var budget = Math.floor(chord * 0.70).toNumber();
-        var clearanceBudget = chord - (2 * px(dc, 24));
+        var clearanceBudget = chord - (2 * px(dc, 26));
         return budget < clearanceBudget ? budget : clearanceBudget;
+    }
+
+    function mainChordClearanceBudget(dc as Graphics.Dc, y as Lang.Number) as Lang.Number {
+        var radius = Math.round((dc.getWidth() < dc.getHeight()
+            ? dc.getWidth() : dc.getHeight()) * 0.485).toNumber();
+        var dy = (y - (dc.getHeight() / 2)).abs();
+        var clearance = px(dc, 26);
+        if (dy >= radius) { return dc.getWidth() - (2 * clearance); }
+        var halfChord = Math.sqrt((radius * radius) - (dy * dy));
+        return Math.floor(halfChord * 2).toNumber() - (2 * clearance);
     }
 
     function row(dc as Graphics.Dc, y as Lang.Number, label as Lang.String, value as Lang.String) as Void {
