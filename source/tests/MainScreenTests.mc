@@ -78,3 +78,41 @@ function mainLongestDateFixtureUsesExpectedCalendarLabel(logger as Test.Logger) 
     Test.assertEqual("Wed 30 Sep", Ui.shortDate(testWall(2026, 9, 30, 23, 59)));
     return true;
 }
+
+(:test)
+function mainDemoFixturesCoverCountdownAndLatenessTiers(logger as Test.Logger) as Lang.Boolean {
+    var now = mainDemoReferenceUtc(testWall(2026, 9, 17, 12, 26));
+    var fourteen = demoState(:ringIn14h, now);
+    var fortyFive = demoState(:ringIn45m, now);
+    var lateHours = demoState(:overdue29h, now);
+    var lateDays = demoState(:overdue2d, now);
+    Test.assertEqual(14 * CalendarMath.SECONDS_PER_HOUR,
+        ScheduleModel.deriveStatus(now, fourteen[:active], fourteen[:regimen])[:secondsRemaining]);
+    Test.assertEqual(45 * CalendarMath.SECONDS_PER_MINUTE,
+        ScheduleModel.deriveStatus(now, fortyFive[:active], fortyFive[:regimen])[:secondsRemaining]);
+    Test.assertEqual(-29 * CalendarMath.SECONDS_PER_HOUR,
+        ScheduleModel.deriveStatus(now, lateHours[:active], lateHours[:regimen])[:secondsRemaining]);
+    Test.assertEqual(-2 * CalendarMath.SECONDS_PER_DAY,
+        ScheduleModel.deriveStatus(now, lateDays[:active], lateDays[:regimen])[:secondsRemaining]);
+    return true;
+}
+
+(:test)
+function mainDemoFixturesCoverSeriousTemporaryAndLongDateStates(logger as Test.Logger) as Lang.Boolean {
+    var now = mainDemoReferenceUtc(testWall(2026, 9, 17, 12, 26));
+    var free = demoState(:ringFree8d, now);
+    var worn = demoState(:ringIn29d, now);
+    var tempBefore = demoState(:temp250, now);
+    var tempAfter = demoState(:temp310, now);
+    var warning = demoState(:warningWrapLong, now);
+    var longDate = demoState(:clock12Long, now);
+    Test.assert(ScheduleModel.deriveStatus(now, free[:active], free[:regimen])[:ringFreeOverSevenDays]);
+    Test.assert(ScheduleModel.deriveStatus(now, worn[:active], worn[:regimen])[:ringInOverFourWeeks]);
+    Test.assertEqual((2 * CalendarMath.SECONDS_PER_HOUR) + (50 * CalendarMath.SECONDS_PER_MINUTE),
+        ScheduleModel.deriveStatus(now, tempBefore[:active], tempBefore[:regimen])[:tempElapsed]);
+    Test.assertEqual((3 * CalendarMath.SECONDS_PER_HOUR) + (10 * CalendarMath.SECONDS_PER_MINUTE),
+        ScheduleModel.deriveStatus(now, tempAfter[:active], tempAfter[:regimen])[:tempElapsed]);
+    Test.assert(ScheduleModel.deriveStatus(now, warning[:active], warning[:regimen])[:clockBeforeInsertion]);
+    Test.assertEqual("Wed 30 Sep", Ui.shortDate((longDate[:active] as Lang.Dictionary)[:removeDueUtc]));
+    return true;
+}

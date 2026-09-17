@@ -4,12 +4,24 @@ import Toybox.Math;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
+(:production)
+function reportMainScreenMemory() as Void { }
+
+(:debug)
+function reportMainScreenMemory() as Void {
+    var stats = Toybox.System.getSystemStats();
+    Toybox.System.println("RING_TRACKER_MAIN_MEMORY="
+        + stats.usedMemory + "/" + stats.totalMemory);
+}
+
 class MainView extends WatchUi.View {
     private var _timer as Timer.Timer?;
+    private var _memoryReported as Lang.Boolean;
 
     function initialize() {
         View.initialize();
         _timer = null;
+        _memoryReported = false;
     }
 
     function onShow() as Void {
@@ -44,6 +56,7 @@ class MainView extends WatchUi.View {
         if (active == null) {
             Ui.centered(dc, dc.getHeight() / 2, Ui.s(Rez.Strings.SetupNeeded),
                 Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 280));
+            reportMemoryOnce();
             return;
         }
         var regimen = state[:regimen] as Lang.Dictionary;
@@ -56,6 +69,13 @@ class MainView extends WatchUi.View {
         } else {
             drawStatus(dc, active, status, reminders, nowUtc);
         }
+        reportMemoryOnce();
+    }
+
+    private function reportMemoryOnce() as Void {
+        if (_memoryReported) { return; }
+        _memoryReported = true;
+        reportMainScreenMemory();
     }
 
     private function drawArc(dc as Graphics.Dc, active as Lang.Dictionary,
