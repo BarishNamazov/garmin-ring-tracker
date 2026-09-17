@@ -4,7 +4,7 @@ import Toybox.Time;
 import Toybox.Time.Gregorian;
 
 module SettingsBridge {
-    const PROPERTY_SCHEMA_VERSION = 2;
+    const PROPERTY_SCHEMA_VERSION = 3;
 
     function isoForUtc(utcSeconds as Lang.Number) as Lang.String {
         var f = CalendarMath.localFields(utcSeconds);
@@ -174,7 +174,7 @@ module SettingsBridge {
         var g = state[:regimen] as Lang.Dictionary;
         return [r[:reminder1Hour], r[:reminder1Minute], r[:reminder2Hour], r[:reminder2Minute],
             r[:reminder2Enabled], r[:dayBeforeEnabled], g[:daysIn], g[:daysOut],
-            r[:overdueRepeatHours], r[:vibrationEnabled], r[:soundEnabled], r[:clockFormat]];
+            r[:overdueRepeatHours], r[:vibrationEnabled], r[:soundEnabled], 0];
     }
 
     function propertyConfigFromState(state as Lang.Dictionary) as Lang.Array {
@@ -184,8 +184,9 @@ module SettingsBridge {
     function normalizeConfigForProperties(values as Lang.Array) as Lang.Array {
         var r1 = partsFromMinutes(roundToQuarter(minutesFromParts(values[0], values[1])));
         var r2 = partsFromMinutes(roundToQuarter(minutesFromParts(values[2], values[3])));
+        var repeat = values[8] == 12 || values[8] == 24 ? 24 : values[8];
         return [r1[0], r1[1], r2[0], r2[1], values[4], values[5], values[6], values[7],
-            values[8], values[9], values[10], values[11]];
+            repeat, values[9], values[10], 0];
     }
 
     function configFromProperties() as Lang.Array? {
@@ -198,7 +199,8 @@ module SettingsBridge {
             Properties.getValue("reminder2Enabled"), Properties.getValue("dayBeforeEnabled"),
             Properties.getValue("daysIn"), Properties.getValue("daysOut"),
             Properties.getValue("overdueRepeatHours"), Properties.getValue("vibrationEnabled"),
-            Properties.getValue("soundEnabled"), Properties.getValue("clockFormat")];
+            Properties.getValue("soundEnabled"), 0];
+        if (values[8] == 12) { values[8] = 24; }
         var keys = ["reminderHour", "reminderMinute", "reminder2Hour", "reminder2Minute",
             "reminder2Enabled", "dayBeforeEnabled", "daysIn", "daysOut",
             "overdueRepeatHours", "vibrationEnabled", "soundEnabled", "clockFormat"];
@@ -224,9 +226,22 @@ module SettingsBridge {
     function migrateLegacyProperties(state as Lang.Dictionary,
                                      nowUtc as Lang.Number) as Lang.Boolean {
         var version = Properties.getValue("settingsSchemaVersion");
-        if (version instanceof Lang.Number && version >= PROPERTY_SCHEMA_VERSION) { return false; }
-
         var reminders = state[:reminders] as Lang.Dictionary;
+        var clockChanged = reminders[:clockFormat] != 0
+            || Properties.getValue("clockFormat") != 0;
+        reminders[:clockFormat] = 0;
+        if (!(version instanceof Lang.Number) || version < PROPERTY_SCHEMA_VERSION) {
+            if (reminders[:overdueRepeatHours] == 12 || reminders[:overdueRepeatHours] == 24) {
+                reminders[:overdueRepeatHours] = 24;
+            }
+        }
+        if (Properties.getValue("clockFormat") != 0) {
+            Properties.setValue("clockFormat", 0);
+        }
+        if (version instanceof Lang.Number && version >= PROPERTY_SCHEMA_VERSION) {
+            return clockChanged;
+        }
+
         var sync = state[:settingsSync] as Lang.Dictionary;
         var pendingConfig = sync[:pendingConfigSnapshot] instanceof Lang.Array;
         var oldR1Hour = Properties.getValue("reminderHour");
@@ -322,7 +337,7 @@ module SettingsBridge {
         r[:reminder2Enabled] = values[4]; r[:dayBeforeEnabled] = values[5];
         g[:daysIn] = values[6]; g[:daysOut] = values[7];
         r[:overdueRepeatHours] = values[8]; r[:vibrationEnabled] = values[9];
-        r[:soundEnabled] = values[10]; r[:clockFormat] = values[11];
+        r[:soundEnabled] = values[10]; r[:clockFormat] = 0;
     }
 
     function writeConfigProperties(values as Lang.Array) as Void {
@@ -335,7 +350,7 @@ module SettingsBridge {
         Properties.setValue("overdueRepeatHours", values[8]);
         Properties.setValue("vibrationEnabled", values[9]);
         Properties.setValue("soundEnabled", values[10]);
-        Properties.setValue("clockFormat", values[11]);
+        Properties.setValue("clockFormat", 0);
     }
 
     function writeInsertionPair(pair as Lang.Dictionary) as Void {

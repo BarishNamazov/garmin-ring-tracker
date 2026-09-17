@@ -20,6 +20,7 @@
         <property id="overdueRepeatHours" type="number">6</property>
         <property id="vibrationEnabled" type="boolean">true</property>
         <property id="soundEnabled" type="boolean">false</property>
+        <!-- Retained without a control so older overrides can migrate to the watch setting. -->
         <property id="clockFormat" type="number">0</property>
     </properties>
 </resources>

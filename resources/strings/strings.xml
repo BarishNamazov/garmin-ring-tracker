@@ -19,12 +19,7 @@
     <string id="DaysInPrompt">Use only with your clinician's advice.</string>
     <string id="DaysOutTitle">Days ring-free</string>
     <string id="DaysOutPrompt">0 means replace immediately.</string>
-    <string id="OverdueRepeatTitle">Overdue repeat</string>
-    <string id="Repeat1Hour">1 hour</string>
-    <string id="Repeat3Hours">3 hours</string>
-    <string id="Repeat6Hours">6 hours</string>
     <string id="Repeat12Hours">12 hours</string>
-    <string id="Repeat24Hours">24 hours</string>
     <string id="VibrationTitle">Vibration</string>
     <string id="SoundTitle">Sound</string>
     <string id="ForegroundAttentionPrompt">When the app opens.</string>
@@ -34,6 +29,25 @@
     <string id="Clock24Hour">24-hour</string>
     <string id="Am">AM</string>
     <string id="Pm">PM</string>
+    <string id="MenuNoCycleTitle">No cycle</string>
+    <string id="MenuRingInTitle">Ring in · day $1$</string>
+    <string id="MenuRingFreeTitle">Ring-free · day $1$</string>
+    <string id="MenuRingOutTitle">Ring out · $1$:$2$</string>
+    <string id="MenuRemoveRing">Remove ring</string>
+    <string id="MenuStartRingFree">Start ring-free week</string>
+    <string id="MenuRingOutBriefly">Ring out briefly</string>
+    <string id="MenuBackWithinThreeHours">Back in within 3 h</string>
+    <string id="MenuEditInsertion">Edit insertion time</string>
+    <string id="MenuInsertRing">Insert ring</string>
+    <string id="MenuEditRemoval">Edit removal time</string>
+    <string id="MenuPutRingBack">Put ring back</string>
+    <string id="MenuKeepOut">Keep out</string>
+    <string id="MenuUndoRingOut">Undo ring out</string>
+    <string id="MenuRemoveEntry">Remove this entry</string>
+    <string id="MenuInsertNow">Insert ring now</string>
+    <string id="MenuRingAlreadyIn">Ring already in…</string>
+    <string id="MenuChooseDateTime">Choose date &amp; time</string>
+    <string id="MenuLogsCurrentTime">Logs current time</string>
     <string id="MenuTitle">Menu</string>
     <string id="ScheduleAidTitle">Ring Tracker</string>
     <string id="DisclaimerLine1">Schedule aid, not medical advice.</string>
@@ -65,6 +79,38 @@ $1$</string>
 $1$ · $2$</string>
     <string id="SetRemovalQuestion">Set removal?
 $1$ · $2$</string>
+    <string id="ConfirmDueNow">Due now</string>
+    <string id="ConfirmDueInOneHour">Due in 1 hour</string>
+    <string id="ConfirmDueInHours">Due in $1$ hours</string>
+    <string id="ConfirmDueOneHourAgo">Due 1 hour ago</string>
+    <string id="ConfirmDueHoursAgo">Due $1$ hours ago</string>
+    <string id="ConfirmDueInOneDay">Due in 1 day</string>
+    <string id="ConfirmDueInDays">Due in $1$ days</string>
+    <string id="ConfirmDueOneDayAgo">Due 1 day ago</string>
+    <string id="ConfirmDueDaysAgo">Due $1$ days ago</string>
+    <string id="ConfirmInsertNow">Insert ring now?
+$1$</string>
+    <string id="ConfirmRemoveNow">Remove ring now?
+$1$</string>
+    <string id="ConfirmReplaceNow">Replace ring now?
+$1$</string>
+    <string id="ConfirmFirstCycle">First cycle</string>
+    <string id="ConfirmRecordInsertion">Record insertion at
+$1$</string>
+    <string id="ConfirmEarlyInsert">Day $1$ of $2$ — insert early?
+$3$</string>
+    <string id="ConfirmChangeInsertion">Change insertion to
+$1$</string>
+    <string id="ConfirmChangeRemoval">Change removal to
+$1$</string>
+    <string id="ConfirmRingOutBriefly">Ring out briefly now?
+Back in within 3 hours</string>
+    <string id="ConfirmPutRingBack">Put ring back now?
+Out $1$</string>
+    <string id="ConfirmKeepOut">Start ring-free week?
+Removed $1$</string>
+    <string id="ConfirmUndoRingOut">Undo ring out?
+Remove this entry</string>
     <string id="TempOutQuestion">Ring out now?</string>
     <string id="BackInQuestion">Ring back in now?
 Out $1$</string>
@@ -146,6 +192,10 @@ Out $1$</string>
     <string id="BeyondFourWeeks">Ring in over 4 weeks. Replace now.</string>
     <string id="WatchBeforeInsertion">Check insertion date</string>
     <string id="AdjustTitle">Edit dates</string>
+    <string id="EditCorrectDates">Correct dates</string>
+    <string id="EditInserted">Inserted</string>
+    <string id="EditRemoved">Removed</string>
+    <string id="EditNotYetDue">Not yet — due $1$</string>
     <string id="Insertion">Insertion</string>
     <string id="Removal">Removal</string>
     <string id="InsertionDate">Insertion date</string>
@@ -160,6 +210,21 @@ Out $1$</string>
     <string id="InvalidEventOrder">That time conflicts with another event.</string>
     <string id="FutureEvent">Choose now or an earlier time.</string>
     <string id="ReminderTime">Reminder 1</string>
+    <string id="SettingsReminder1">Reminder 1</string>
+    <string id="SettingsReminder2">Reminder 2</string>
+    <string id="SettingsReminder2Time">Reminder 2 time</string>
+    <string id="SettingsDayBefore">Day before</string>
+    <string id="SettingsRepeatIfMissed">Repeat if missed</string>
+    <string id="SettingsEveryHour">Every hour</string>
+    <string id="SettingsEveryThreeHours">Every 3 hours</string>
+    <string id="SettingsEverySixHours">Every 6 hours</string>
+    <string id="SettingsRepeatOff">Off</string>
+    <string id="SettingsRingIn">Ring in</string>
+    <string id="SettingsRingOut">Ring out</string>
+    <string id="SettingsDaysValue">$1$ days</string>
+    <string id="SettingsVibration">Vibration</string>
+    <string id="SettingsSound">Sound</string>
+    <string id="SettingsSelected">Selected</string>
     <string id="DaysRingIn">Days ring in</string>
     <string id="DaysRingFree">Days ring-free</string>
     <string id="RepeatOverdue">Overdue repeat</string>
@@ -193,6 +258,21 @@ Clinician advice only.</string>
     <string id="SummarizedBadge">Some short times summarized</string>
     <string id="OpenInterval">Still out</string>
     <string id="AboutTitle">About</string>
+    <string id="TextFirstRunTitle">Ring Tracker</string>
+    <string id="TextFirstRunBody">Reminders for your ring schedule only. Not medical advice, and no measure of contraceptive protection.</string>
+    <string id="TextUnderstand">I understand</string>
+    <string id="TextRegimenTitle">Regimen</string>
+    <string id="TextRegimenSubtitle">NuvaRing</string>
+    <string id="TextRegimenIn">In</string>
+    <string id="TextRegimenOut">Out</string>
+    <string id="TextContinue">Continue</string>
+    <string id="TextAboutTitle">About</string>
+    <string id="TextProductVersion">Ring Tracker 1.3.0</string>
+    <string id="TextAboutDisclaimer">Schedule reminders only. Not medical advice.</string>
+    <string id="TextDone">Done</string>
+    <string id="TextMigrationTitle">Dates updated</string>
+    <string id="TextMigrationBody">Your schedule now uses the real dates you inserted and removed the ring. Review them under &quot;Edit dates&quot;.</string>
+    <string id="TextOK">OK</string>
     <string id="ProductVersion">Ring Tracker v1.2.0</string>
     <string id="SupportedScope">NuvaRing only.</string>
     <string id="ReminderLimit">Reminders can be delayed. Keep another reminder.</string>
@@ -299,7 +379,7 @@ Phone $2$</string>
     <string id="ReminderSettingsGroup">Reminders</string>
     <string id="ReminderSettingsDescription">Times and repeat behavior</string>
     <string id="DisplaySettingsGroup">Display</string>
-    <string id="DisplaySettingsDescription">Clock and foreground alerts</string>
+    <string id="SettingsDisplayDescription">Foreground alerts</string>
     <string id="InsertionDateTitle">Insertion date</string>
     <string id="InsertionDatePrompt">Choose the actual insertion date.</string>
     <string id="InsertionTimeTitle">Insertion time</string>

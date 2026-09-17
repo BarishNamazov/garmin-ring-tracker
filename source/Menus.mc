@@ -6,10 +6,58 @@ module Menus {
         return new WatchUi.MenuItem(label, subLabel, id, null);
     }
 
+    function toggle(label, id, enabled as Lang.Boolean) as WatchUi.ToggleMenuItem {
+        return new WatchUi.ToggleMenuItem(label, null, id, enabled, null);
+    }
+
+    function mainTitle(state as Lang.Dictionary, nowUtc as Lang.Number) as Lang.String {
+        var active = state[:active] as Lang.Dictionary?;
+        if (active == null) { return Ui.s(Rez.Strings.MenuNoCycleTitle); }
+        var open = ScheduleModel.tempOpen(active as Lang.Dictionary);
+        if (open != null) {
+            var elapsed = nowUtc - (open as Lang.Dictionary)[:outUtc];
+            if (elapsed < 0) { elapsed = 0; }
+            var totalMinutes = elapsed / 60;
+            return Ui.fmt(Rez.Strings.MenuRingOutTitle,
+                [totalMinutes / 60, (totalMinutes % 60).format("%02d")]);
+        }
+        if ((active as Lang.Dictionary)[:removalUtc] != null) {
+            return Ui.fmt(Rez.Strings.MenuRingFreeTitle,
+                [CalendarMath.dayOfCycle(nowUtc, (active as Lang.Dictionary)[:removalUtc])]);
+        }
+        return Ui.fmt(Rez.Strings.MenuRingInTitle,
+            [CalendarMath.dayOfCycle(nowUtc, (active as Lang.Dictionary)[:insertionUtc])]);
+    }
+
+    function scheduleFact(deltaSeconds as Lang.Number) as Lang.String {
+        if (deltaSeconds.abs() < 60) { return Ui.s(Rez.Strings.ConfirmDueNow); }
+        var future = deltaSeconds > 0;
+        var absolute = deltaSeconds.abs();
+        if (absolute >= CalendarMath.SECONDS_PER_DAY) {
+            var days = absolute / CalendarMath.SECONDS_PER_DAY;
+            if (future) {
+                return Ui.fmt(days == 1 ? Rez.Strings.ConfirmDueInOneDay
+                    : Rez.Strings.ConfirmDueInDays, days == 1 ? [] : [days]);
+            }
+            return Ui.fmt(days == 1 ? Rez.Strings.ConfirmDueOneDayAgo
+                : Rez.Strings.ConfirmDueDaysAgo, days == 1 ? [] : [days]);
+        }
+        var hours = absolute / CalendarMath.SECONDS_PER_HOUR;
+        if (hours < 1) { hours = 1; }
+        if (future) {
+            return Ui.fmt(hours == 1 ? Rez.Strings.ConfirmDueInOneHour
+                : Rez.Strings.ConfirmDueInHours, hours == 1 ? [] : [hours]);
+        }
+        return Ui.fmt(hours == 1 ? Rez.Strings.ConfirmDueOneHourAgo
+            : Rez.Strings.ConfirmDueHoursAgo, hours == 1 ? [] : [hours]);
+    }
+
     function insertionMenu() as WatchUi.Menu2 {
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.InitialInsertionTitle});
-        menu.addItem(item(Rez.Strings.InsertedNow, null, :insertNow));
-        menu.addItem(item(Rez.Strings.ChooseDateTime, null, :chooseInsert));
+        var menu = new WatchUi.Menu2({:title => Rez.Strings.MenuNoCycleTitle});
+        menu.addItem(item(Rez.Strings.MenuInsertNow, null, :insertNow));
+        menu.addItem(item(Rez.Strings.MenuRingAlreadyIn, Rez.Strings.MenuChooseDateTime, :alreadyIn));
+        menu.addItem(item(Rez.Strings.Settings, null, :settings));
+        menu.addItem(item(Rez.Strings.AboutDisclaimer, null, :about));
         return menu;
     }
 
@@ -18,87 +66,96 @@ module Menus {
     }
 
     function mainMenuWithFocus(state as Lang.Dictionary, focus as Lang.Number) as WatchUi.Menu2 {
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.MenuTitle, :focus => focus});
+        var menu = new WatchUi.Menu2({:title => mainTitle(state, currentUtc()), :focus => focus});
         var active = state[:active] as Lang.Dictionary?;
         if (active == null) {
-            menu.addItem(item(Rez.Strings.RingInsertedNow, null, :insertNow));
+            menu.addItem(item(Rez.Strings.MenuInsertNow, null, :insertNow));
+            menu.addItem(item(Rez.Strings.MenuRingAlreadyIn, Rez.Strings.MenuChooseDateTime, :alreadyIn));
         } else {
             if (active[:removalUtc] == null) {
                 var open = ScheduleModel.tempOpen(active);
-                if (open != null) { menu.addItem(item(Rez.Strings.RingBackIn, null, :backIn)); }
-                menu.addItem(item(Rez.Strings.RingRemovedNow, null, :removeNow));
-                if (open == null) { menu.addItem(item(Rez.Strings.RingOutTemporarily, null, :tempOut)); }
-                menu.addItem(item(Rez.Strings.RingInsertedNow, null, :insertNow));
+                if (open != null) {
+                    menu.addItem(item(Rez.Strings.MenuPutRingBack, Rez.Strings.MenuLogsCurrentTime, :backIn));
+                    menu.addItem(item(Rez.Strings.MenuKeepOut, Rez.Strings.MenuStartRingFree, :keepOut));
+                    menu.addItem(item(Rez.Strings.MenuUndoRingOut, Rez.Strings.MenuRemoveEntry, :undoRingOut));
+                } else {
+                    menu.addItem(item(Rez.Strings.MenuRemoveRing, Rez.Strings.MenuStartRingFree, :removeNow));
+                    menu.addItem(item(Rez.Strings.MenuRingOutBriefly, Rez.Strings.MenuBackWithinThreeHours, :tempOut));
+                    menu.addItem(item(Rez.Strings.MenuEditInsertion, null, :adjust));
+                    menu.addItem(item(Rez.Strings.History, null, :history));
+                }
             } else {
-                menu.addItem(item(Rez.Strings.RingInsertedNow, null, :insertNow));
+                menu.addItem(item(Rez.Strings.MenuInsertRing, Rez.Strings.MenuLogsCurrentTime, :insertNow));
+                menu.addItem(item(Rez.Strings.MenuEditRemoval, null, :adjust));
+                menu.addItem(item(Rez.Strings.History, null, :history));
             }
-            menu.addItem(item(Rez.Strings.AdjustDates, null, :adjust));
-            menu.addItem(item(Rez.Strings.Upcoming, null, :upcoming));
         }
-        menu.addItem(item(Rez.Strings.History, null, :history));
         menu.addItem(item(Rez.Strings.Settings, null, :settings));
         menu.addItem(item(Rez.Strings.AboutDisclaimer, null, :about));
         addDebugMenuItem(menu);
         return menu;
     }
 
-    function adjustMenu(state as Lang.Dictionary) as WatchUi.Menu2 {
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.AdjustTitle});
-        var active = state[:active] as Lang.Dictionary;
-        menu.addItem(item(Rez.Strings.Insertion, null, :adjustInsertion));
-        if (active[:removalUtc] != null) { menu.addItem(item(Rez.Strings.Removal, null, :adjustRemoval)); }
-        return menu;
+    function settingsMenu(state as Lang.Dictionary) as WatchUi.Menu2 {
+        return settingsMenuWithFocus(state, 0);
     }
 
-    function settingsMenu(state as Lang.Dictionary) as WatchUi.Menu2 {
+    function settingsMenuWithFocus(state as Lang.Dictionary, focus as Lang.Number) as WatchUi.Menu2 {
         var regimen = state[:regimen] as Lang.Dictionary;
         var reminders = state[:reminders] as Lang.Dictionary;
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.Settings});
-        menu.addItem(item(Rez.Strings.Reminder1, Ui.timeOnly(reminders[:reminder1Hour], reminders[:reminder1Minute], reminders[:clockFormat]), :reminder1));
-        menu.addItem(item(Rez.Strings.Reminder2, reminders[:reminder2Enabled]
-            ? Ui.timeOnly(reminders[:reminder2Hour], reminders[:reminder2Minute], reminders[:clockFormat])
-            : Ui.s(Rez.Strings.Off), :reminder2));
-        menu.addItem(item(Rez.Strings.DayBeforeReminder,
-            reminders[:dayBeforeEnabled] ? Rez.Strings.On : Rez.Strings.Off, :dayBefore));
-        menu.addItem(item(Rez.Strings.RepeatOverdue, Ui.fmt(Rez.Strings.HoursShortTemplate, [reminders[:overdueRepeatHours]]), :repeat));
-        menu.addItem(item(Rez.Strings.DaysRingIn, regimen[:daysIn].toString(), :daysIn));
-        if (regimen[:daysIn] > 28) {
-            menu.addItem(item(Rez.Strings.OutsideLabelBadge, null, :outsideLabelInfo));
+        var menu = new WatchUi.Menu2({:title => Rez.Strings.Settings, :focus => focus});
+        menu.addItem(item(Rez.Strings.SettingsReminder1,
+            Ui.timeOnly(reminders[:reminder1Hour], reminders[:reminder1Minute], 0), :reminder1));
+        menu.addItem(toggle(Rez.Strings.SettingsReminder2, :toggleReminder2,
+            reminders[:reminder2Enabled]));
+        if (reminders[:reminder2Enabled]) {
+            menu.addItem(item(Rez.Strings.SettingsReminder2Time,
+                Ui.timeOnly(reminders[:reminder2Hour], reminders[:reminder2Minute], 0), :reminder2Time));
         }
-        menu.addItem(item(Rez.Strings.DaysRingFree, regimen[:daysOut] == 0 ? Rez.Strings.ReplaceImmediately : regimen[:daysOut].toString(), :daysOut));
-        menu.addItem(item(Rez.Strings.Vibration, reminders[:vibrationEnabled] ? Rez.Strings.On : Rez.Strings.Off, :vibration));
-        menu.addItem(item(Rez.Strings.Sound, reminders[:soundEnabled] ? Rez.Strings.On : Rez.Strings.Off, :sound));
-        var clock = reminders[:clockFormat] == 12 ? Rez.Strings.Clock12Hour : (reminders[:clockFormat] == 24 ? Rez.Strings.Clock24Hour : Rez.Strings.ClockSystem);
-        menu.addItem(item(Rez.Strings.Clock, clock, :clock));
-        menu.addItem(item(Rez.Strings.ResetApp, null, :reset));
+        menu.addItem(toggle(Rez.Strings.SettingsDayBefore, :toggleDayBefore,
+            reminders[:dayBeforeEnabled]));
+        menu.addItem(item(Rez.Strings.SettingsRepeatIfMissed,
+            repeatLabel(reminders[:overdueRepeatHours]), :repeat));
+        menu.addItem(item(Rez.Strings.SettingsRingIn,
+            Ui.fmt(Rez.Strings.SettingsDaysValue, [regimen[:daysIn]]), :daysIn));
+        menu.addItem(item(Rez.Strings.SettingsRingOut,
+            Ui.fmt(Rez.Strings.SettingsDaysValue, [regimen[:daysOut]]), :daysOut));
+        menu.addItem(toggle(Rez.Strings.SettingsVibration, :toggleVibration,
+            reminders[:vibrationEnabled]));
+        menu.addItem(toggle(Rez.Strings.SettingsSound, :toggleSound,
+            reminders[:soundEnabled]));
         return menu;
     }
 
-    function reminder2Menu(state as Lang.Dictionary) as WatchUi.Menu2 {
-        var reminders = state[:reminders] as Lang.Dictionary;
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.Reminder2});
-        menu.addItem(item(Rez.Strings.Reminder2,
-            reminders[:reminder2Enabled] ? Rez.Strings.On : Rez.Strings.Off, :toggleReminder2));
-        menu.addItem(item(Rez.Strings.TimeTitle,
-            Ui.timeOnly(reminders[:reminder2Hour], reminders[:reminder2Minute], reminders[:clockFormat]), :reminder2Time));
-        return menu;
+    function settingsFocusForId(state as Lang.Dictionary, id) as Lang.Number {
+        var secondOn = (state[:reminders] as Lang.Dictionary)[:reminder2Enabled];
+        if (id == :toggleReminder2) { return 1; }
+        if (id == :reminder2Time) { return 2; }
+        var offset = secondOn ? 1 : 0;
+        if (id == :toggleDayBefore) { return 2 + offset; }
+        if (id == :repeat) { return 3 + offset; }
+        if (id == :daysIn) { return 4 + offset; }
+        if (id == :daysOut) { return 5 + offset; }
+        if (id == :toggleVibration) { return 6 + offset; }
+        if (id == :toggleSound) { return 7 + offset; }
+        return 0;
     }
 
-    function repeatMenu() as WatchUi.Menu2 {
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.RepeatTitle});
-        var values = [1, 3, 6, 12, 24];
+    function repeatLabel(value as Lang.Number) as Lang.String {
+        if (value == 1) { return Ui.s(Rez.Strings.SettingsEveryHour); }
+        if (value == 3) { return Ui.s(Rez.Strings.SettingsEveryThreeHours); }
+        if (value == 6) { return Ui.s(Rez.Strings.SettingsEverySixHours); }
+        return Ui.s(Rez.Strings.SettingsRepeatOff);
+    }
+
+    function repeatMenu(current as Lang.Number) as WatchUi.Menu2 {
+        var values = [1, 3, 6, 24];
+        var menu = new WatchUi.Menu2({:title => Rez.Strings.SettingsRepeatIfMissed,
+            :focus => PickerValues.indexOf(values, current)});
         for (var i = 0; i < values.size(); i += 1) {
-            var label = Ui.fmt(values[i] == 1 ? Rez.Strings.HourTemplate : Rez.Strings.HoursTemplate, [values[i]]);
-            menu.addItem(item(label, null, values[i]));
+            menu.addItem(item(repeatLabel(values[i]),
+                values[i] == current ? Rez.Strings.SettingsSelected : null, values[i]));
         }
-        return menu;
-    }
-
-    function clockMenu() as WatchUi.Menu2 {
-        var menu = new WatchUi.Menu2({:title => Rez.Strings.ClockTitle});
-        menu.addItem(item(Rez.Strings.ClockSystem, null, 0));
-        menu.addItem(item(Rez.Strings.Clock12Hour, null, 12));
-        menu.addItem(item(Rez.Strings.Clock24Hour, null, 24));
         return menu;
     }
 
@@ -160,7 +217,9 @@ class InsertionMenuDelegate extends WatchUi.Menu2InputDelegate {
     function initialize() { Menu2InputDelegate.initialize(); }
     function onSelect(item as WatchUi.MenuItem) as Void {
         if (item.getId() == :insertNow) { getApp().confirmAction(:insert, currentUtc(), null); }
-        else if (item.getId() == :chooseInsert) { PickerFlow.openDate(:insert, currentUtc()); }
+        else if (item.getId() == :alreadyIn) { PickerFlow.openDate(:insert, currentUtc()); }
+        else if (item.getId() == :settings) { getApp().showSettingsMenu(); }
+        else if (item.getId() == :about) { getApp().showAbout(); }
     }
     function onBack() as Void { getApp().showMain(); }
 }
@@ -170,14 +229,15 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
     function onSelect(item as WatchUi.MenuItem) as Void {
         var id = item.getId();
         var app = getApp();
-        if (id == :insertNow && app.getState()[:active] == null) {
-            WatchUi.switchToView(Menus.insertionMenu(), new InsertionMenuDelegate(), WatchUi.SLIDE_LEFT);
-        }
+        if (id == :insertNow && app.getState()[:active] == null) { app.confirmAction(:insert, currentUtc(), null); }
+        else if (id == :alreadyIn) { PickerFlow.openDate(:insert, currentUtc()); }
         else if (id == :insertNow) { app.confirmAction(:replace, currentUtc(), null); }
         else if (id == :removeNow) { app.confirmAction(:remove, currentUtc(), null); }
         else if (id == :tempOut) { app.confirmAction(:tempOut, currentUtc(), null); }
         else if (id == :backIn) { app.confirmAction(:backIn, currentUtc(), null); }
-        else if (id == :adjust) { WatchUi.switchToView(Menus.adjustMenu(app.getState()), new AdjustMenuDelegate(), WatchUi.SLIDE_LEFT); }
+        else if (id == :keepOut) { app.confirmAction(:keepOut, currentUtc(), null); }
+        else if (id == :undoRingOut) { app.confirmAction(:undoRingOut, currentUtc(), null); }
+        else if (id == :adjust) { WatchUi.switchToView(new CorrectDatesView(), new CorrectDatesDelegate(), WatchUi.SLIDE_LEFT); }
         else if (id == :upcoming) { app.showUpcoming(); }
         else if (id == :settings) { app.showSettingsMenu(); }
         else if (id == :history) { app.showHistory(); }
@@ -187,19 +247,6 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
     function onBack() as Void { getApp().showMain(); }
 }
 
-class AdjustMenuDelegate extends WatchUi.Menu2InputDelegate {
-    function initialize() { Menu2InputDelegate.initialize(); }
-    function onSelect(item as WatchUi.MenuItem) as Void {
-        var state = getApp().getState();
-        var active = state[:active] as Lang.Dictionary;
-        var id = item.getId() as Lang.Symbol;
-        var start = active[:insertionUtc];
-        if (id == :adjustRemoval) { start = active[:removalUtc]; }
-        PickerFlow.openDate(id, start);
-    }
-    function onBack() as Void { getApp().showMainMenu(); }
-}
-
 class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
     function initialize() { Menu2InputDelegate.initialize(); }
     function onSelect(item as WatchUi.MenuItem) as Void {
@@ -207,30 +254,19 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
         var state = getApp().getState();
         var regimen = state[:regimen] as Lang.Dictionary;
         if (id == :reminder1) { PickerFlow.openTime(:setReminder, currentUtc()); }
-        else if (id == :reminder2) { WatchUi.switchToView(Menus.reminder2Menu(state), new Reminder2MenuDelegate(), WatchUi.SLIDE_LEFT); }
-        else if (id == :dayBefore) { getApp().confirmAction(:toggleDayBefore, currentUtc(), null); }
-        else if (id == :daysIn) { PickerFlow.openNumber(:setDaysIn, 21, 35, regimen[:daysIn], Rez.Strings.DaysRingIn); }
-        else if (id == :daysOut) { PickerFlow.openNumber(:setDaysOut, 0, 7, regimen[:daysOut], Rez.Strings.DaysRingFree); }
-        else if (id == :outsideLabelInfo) { getApp().showInfo(Rez.Strings.OutsideLabelBadge, [Ui.s(Rez.Strings.OutsideLabelNotice)]); }
-        else if (id == :repeat) { WatchUi.switchToView(Menus.repeatMenu(), new ValueMenuDelegate(:setRepeat), WatchUi.SLIDE_LEFT); }
-        else if (id == :vibration) { getApp().confirmAction(:toggleVibration, currentUtc(), null); }
-        else if (id == :sound) { getApp().confirmAction(:toggleSound, currentUtc(), null); }
-        else if (id == :clock) { WatchUi.switchToView(Menus.clockMenu(), new ValueMenuDelegate(:setClock), WatchUi.SLIDE_LEFT); }
-        else if (id == :reset) { getApp().confirmAction(:reset, currentUtc(), null); }
-    }
-    function onBack() as Void { getApp().showMain(); }
-}
-
-class Reminder2MenuDelegate extends WatchUi.Menu2InputDelegate {
-    function initialize() { Menu2InputDelegate.initialize(); }
-    function onSelect(item as WatchUi.MenuItem) as Void {
-        if (item.getId() == :toggleReminder2) {
-            getApp().confirmAction(:toggleReminder2, currentUtc(), null);
-        } else if (item.getId() == :reminder2Time) {
-            PickerFlow.openTime(:setReminder2, currentUtc());
+        else if (id == :reminder2Time) { PickerFlow.openTime(:setReminder2, currentUtc()); }
+        else if (id == :daysIn) { PickerFlow.openNumber(:setDaysIn, 21, 35, regimen[:daysIn], Rez.Strings.SettingsRingIn); }
+        else if (id == :daysOut) { PickerFlow.openNumber(:setDaysOut, 0, 7, regimen[:daysOut], Rez.Strings.SettingsRingOut); }
+        else if (id == :repeat) {
+            WatchUi.switchToView(Menus.repeatMenu((state[:reminders] as Lang.Dictionary)[:overdueRepeatHours]),
+                new ValueMenuDelegate(:setRepeat), WatchUi.SLIDE_LEFT);
+        }
+        else if (id == :toggleReminder2 || id == :toggleDayBefore
+            || id == :toggleVibration || id == :toggleSound) {
+            getApp().setToggle(id, (item as WatchUi.ToggleMenuItem).isEnabled());
         }
     }
-    function onBack() as Void { getApp().showSettingsMenu(); }
+    function onBack() as Void { getApp().showMain(); }
 }
 
 class ValueMenuDelegate extends WatchUi.Menu2InputDelegate {
