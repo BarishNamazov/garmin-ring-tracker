@@ -30,13 +30,15 @@ shape, and no decorative regimen bars or bezel tick.
 Cycle detail aligns all labels and values to one pair of edges. Actual events
 show a weekday timestamp with their variance and compact planned date; pending
 events say `due ...` and unavailable rows are omitted. `First recorded` is a
-caption under the title, brief-outs remain cycle-scoped, and the lifetime
-scheduled-removal count is explicitly labelled `Removals (all)` in the footer.
+caption under the title and brief-outs remain cycle-scoped. The lifetime
+removal count is omitted here so the two-row footer remains inside the 42 mm
+round safe area.
 
 Debug list fixtures cover `Wed 30 Sep`, a December-to-January projection, a
-three-day-overdue current cycle, 15-day early/late variance, and the 24-cycle
-history limit. Six focused tests cover date ranges, planned current endpoints,
-cycle-scoped variance text/severity, and the single January year cue.
+three-day-overdue current cycle, 15-day red and two-day amber variance, and the
+24-cycle history limit. Seven focused tests cover date ranges, planned current
+endpoints, cycle-scoped variance text/severity, the single January year cue,
+and the round-display edge calculation used by lower upcoming rows.
 
 ## v1.2 changes
 
@@ -177,7 +179,7 @@ the compiled settings schema are the available visual/build evidence.
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Reduced mirror codecs, glance rendering, and hourly reminder service |
 | Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production seams and debug-only clock, fixtures, notification previews, temporal-event diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
-| Tests | `source/tests/*.mc` | 135 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Tests | `source/tests/*.mc` | 136 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
 | Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, portable `grep` background resource/exit guard, simulator tests, and Store-package PRG hashes |
 | Visual evidence | `docs/screenshots/` | 102 native-resolution captures, including nine v1.2 picker states |
 
@@ -243,7 +245,7 @@ and the dedicated constrained implementations are tagged into those scopes.
 
 ## Tests
 
-The final simulator result is **135 passed, 0 failed, 0 errors**:
+The final simulator result is **136 passed, 0 failed, 0 errors**:
 
 | File | Tests |
 | --- | ---: |
@@ -395,13 +397,13 @@ round-edge clearance. Button navigation, BACK-to-previous-column behavior, and
 touch selection were also exercised in the simulator.
 
 The list UX round regenerated `history` and `cycle-detail` on all three sizes.
-History captures exercise the 24-cycle fixture and its longest scoped variance,
-`Out 15d early · In 15d late`, in one line. They also verify the date-range
-hierarchy, grey planned endpoint for the current cycle, symmetric focus shape,
-neutral scroll rail, and round-edge clearance. The detail captures verify the
-single label/value edges, weekday timestamps, variance plus planned-date
-context, omitted unavailable rows, `First recorded` caption, and the relocated
-`Removals (all)` lifetime statistic.
+History captures exercise the 24-cycle fixture with both its longest scoped
+variance, `Out 15d early · In 15d late`, in red and a two-day early/late row in
+amber. They also verify the date-range hierarchy, grey planned endpoint for the
+current cycle, symmetric focus shape, neutral scroll rail, and round-edge
+clearance. The detail captures verify the single label/value edges, weekday
+timestamps, variance plus planned-date context, omitted unavailable rows,
+`First recorded` caption, and a two-row footer clear of the lower chord.
 
 Both Upcoming pages were regenerated on all three sizes from the overdue
 December fixture. The captures verify fixed right-aligned `IN`/`OUT` columns,

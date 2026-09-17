@@ -36,8 +36,12 @@ function listVarianceIsScopedToCyclesOwnEvents(logger as Test.Logger) as Boolean
 function listVarianceSeverityKeepsSmallDeltasAmber(logger as Test.Logger) as Boolean {
     var cycle = ScheduleModel.newCycle(2, testWall(2026, 8, 1, 9, 0),
         ScheduleModel.defaultRegimen());
+    cycle[:removalDeltaSeconds] = 2 * CalendarMath.SECONDS_PER_DAY;
+    Test.assertEqual("Out 2d late", ListUi.varianceText(cycle));
+    Test.assertEqual(ListUi.VARIANCE_AMBER, ListUi.varianceLevel(cycle));
     cycle[:removalDeltaSeconds] = 3 * CalendarMath.SECONDS_PER_DAY;
-    Test.assertEqual("Out 3d late", ListUi.varianceText(cycle));
+    Test.assertEqual(ListUi.VARIANCE_AMBER, ListUi.varianceLevel(cycle));
+    cycle[:removalDeltaSeconds] = 7 * CalendarMath.SECONDS_PER_DAY;
     Test.assertEqual(ListUi.VARIANCE_AMBER, ListUi.varianceLevel(cycle));
     cycle[:removalDeltaSeconds] = 8 * CalendarMath.SECONDS_PER_DAY;
     Test.assertEqual(ListUi.VARIANCE_RED, ListUi.varianceLevel(cycle));
@@ -70,5 +74,18 @@ function listDemoFixtureRetainsTwentyFourValidCycles(logger as Test.Logger) as B
     var latest = (state[:history] as Lang.Array<Lang.Dictionary>)[23];
     Test.assertEqual(-15 * CalendarMath.SECONDS_PER_DAY, latest[:removalDeltaSeconds]);
     Test.assertEqual(15 * CalendarMath.SECONDS_PER_DAY, latest[:insertionDeltaSeconds]);
+    var amber = (state[:history] as Lang.Array<Lang.Dictionary>)[22];
+    Test.assertEqual(-2 * CalendarMath.SECONDS_PER_DAY, amber[:removalDeltaSeconds]);
+    Test.assertEqual(2 * CalendarMath.SECONDS_PER_DAY, amber[:insertionDeltaSeconds]);
+    Test.assertEqual(ListUi.VARIANCE_AMBER, ListUi.varianceLevel(amber));
+    return true;
+}
+
+(:test)
+function listRoundEdgeMovesInwardNearBottomChord(logger as Test.Logger) as Boolean {
+    var center = ListUi.roundRightEdge(390, 390, 195, 10, 7);
+    var lower = ListUi.roundRightEdge(390, 390, 340, 10, 7);
+    Test.assert(center > lower);
+    Test.assert(lower < 330);
     return true;
 }

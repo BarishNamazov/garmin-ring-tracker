@@ -213,16 +213,19 @@ function addListDemoHistory(state as Lang.Dictionary, active as Lang.Dictionary)
     for (var c = 0; c < ScheduleModel.MAX_HISTORY; c += 1) {
         var inserted = latestInsertion
             - ((ScheduleModel.MAX_HISTORY - c - 1) * 40 * CalendarMath.SECONDS_PER_DAY);
-        var removed = inserted + (6 * CalendarMath.SECONDS_PER_DAY);
+        var amberCycle = c == ScheduleModel.MAX_HISTORY - 2;
+        var removed = inserted + ((amberCycle ? 19 : 6) * CalendarMath.SECONDS_PER_DAY);
         var removeDue = CalendarMath.addLocalCalendarDays(inserted, 21)[:utc];
         var insertDue = CalendarMath.addLocalCalendarDays(removed, 7)[:utc];
-        var nextInserted = inserted + (28 * CalendarMath.SECONDS_PER_DAY);
+        var nextInserted = insertDue + ((amberCycle ? 2 : 15) * CalendarMath.SECONDS_PER_DAY);
         var firstRecorded = c == 0;
+        var insertionVariance = amberCycle ? 2 : 15;
         var insertionPlan = firstRecorded ? null
-            : inserted - (15 * CalendarMath.SECONDS_PER_DAY);
+            : inserted - (insertionVariance * CalendarMath.SECONDS_PER_DAY);
         history.add({:cycleId=>c + 1, :insertionUtc=>inserted,
             :insertionPlanUtc=>insertionPlan,
-            :insertionDeltaSeconds=>firstRecorded ? null : 15 * CalendarMath.SECONDS_PER_DAY,
+            :insertionDeltaSeconds=>firstRecorded ? null
+                : insertionVariance * CalendarMath.SECONDS_PER_DAY,
             :removeDueUtc=>removeDue, :removalUtc=>removed,
             :removalDeltaSeconds=>removed - removeDue, :insertDueUtc=>insertDue,
             :nextInsertionUtc=>nextInserted, :nextInsertionDeltaSeconds=>nextInserted - insertDue,

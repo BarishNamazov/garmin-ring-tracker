@@ -100,7 +100,6 @@ Out $1$</string>
     <string id="ListPlannedTemplate">planned $1$</string>
     <string id="ListNextIn">Next in</string>
     <string id="ListBriefOuts">Brief outs</string>
-    <string id="ListRemovalsAll">Removals (all)</string>
     <string id="CycleTemplate">Cycle $1$</string>
     <string id="UpcomingInTemplate">In $1$</string>
     <string id="UpcomingOutTemplate">Out $1$</string>

@@ -247,8 +247,6 @@ class CycleDetailView extends WatchUi.View {
             Ui.fmt(Rez.Strings.PlanTemplate, [daysIn, daysOut]));
         drawStat(dc, Ui.px(dc, 318), Ui.s(Rez.Strings.ListBriefOuts),
             ListUi.briefOutCount(cycle).toString());
-        drawStat(dc, Ui.px(dc, 342), Ui.s(Rez.Strings.ListRemovalsAll),
-            ListUi.removalCount(state).toString());
     }
 
     private function drawRecordedEvent(dc as Graphics.Dc, y as Lang.Number,

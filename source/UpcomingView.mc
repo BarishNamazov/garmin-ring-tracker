@@ -64,7 +64,8 @@ class UpcomingView extends WatchUi.View {
             return;
         }
 
-        var xIn = Ui.px(dc, 232);
+        var dateFont = dateFontFor(dc);
+        var xIn = inColumnEdge(dc, dateFont);
         var xOut = dc.getWidth() - Ui.px(dc, 64);
         dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xIn, Ui.px(dc, 70), Graphics.FONT_SYSTEM_XTINY,
@@ -81,7 +82,8 @@ class UpcomingView extends WatchUi.View {
             var rowIndex = _topIndex + visible;
             if (rowIndex >= _rows.size()) { break; }
             drawRow(dc, _rows[rowIndex] as Lang.Dictionary, rowIndex,
-                Ui.px(dc, rowYs[visible]), visible == 0 && rowIndex == 0);
+                Ui.px(dc, rowYs[visible]), visible == 0 && rowIndex == 0,
+                xIn, xOut, dateFont, false);
         }
         if (firstPageWithDivider) {
             Ui.centered(dc, Ui.px(dc, 170), Ui.s(Rez.Strings.ListIfRemovedToday),
@@ -91,7 +93,7 @@ class UpcomingView extends WatchUi.View {
         var peekIndex = _topIndex + 3;
         if (peekIndex < _rows.size()) {
             drawRow(dc, _rows[peekIndex] as Lang.Dictionary, peekIndex,
-                Ui.px(dc, 363), false);
+                Ui.px(dc, 350), false, xIn, xOut, dateFont, true);
         }
         Ui.drawScrollIndicator(dc, Ui.px(dc, 72), Ui.px(dc, 348),
             _topIndex, 6, 3, Ui.SECONDARY);
@@ -99,10 +101,13 @@ class UpcomingView extends WatchUi.View {
 
     private function drawRow(dc as Graphics.Dc, row as Lang.Dictionary,
                              rowIndex as Lang.Number, y as Lang.Number,
-                             drawCurrentState as Lang.Boolean) as Void {
+                             drawCurrentState as Lang.Boolean,
+                             xIn as Lang.Number, defaultXOut as Lang.Number,
+                             dateFont, peek as Lang.Boolean) as Void {
         var xLeft = Ui.px(dc, 56);
-        var xIn = Ui.px(dc, 232);
-        var xOut = dc.getWidth() - Ui.px(dc, 64);
+        var rowFont = peek ? Graphics.FONT_SYSTEM_XTINY : dateFont;
+        var chordX = ListUi.textRightEdge(dc, y, rowFont, Ui.px(dc, 7));
+        var xOut = chordX < defaultXOut ? chordX : defaultXOut;
         if (rowIndex == 0) {
             dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
             dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY,
@@ -118,22 +123,67 @@ class UpcomingView extends WatchUi.View {
         var inUtc = row[:inUtc] as Lang.Number;
         var outUtc = row[:outUtc] as Lang.Number;
         dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xIn, y, Graphics.FONT_SYSTEM_SMALL,
+        dc.drawText(xIn, y, rowFont,
             ListUi.dateWithYearCue(inUtc, _januaryUtc != null && inUtc == _januaryUtc),
             Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xOut, y, Graphics.FONT_SYSTEM_SMALL,
+        dc.drawText(xOut, y, rowFont,
             ListUi.dateWithYearCue(outUtc, _januaryUtc != null && outUtc == _januaryUtc),
             Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
 
         if (!drawCurrentState) { return; }
         if (_overdueSeconds != null) {
             dc.setColor(Ui.AMBER, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(xOut, y + Ui.px(dc, 27), Graphics.FONT_SYSTEM_XTINY,
+            dc.drawText(xOut, y + Ui.px(dc, 30), Graphics.FONT_SYSTEM_XTINY,
                 ListUi.overdueText(_overdueSeconds as Lang.Number),
                 Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
-        drawCurrentBar(dc, row, y + Ui.px(dc, 45));
+        drawCurrentBar(dc, row, y + Ui.px(dc, 51));
+    }
+
+    private function dateFontFor(dc as Graphics.Dc) {
+        var small = Graphics.FONT_SYSTEM_SMALL;
+        var available = (dc.getWidth() - Ui.px(dc, 64))
+            - (Ui.px(dc, 56) + widestEyebrow(dc) + Ui.px(dc, 12));
+        if (widestDateColumns(dc, small) + Ui.px(dc, 10) <= available) { return small; }
+        return Graphics.FONT_SYSTEM_TINY;
+    }
+
+    private function widestEyebrow(dc as Graphics.Dc) as Lang.Number {
+        var nowWidth = dc.getTextWidthInPixels(Ui.s(Rez.Strings.ListNow),
+            Graphics.FONT_SYSTEM_XTINY);
+        var nextWidth = dc.getTextWidthInPixels(Ui.s(Rez.Strings.ListNext),
+            Graphics.FONT_SYSTEM_XTINY);
+        return nowWidth > nextWidth ? nowWidth : nextWidth;
+    }
+
+    private function widestDateColumns(dc as Graphics.Dc, font) as Lang.Number {
+        var widestIn = 0;
+        var widestOut = 0;
+        for (var i = 0; i < _rows.size(); i += 1) {
+            var row = _rows[i] as Lang.Dictionary;
+            var inUtc = row[:inUtc] as Lang.Number;
+            var outUtc = row[:outUtc] as Lang.Number;
+            var inWidth = dc.getTextWidthInPixels(
+                ListUi.dateWithYearCue(inUtc, _januaryUtc != null && inUtc == _januaryUtc), font);
+            var outWidth = dc.getTextWidthInPixels(
+                ListUi.dateWithYearCue(outUtc, _januaryUtc != null && outUtc == _januaryUtc), font);
+            if (inWidth > widestIn) { widestIn = inWidth; }
+            if (outWidth > widestOut) { widestOut = outWidth; }
+        }
+        return widestIn + widestOut;
+    }
+
+    private function inColumnEdge(dc as Graphics.Dc, font) as Lang.Number {
+        var widestIn = 0;
+        for (var i = 0; i < _rows.size(); i += 1) {
+            var row = _rows[i] as Lang.Dictionary;
+            var inUtc = row[:inUtc] as Lang.Number;
+            var width = dc.getTextWidthInPixels(
+                ListUi.dateWithYearCue(inUtc, _januaryUtc != null && inUtc == _januaryUtc), font);
+            if (width > widestIn) { widestIn = width; }
+        }
+        return Ui.px(dc, 56) + widestEyebrow(dc) + Ui.px(dc, 12) + widestIn;
     }
 
     private function drawCurrentBar(dc as Graphics.Dc, row as Lang.Dictionary,

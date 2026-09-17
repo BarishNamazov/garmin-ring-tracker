@@ -108,23 +108,33 @@ module ListUi {
         return Ui.fmt(Rez.Strings.ListOverdueTemplate, [amount]);
     }
 
+    function roundRightEdge(width as Lang.Number, height as Lang.Number,
+                            y as Lang.Number, halfTextHeight as Lang.Number,
+                            margin as Lang.Number) as Lang.Number {
+        var radius = (width < height ? width : height) / 2;
+        var centerX = width / 2;
+        var centerY = height / 2;
+        var sampleY = y < centerY
+            ? y - halfTextHeight - margin
+            : y + halfTextHeight + margin;
+        var offsetY = (sampleY - centerY).abs();
+        if (offsetY >= radius) { return centerX; }
+        return centerX + Math.sqrt((radius * radius) - (offsetY * offsetY)).toNumber()
+            - margin;
+    }
+
+    function textRightEdge(dc as Graphics.Dc, y as Lang.Number, font,
+                           margin as Lang.Number) as Lang.Number {
+        return roundRightEdge(dc.getWidth(), dc.getHeight(), y,
+            Graphics.getFontHeight(font) / 2, margin);
+    }
+
     function dueText(utcSeconds as Lang.Number) as Lang.String {
         return Ui.fmt(Rez.Strings.ListDueTemplate, [Ui.shortDate(utcSeconds)]);
     }
 
     function plannedText(utcSeconds as Lang.Number) as Lang.String {
         return Ui.fmt(Rez.Strings.ListPlannedTemplate, [Ui.compactDate(utcSeconds)]);
-    }
-
-    function removalCount(state as Lang.Dictionary) as Lang.Number {
-        var count = 0;
-        var history = state[:history] as Lang.Array<Lang.Dictionary>;
-        for (var i = 0; i < history.size(); i += 1) {
-            if (history[i][:removalUtc] != null) { count += 1; }
-        }
-        var active = state[:active] as Lang.Dictionary?;
-        if (active != null && (active as Lang.Dictionary)[:removalUtc] != null) { count += 1; }
-        return count;
     }
 
     function briefOutCount(cycle as Lang.Dictionary) as Lang.Number {
