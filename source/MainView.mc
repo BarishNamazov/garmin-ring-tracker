@@ -259,7 +259,7 @@ class MainView extends WatchUi.View {
         var heroY = Ui.px(dc, warningLayout ? 174 : 205);
         var dateY = Ui.px(dc, warningLayout ? 252 : 297);
 
-        Ui.trackedCentered(dc, headerY, phaseText, Graphics.FONT_SYSTEM_SMALL,
+        Ui.trackedCentered(dc, headerY, phaseText, Graphics.FONT_SYSTEM_TINY,
             phaseColor, Ui.px(dc, 1));
         Ui.drawMainDuration(dc, heroY,
             Ui.mainCountdownGroups(status[:secondsRemaining]), null, Ui.PRIMARY);
@@ -406,8 +406,8 @@ class MainView extends WatchUi.View {
     private function drawTemporaryRing(dc as Graphics.Dc, elapsed as Lang.Number,
                                        color as Lang.Number) as Void {
         var cx = dc.getWidth() / 2;
-        var cy = Ui.px(dc, 184);
-        var radius = Ui.px(dc, 101);
+        var cy = Ui.px(dc, 176);
+        var radius = Ui.px(dc, 91);
         var stroke = Ui.px(dc, 7);
         dc.setPenWidth(stroke);
         dc.setColor(elapsed >= ScheduleModel.TEMP_LIMIT_SECONDS

@@ -11,6 +11,39 @@ local reminder slots. The manifest application UUID is
 and `UI.md` remain the v1.0 base where later requirements do not override them,
 and `REGIMEN.md` remains the medical-model source record.
 
+## UX round: main screen
+
+The v1.3 main screen uses a single white duration hero with a tracked,
+phase-coloured header. Remaining time is deliberately tiered: whole days at
+48 hours and above, days plus hours from 24 through 47 hours, hours below one
+day, and minutes below one hour. Zero-value components are omitted. Overdue
+time remains in hours through 47 hours and changes to whole days at 48 hours.
+Digits and units are measured as one composite before drawing so the visible
+value, rather than just its numeric run, is centred.
+
+The cycle arc now uses a 0.485-width outer radius and a 3.5%-width stroke. Its
+elapsed portion is dimmed, its marker scales with the stroke and has a black
+halo, and schedule seams have a physical black gap. Ring-free time is a dim
+track with a thin lifted-purple current/future line. Ordinary overdue states
+replace the schedule arc with a seven-day lateness meter; ring-free beyond
+seven days and ring-in beyond 28 days instead use a full red frame and show
+elapsed days rather than another countdown.
+
+Temporary-out states retain fixed text positions before and after the
+three-hour threshold. A separate inner progress ring makes the boundary
+visible, the elapsed value remains white, the cycle arc is reduced to a dim
+context ring without a marker, and the over-limit action and backup guidance
+occupy a reserved two-line zone. Action dates use measured, colour-separated
+prefix/date runs and degrade by removing the weekday, then the prefix, then
+stepping down the font; the 390 px target places time on a second line.
+
+Debug main-screen fixtures pin the clock to 17 Sep 2026 and cover 47 hours,
+14 hours, 45 minutes, 29 hours late, two days late, temporary-out at 2h50 and
+3h10, 29 days ring-in, eight days ring-free, the real longest label
+`Wed 30 Sep · 11:59 PM`, and a deliberately long clock-before-insertion
+warning. Main-screen debug builds print one foreground memory reading per view
+instance for repeatable simulator checks.
+
 ## v1.2 changes
 
 ### Native-style watch pickers
