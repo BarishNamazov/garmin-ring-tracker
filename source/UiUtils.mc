@@ -15,7 +15,6 @@ module Ui {
     const RED = 0xFF4D5E;
     const RING_IN_DIM = 0x196047;
     const RING_FREE_DIM = 0x4B4173;
-    const CYCLE_DIM = 0x101A17;
     const CYCLE_FREE_DIM = 0x1D1928;
 
     function s(id as Lang.ResourceId) as Lang.String {

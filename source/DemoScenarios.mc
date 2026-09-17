@@ -196,7 +196,7 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
             ? nowUtc - (29 * CalendarMath.SECONDS_PER_DAY) : nowUtc;
     }
     else if (scenario == :clock12Long) {
-        insertion = mainDemoWallUtc(2026, 9, 9, 23, 59, insertion);
+        insertion = mainDemoWallUtc(2026, 9, 9, 12, 26, insertion);
     }
     else if (scenario == :clock24) {
         insertion = nowUtc - (19 * CalendarMath.SECONDS_PER_DAY)

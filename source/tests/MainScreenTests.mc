@@ -79,7 +79,9 @@ function mainSeriousElapsedCopyUsesWholeDays(logger as Test.Logger) as Lang.Bool
 
 (:test)
 function mainLongestDateFixtureUsesExpectedCalendarLabel(logger as Test.Logger) as Lang.Boolean {
-    Test.assertEqual("Wed 30 Sep", Ui.shortDate(testWall(2026, 9, 30, 23, 59)));
+    var due = testWall(2026, 9, 30, 12, 26);
+    Test.assertEqual("Wed 30 Sep", Ui.shortDate(due));
+    Test.assertEqual("12:26 PM", Ui.timeForUtc(due, 12));
     return true;
 }
 
@@ -123,6 +125,8 @@ function mainDemoFixturesCoverSeriousTemporaryAndLongDateStates(logger as Test.L
         ScheduleModel.deriveStatus(now, tempAfter[:active], tempAfter[:regimen])[:tempElapsed]);
     Test.assert(ScheduleModel.deriveStatus(now, warning[:active], warning[:regimen])[:clockBeforeInsertion]);
     Test.assert(Ui.s(Rez.Strings.MainClockBeforeInsertion).length() > 60);
-    Test.assertEqual("Wed 30 Sep", Ui.shortDate((longDate[:active] as Lang.Dictionary)[:removeDueUtc]));
+    var longDue = (longDate[:active] as Lang.Dictionary)[:removeDueUtc];
+    Test.assertEqual("Wed 30 Sep", Ui.shortDate(longDue));
+    Test.assertEqual("12:26 PM", Ui.timeForUtc(longDue, 12));
     return true;
 }

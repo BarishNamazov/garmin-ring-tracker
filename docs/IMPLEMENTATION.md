@@ -30,19 +30,19 @@ seven days and ring-in beyond 28 days instead use a full red frame and show
 elapsed days rather than another countdown.
 
 Temporary-out states retain fixed text positions before and after the
-three-hour threshold. A separate inner progress ring makes the boundary
-visible, the elapsed value remains white, the cycle arc is reduced to a dim
-context ring without a marker, and the over-limit action and backup guidance
-occupy a reserved two-line zone. Action dates use measured, colour-separated
-prefix/date runs and degrade by removing the weekday, then the prefix, then
-stepping down the font; the 390 px target places time on a second line. Overdue
-due sentences use the wider arc-clearance budget so their required `Was due`
-wording remains intact.
+three-hour threshold. The temporary timer owns the outer arc: it advances in
+amber before three hours, changes to red at the limit, and shows overtime as a
+thicker red tail beyond 12 o'clock. No temporary-out progress geometry crosses
+the white elapsed value. The over-limit action and backup guidance occupy a
+reserved two-line zone. Action dates keep the grey action verb in every layout:
+they try the full date and time on one line, move time beneath, remove the
+weekday, and only then step down the date font. Overdue due sentences use the
+wider arc-clearance budget so their required `Was due` wording remains intact.
 
 Debug main-screen fixtures pin the clock to 17 Sep 2026 and cover 17 days,
 one day 12 hours, 14 hours, 45 minutes, 29 hours late, two days late,
 temporary-out at 2h50 and 3h10, 29 days ring-in, eight days ring-free, the real
-longest label `Wed 30 Sep · 11:59 PM`, and a deliberately long
+longest label `Remove · Wed 30 Sep · 12:26 PM`, and a deliberately long
 clock-before-insertion warning. Main-screen debug builds print one foreground
 memory reading per view instance for repeatable simulator checks. Safety copy
 uses the full safe chord rather than the narrower date budget, and the long

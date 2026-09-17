@@ -85,14 +85,15 @@ class MainView extends WatchUi.View {
         var cy = dc.getHeight() / 2;
         var radius = Ui.mainArcRadius(dc);
         var stroke = Ui.mainArcStroke(dc);
+
+        if (status[:temporaryOutOpen]) {
+            drawTemporaryArc(dc, status[:tempElapsed] as Lang.Number, radius, stroke);
+            return;
+        }
+
         dc.setPenWidth(stroke);
         dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, 90);
-
-        if (status[:temporaryOutOpen]) {
-            drawScheduleArc(dc, active, regimen, status, nowUtc, radius, stroke, true);
-            return;
-        }
 
         if (status[:ringFreeOverSevenDays] || status[:ringInOverFourWeeks]) {
             dc.setPenWidth(stroke);
@@ -114,13 +115,45 @@ class MainView extends WatchUi.View {
             return;
         }
 
-        drawScheduleArc(dc, active, regimen, status, nowUtc, radius, stroke, false);
+        drawScheduleArc(dc, active, regimen, status, nowUtc, radius, stroke);
+    }
+
+    private function drawTemporaryArc(dc as Graphics.Dc, elapsed as Lang.Number,
+                                      radius as Lang.Number, stroke as Lang.Number) as Void {
+        var cx = dc.getWidth() / 2;
+        var cy = dc.getHeight() / 2;
+        var limit = ScheduleModel.TEMP_LIMIT_SECONDS;
+        if (elapsed < limit) {
+            dc.setPenWidth(stroke);
+            dc.setColor(0x463418, Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, 90);
+            var fraction = elapsed.toFloat() / limit;
+            if (fraction <= 0.0) { return; }
+            dc.setColor(Ui.AMBER, Graphics.COLOR_TRANSPARENT);
+            dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE,
+                90, 90.0 - (360.0 * fraction));
+            return;
+        }
+
+        var completedStroke = Math.round(stroke * 0.55).toNumber();
+        if (completedStroke < Ui.px(dc, 5)) { completedStroke = Ui.px(dc, 5); }
+        dc.setPenWidth(completedStroke);
+        dc.setColor(Ui.RED, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, 90);
+
+        var overrun = elapsed - limit;
+        if (overrun <= 0) { return; }
+        var tailFraction = overrun.toFloat() / limit;
+        if (tailFraction > 1.0) { tailFraction = 1.0; }
+        dc.setPenWidth(stroke);
+        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE,
+            90, 90.0 - (360.0 * tailFraction));
     }
 
     private function drawScheduleArc(dc as Graphics.Dc, active as Lang.Dictionary,
                                      regimen as Lang.Dictionary, status as Lang.Dictionary,
                                      nowUtc as Lang.Number, radius as Lang.Number,
-                                     stroke as Lang.Number, dimCycle as Lang.Boolean) as Void {
+                                     stroke as Lang.Number) as Void {
         var cx = dc.getWidth() / 2;
         var cy = dc.getHeight() / 2;
         var boundary = active[:removalUtc] == null
@@ -138,19 +171,6 @@ class MainView extends WatchUi.View {
         var inEnd = boundaryAngle + 1.0;
         var outStart = boundaryAngle - 1.0;
         var outEnd = -269.0;
-
-        if (dimCycle) {
-            drawArcRange(dc, cx, cy, radius, inStart, inEnd, stroke, Ui.CYCLE_DIM);
-            if (regimen[:daysOut] > 0) {
-                drawArcRange(dc, cx, cy, radius, outStart, outEnd,
-                    stroke, Ui.CYCLE_FREE_DIM);
-            }
-            drawSeam(dc, cx, cy, radius, 90, stroke);
-            if (regimen[:daysOut] > 0) {
-                drawSeam(dc, cx, cy, radius, boundaryAngle, stroke);
-            }
-            return;
-        }
 
         var markerUtc = nowUtc;
         if (markerUtc > status[:underlyingActionUtc]) {
@@ -326,36 +346,23 @@ class MainView extends WatchUi.View {
         var font = Graphics.FONT_SYSTEM_TINY;
         var budget = Ui.mainChordBudget(dc, y);
 
-        if (dc.getWidth() <= 390) {
-            var dateRuns = [[prefix + " ", Ui.SECONDARY], [date, Ui.PRIMARY]];
-            if (Ui.runsWidth(dc, dateRuns, font) > budget) {
-                dateRuns = [[prefix + " ", Ui.SECONDARY], [compact, Ui.PRIMARY]];
-            }
-            if (Ui.runsWidth(dc, dateRuns, font) > budget) {
-                dateRuns = [[compact, Ui.PRIMARY]];
-            }
-            if (Ui.runsWidth(dc, dateRuns, font) > budget) {
-                font = Graphics.FONT_SYSTEM_XTINY;
-            }
-            Ui.centeredRuns(dc, y - Ui.px(dc, 13), dateRuns, font);
-            Ui.centered(dc, y + Ui.px(dc, 16), time, Graphics.FONT_SYSTEM_XTINY,
-                Ui.PRIMARY, budget);
+        var fullRuns = [[prefix + separator, Ui.SECONDARY],
+            [date + separator + time, Ui.PRIMARY]];
+        if (Ui.runsWidth(dc, fullRuns, font) <= budget) {
+            Ui.centeredRuns(dc, y, fullRuns, font);
             return;
         }
 
-        var runs = [[prefix + " ", Ui.SECONDARY],
-            [date + separator + time, Ui.PRIMARY]];
-        if (Ui.runsWidth(dc, runs, font) > budget) {
-            runs = [[prefix + " ", Ui.SECONDARY],
-                [compact + separator + time, Ui.PRIMARY]];
+        var dateRuns = [[prefix + separator, Ui.SECONDARY], [date, Ui.PRIMARY]];
+        if (Ui.runsWidth(dc, dateRuns, font) > budget) {
+            dateRuns = [[prefix + separator, Ui.SECONDARY], [compact, Ui.PRIMARY]];
         }
-        if (Ui.runsWidth(dc, runs, font) > budget) {
-            runs = [[compact + separator + time, Ui.PRIMARY]];
-        }
-        if (Ui.runsWidth(dc, runs, font) > budget) {
+        if (Ui.runsWidth(dc, dateRuns, font) > budget) {
             font = Graphics.FONT_SYSTEM_XTINY;
         }
-        Ui.centeredRuns(dc, y, runs, font);
+        Ui.centeredRuns(dc, y - Ui.px(dc, 13), dateRuns, font);
+        Ui.centered(dc, y + Ui.px(dc, 16), time, Graphics.FONT_SYSTEM_XTINY,
+            Ui.PRIMARY, Ui.mainChordBudget(dc, y + Ui.px(dc, 16)));
     }
 
     private function drawDueLine(dc as Graphics.Dc, y as Lang.Number, dueUtc as Lang.Number,
@@ -387,7 +394,6 @@ class MainView extends WatchUi.View {
         var elapsed = status[:tempElapsed] as Lang.Number;
         var over = elapsed >= ScheduleModel.TEMP_LIMIT_SECONDS;
         var stateColor = over ? Ui.RED : Ui.AMBER;
-        drawTemporaryRing(dc, elapsed, stateColor);
         Ui.trackedCentered(dc, Ui.px(dc, 70), Ui.s(Rez.Strings.RingIsOut),
             Graphics.FONT_SYSTEM_SMALL, stateColor, Ui.px(dc, 1));
         Ui.drawMainDuration(dc, Ui.px(dc, 150), Ui.mainElapsedGroups(elapsed),
@@ -406,24 +412,6 @@ class MainView extends WatchUi.View {
                 Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY,
                 Ui.mainChordClearanceBudget(dc, Ui.px(dc, 326)));
         }
-    }
-
-    private function drawTemporaryRing(dc as Graphics.Dc, elapsed as Lang.Number,
-                                       color as Lang.Number) as Void {
-        var cx = dc.getWidth() / 2;
-        var cy = Ui.px(dc, 176);
-        var radius = Ui.px(dc, 91);
-        var stroke = Ui.px(dc, 7);
-        dc.setPenWidth(stroke);
-        dc.setColor(elapsed >= ScheduleModel.TEMP_LIMIT_SECONDS
-            ? 0x42151B : 0x463418, Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, 90);
-        var fraction = elapsed.toFloat() / ScheduleModel.TEMP_LIMIT_SECONDS;
-        if (fraction > 1.0) { fraction = 1.0; }
-        if (fraction <= 0.0) { return; }
-        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE,
-            90, 90.0 - (360.0 * fraction));
     }
 
     private function drawWarning(dc as Graphics.Dc, text as Lang.String,
