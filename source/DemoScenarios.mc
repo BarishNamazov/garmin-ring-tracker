@@ -117,6 +117,11 @@ function reportOptionalServiceResult(kind, notificationShown as Lang.Boolean,
 
 (:debug)
 function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dictionary {
+    if (scenario == :overdueRemoval) {
+        nowUtc = demoLocalUtc(2026, 12, 25, 9, 0);
+    } else if (scenario == :maximumState) {
+        nowUtc = demoLocalUtc(2026, 10, 6, 9, 0);
+    }
     Storage.setValue("debugNowUtc", nowUtc);
     var state = ScheduleModel.defaultState();
     if (scenario == :fresh) { return state; }
@@ -127,7 +132,7 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     var insertion = nowUtc - (4 * CalendarMath.SECONDS_PER_DAY);
     if (scenario == :day5) { insertion = nowUtc - (4 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :beforeRemoval) { insertion = nowUtc - (19 * CalendarMath.SECONDS_PER_DAY); }
-    else if (scenario == :overdueRemoval) { insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :overdueRemoval) { insertion = nowUtc - (24 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :overdueLarge) {
         insertion = nowUtc - (33 * CalendarMath.SECONDS_PER_DAY) - (23 * CalendarMath.SECONDS_PER_HOUR);
     }
@@ -201,6 +206,16 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
 }
 
 (:debug)
+function demoLocalUtc(year as Lang.Number, month as Lang.Number, day as Lang.Number,
+                      hour as Lang.Number, minute as Lang.Number) as Lang.Number {
+    var fields = {:year=>year, :month=>month, :day=>day,
+        :hour=>hour, :minute=>minute, :second=>0};
+    var resolved = CalendarMath.wallToUtcUsingDevice(fields);
+    return resolved == null ? CalendarMath.utc(year, month, day, hour, minute, 0)
+        : (resolved as Lang.Dictionary)[:utc] as Lang.Number;
+}
+
+(:debug)
 function maximumDemoState(state as Lang.Dictionary, nowUtc as Lang.Number) as Lang.Dictionary {
     state[:setupStep] = 3;
     var history = [];
@@ -219,8 +234,12 @@ function maximumDemoState(state as Lang.Dictionary, nowUtc as Lang.Number) as La
         var removeDue = CalendarMath.addLocalCalendarDays(inserted, 21)[:utc];
         var insertDue = CalendarMath.addLocalCalendarDays(removed, 7)[:utc];
         var nextInserted = inserted + (28 * CalendarMath.SECONDS_PER_DAY);
+        var firstRecorded = c == 0;
+        var insertionPlan = firstRecorded ? null
+            : inserted - (15 * CalendarMath.SECONDS_PER_DAY);
         history.add({:cycleId=>c + 1, :insertionUtc=>inserted,
-            :insertionPlanUtc=>null, :insertionDeltaSeconds=>null,
+            :insertionPlanUtc=>insertionPlan,
+            :insertionDeltaSeconds=>firstRecorded ? null : 15 * CalendarMath.SECONDS_PER_DAY,
             :removeDueUtc=>removeDue, :removalUtc=>removed,
             :removalDeltaSeconds=>removed - removeDue, :insertDueUtc=>insertDue,
             :nextInsertionUtc=>nextInserted, :nextInsertionDeltaSeconds=>nextInserted - insertDue,

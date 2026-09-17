@@ -90,21 +90,22 @@ function v11HistoryVarianceAndScrollBoundsAreCompact(logger as Test.Logger) as B
     var cycle = ScheduleModel.newCycle(25, testWall(2026, 8, 20, 9, 0),
         ScheduleModel.defaultRegimen());
     cycle[:removalDeltaSeconds] = 12 * CalendarMath.SECONDS_PER_DAY;
-    cycle[:nextInsertionDeltaSeconds] = 12 * CalendarMath.SECONDS_PER_DAY;
-    Test.assertEqual("Removed 12d late · Inserted 12d late",
+    cycle[:insertionPlanUtc] = cycle[:insertionUtc] - (12 * CalendarMath.SECONDS_PER_DAY);
+    cycle[:insertionDeltaSeconds] = 12 * CalendarMath.SECONDS_PER_DAY;
+    Test.assertEqual("Out 12d late · In 12d late",
         HistoryUi.listVariance(cycle, false));
     var varianceParts = HistoryUi.varianceParts(cycle, false);
     Test.assertEqual(2, varianceParts.size());
-    Test.assertEqual("Removed 12d late", varianceParts[0]);
-    Test.assertEqual("Inserted 12d late", varianceParts[1]);
+    Test.assertEqual("Out 12d late", varianceParts[0]);
+    Test.assertEqual("In 12d late", varianceParts[1]);
     cycle[:removalDeltaSeconds] = 0;
-    cycle[:nextInsertionDeltaSeconds] = 0;
+    cycle[:insertionDeltaSeconds] = 0;
     Test.assertEqual(Ui.s(Rez.Strings.OnTime), HistoryUi.listVariance(cycle, false));
     Test.assertEqual(1, HistoryUi.varianceParts(cycle, false).size());
     Test.assertEqual(0, HistoryUi.boundedSelection(-1, 25));
     Test.assertEqual(24, HistoryUi.boundedSelection(99, 25));
     Test.assertEqual(0, HistoryUi.topForSelection(0, 25));
-    Test.assertEqual(23, HistoryUi.topForSelection(24, 25));
+    Test.assertEqual(22, HistoryUi.topForSelection(24, 25));
     return true;
 }
 

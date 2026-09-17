@@ -11,6 +11,33 @@ local reminder slots. The manifest application UUID is
 and `UI.md` remain the v1.0 base where later requirements do not override them,
 and `REGIMEN.md` remains the medical-model source record.
 
+## UX round: lists
+
+Upcoming is a date-first six-cycle projection with fixed right-aligned `IN`
+and `OUT` columns. Only the current row carries a real schedule bar and today
+tick; overdue removal appears in amber on that row, and one `if removed today`
+divider explains the re-anchored future projection. The first January date
+carries a two-digit year cue, the fourth row peeks into view, and the neutral
+scroll indicator is present on every supported size.
+
+History now leads with the recorded insertion/removal range. An open current
+cycle uses its planned removal as a grey range endpoint. `Cycle N · Current`
+is secondary, and each row has one variance line using only that cycle's own
+removal and insertion events. Variance over seven days is red; smaller nonzero
+variance is amber. Three rows fit with symmetric padding, a full-row focus
+shape, and no decorative regimen bars or bezel tick.
+
+Cycle detail aligns all labels and values to one pair of edges. Actual events
+show a weekday timestamp with their variance and compact planned date; pending
+events say `due ...` and unavailable rows are omitted. `First recorded` is a
+caption under the title, brief-outs remain cycle-scoped, and the lifetime
+scheduled-removal count is explicitly labelled `Removals (all)` in the footer.
+
+Debug list fixtures cover `Wed 30 Sep`, a December-to-January projection, a
+three-day-overdue current cycle, 15-day early/late variance, and the 24-cycle
+history limit. Five focused tests cover date ranges, planned current endpoints,
+cycle-scoped variance text/severity, and the single January year cue.
+
 ## v1.2 changes
 
 ### Native-style watch pickers
@@ -123,13 +150,11 @@ the compiled settings schema are the available visual/build evidence.
   so the canonical values are written back without repeating the prompt.
 - A mid-cycle days-in/days-out change shows the old and new next-action time in
   its native confirmation.
-- History is a custom two-row scrollable view with full-width dates, event
-  variance, regimen bars, row focus, cycle detail, and a final Clear-history
-  action. A two-event variance stays on one line when it fits and otherwise
-  splits into independently centered `Removed …` and `Inserted …` lines.
-  Cycle-detail dates, times, and the `First cycle` tag form a right-aligned
-  vertical block. Native confirmations use compact two-line copy, and Main
-  warning text breaks at sentence boundaries.
+- History is a custom three-row scrollable view with date-range primaries,
+  cycle-scoped one-line variance, full-row focus, cycle detail, and a final
+  Clear-history action. Cycle-detail actual, planned, due, and variance values
+  form a right-aligned vertical block. Native confirmations use compact
+  two-line copy, and Main warning text breaks at sentence boundaries.
 - Foreground orchestration lives in the unscoped `ForegroundController` and
   `ForegroundRuntime`, outside the `:background` and `:glance` personalities.
 - Temporary-out reminder deduplication includes the open interval's `outUtc`,
@@ -152,7 +177,7 @@ the compiled settings schema are the available visual/build evidence.
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Reduced mirror codecs, glance rendering, and hourly reminder service |
 | Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production seams and debug-only clock, fixtures, notification previews, temporal-event diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
-| Tests | `source/tests/*.mc` | 129 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Tests | `source/tests/*.mc` | 134 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
 | Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, portable `grep` background resource/exit guard, simulator tests, and Store-package PRG hashes |
 | Visual evidence | `docs/screenshots/` | 102 native-resolution captures, including nine v1.2 picker states |
 
@@ -218,7 +243,7 @@ and the dedicated constrained implementations are tagged into those scopes.
 
 ## Tests
 
-The final simulator result is **129 passed, 0 failed, 0 errors**:
+The final simulator result is **134 passed, 0 failed, 0 errors**:
 
 | File | Tests |
 | --- | ---: |
@@ -231,6 +256,7 @@ The final simulator result is **129 passed, 0 failed, 0 errors**:
 | `V11Tests.mc` | 12 |
 | `V11CoverageTests.mc` | 16 |
 | `V12Tests.mc` | 9 |
+| `ListUiTests.mc` | 5 |
 
 The suite covers exact and crossed regimen boundaries, leap/month/year and DST
 calendar behavior, per-minute picker values, quarter-hour phone rounding and
