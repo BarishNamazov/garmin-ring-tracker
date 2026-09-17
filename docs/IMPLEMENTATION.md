@@ -395,6 +395,41 @@ dates, Reminder 2 Off/On/submenus/picker, day-before, overdue repeat, clock,
 About, migration notice, and all seven native notification kinds. Obsolete Schedule, planned-override, and
 v1.0-jargon screenshots were removed.
 
+### UX round: glance/notifications
+
+The glance now uses a state-coloured single-ring glyph beside separate
+`FONT_GLANCE` title and `FONT_GLANCE_NUMBER` value rows. Percentage-based
+margins keep the group aligned on 390, 416, and 454 px displays. Every state
+has a rounded two-segment progress bar and outlined marker; the ring-out state
+dims the bar and uses a hollow marker, while overdue uses orange copy, a marker
+pinned at the right edge, and an overflow tail. The platform-owned launcher
+glyph is necessarily static and cannot receive per-state colour, so it uses a
+closed green ring-and-dot form while the title, value, bar, and marker carry
+the live state.
+
+Notification titles use the Remove, Insert, Replace, and Put back vocabulary,
+omit numbers, and stay within 15 characters except for the explicitly required
+Reminder 2 phrases `Still in — remove` and `Still out — insert`. Bodies contain
+the fact plus an optional secondary instruction. Overdue includes the due date,
+the four-week warning reports red days-over instead of a countdown, and all
+backup copy is hedged as `Backup advised`. The notification resource is a
+closed, single-colour ring with a dot.
+
+The pre-round constrained-personality peaks were 17.5 KiB for glance and
+16,184 bytes for background. The post-round peaks are 20.2 KiB and 18,080
+bytes (17.7 KiB), respectively; both remain below 45 KiB. The background-event
+matrix was rerun for day-before, Reminder 1, Reminder 2, overdue, temporary
+out, ring-free over seven days, and ring-in over four weeks. Each delivery path
+recorded exactly one notification, one ledger update, and one
+`Background.exit()`. No-op, nil storage, and corrupt storage delivered and
+saved nothing while exiting once. The injected notification exception was
+caught, saved nothing, and exited once. The automated suite reports 133 tests.
+
+The visual run regenerated and checked
+`epix2pro{42,47,51}mm-glance-{ring-in,ring-free,overdue,temporary-out}.png` and
+the seven 47 mm files
+`epix2pro47mm-notification-{day-before,reminder1,reminder2,overdue,temp-over3h,ring-free-over7d,ring-in-over28d}.png`.
+
 ## Memory verification
 
 Measurements use the 47 mm debug personality so they include the QA overhead.
@@ -404,8 +439,8 @@ background use reduced active mirrors.
 | Personality | Peak/live use | Available heap | Result |
 | --- | ---: | ---: | --- |
 | Foreground | 138.7 KiB | 763.6 KiB | within foreground budget |
-| Glance | 17.5 KiB | 59.8 KiB | below 45 KiB |
-| Background | 16,184 bytes (15.8 KiB) | 61,256 bytes (59.8 KiB) | below 45 KiB |
+| Glance | 20.2 KiB | 59.8 KiB | below 45 KiB |
+| Background | 18,080 bytes (17.7 KiB) | 61,256 bytes (59.8 KiB) | below 45 KiB |
 
 The foreground reading is the maximum transient 25-row History view. Glance
 was launched with **Settings → Glance Launch Mode → Launch in Glance Mode**.
