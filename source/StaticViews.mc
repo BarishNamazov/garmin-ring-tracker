@@ -414,7 +414,7 @@ class PopDelegate extends WatchUi.BehaviorDelegate {
 class AlertDelegate extends WatchUi.BehaviorDelegate {
     function initialize() { BehaviorDelegate.initialize(); }
     function onSelect() as Boolean { getApp().showAlertMenu(); return true; }
-    function onBack() as Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
+    function onBack() as Boolean { getApp().showMain(); return true; }
     function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
         if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
         return false;

@@ -40,6 +40,43 @@ three-day-overdue current cycle, 15-day red and two-day amber variance, and the
 endpoints, cycle-scoped variance text/severity, the single January year cue,
 and the round-display edge calculation used by lower upcoming rows.
 
+## UX round: main screen
+
+The v1.3 main screen uses a single white duration hero with a tracked,
+phase-coloured header. Remaining time is deliberately tiered: whole days at
+48 hours and above, days plus hours from 24 through 47 hours, hours below one
+day, and minutes below one hour. Zero-value components are omitted. Overdue
+time remains in hours through 47 hours and changes to whole days at 48 hours.
+Digits and units are measured as one composite before drawing so the visible
+value, rather than just its numeric run, is centred.
+
+The cycle arc now uses a 0.485-width outer radius and a 3.5%-width stroke. Its
+elapsed portion is dimmed, its marker scales with the stroke and has a black
+halo, and schedule seams have a physical black gap. Ring-free time is a dim
+track with a thin lifted-purple current/future line. Ordinary overdue states
+replace the schedule arc with a seven-day lateness meter; ring-free beyond
+seven days and ring-in beyond 28 days instead use a full red frame and show
+elapsed days rather than another countdown.
+
+Temporary-out states retain fixed text positions before and after the
+three-hour threshold. The temporary timer owns the outer arc: it advances in
+amber before three hours, changes to red at the limit, and shows overtime as a
+thicker red tail beyond 12 o'clock. No temporary-out progress geometry crosses
+the white elapsed value. The over-limit action and backup guidance occupy a
+reserved two-line zone. Action dates keep the grey action verb in every layout:
+they try the full date and time on one line, move time beneath, remove the
+weekday, and only then step down the date font. Overdue due sentences use the
+wider arc-clearance budget so their required `Was due` wording remains intact.
+
+Debug main-screen fixtures pin the clock to 17 Sep 2026 and cover 17 days,
+one day 12 hours, 14 hours, 45 minutes, 29 hours late, two days late,
+temporary-out at 2h50 and 3h10, 29 days ring-in, eight days ring-free, the real
+longest label `Remove · Wed 30 Sep · 12:26 PM`, and a deliberately long
+clock-before-insertion warning. Main-screen debug builds print one foreground
+memory reading per view instance for repeatable simulator checks. Safety copy
+uses the full safe chord rather than the narrower date budget, and the long
+warning fixture reserves enough vertical space to render every wrapped line.
+
 ## v1.2 changes
 
 ### Native-style watch pickers

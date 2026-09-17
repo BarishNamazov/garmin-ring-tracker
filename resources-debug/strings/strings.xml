@@ -4,8 +4,13 @@
     <string id="DemoFresh">Fresh</string>
     <string id="DemoNoCycle">No cycle</string>
     <string id="DemoDay5">Day 5 ring-in</string>
+    <string id="DemoRingIn1d12h">Main · 1d 12h</string>
+    <string id="DemoRingIn14h">Main · 14h</string>
+    <string id="DemoRingIn45m">Main · 45m</string>
     <string id="DemoBeforeRemoval">Early removal · 2d</string>
     <string id="DemoOverdueRemoval">Overdue removal</string>
+    <string id="DemoOverdue29h">Main · 29h late</string>
+    <string id="DemoOverdue2d">Main · 2d late</string>
     <string id="DemoOverdueLarge">Overdue 12d 23h</string>
     <string id="DemoRingFree">Ring-free day 3</string>
     <string id="DemoFreeDay3">Late insertion · 5h</string>
@@ -14,6 +19,9 @@
     <string id="DemoTemp310">Temporary-out 3h10m</string>
     <string id="DemoReminder2">Reminder 2 enabled</string>
     <string id="DemoExtended35">Ring in past 4 weeks</string>
+    <string id="DemoRingIn29d">Main · 29d in</string>
+    <string id="DemoRingFree8d">Main · 8d out</string>
+    <string id="DemoWarningWrapLong">Main · warning wrap</string>
     <string id="DemoLargestCountdown">Largest countdown</string>
     <string id="DemoClock12Long">Long 12-hour time</string>
     <string id="DemoClock24">24-hour time</string>

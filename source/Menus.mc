@@ -173,8 +173,13 @@ module Menus {
         menu.addItem(item(Rez.Strings.DemoFresh, null, :fresh));
         menu.addItem(item(Rez.Strings.DemoNoCycle, null, :noCycle));
         menu.addItem(item(Rez.Strings.DemoDay5, null, :day5));
+        menu.addItem(item(Rez.Strings.DemoRingIn1d12h, null, :ringIn1d12h));
+        menu.addItem(item(Rez.Strings.DemoRingIn14h, null, :ringIn14h));
+        menu.addItem(item(Rez.Strings.DemoRingIn45m, null, :ringIn45m));
         menu.addItem(item(Rez.Strings.DemoBeforeRemoval, null, :beforeRemoval));
         menu.addItem(item(Rez.Strings.DemoOverdueRemoval, null, :overdueRemoval));
+        menu.addItem(item(Rez.Strings.DemoOverdue29h, null, :overdue29h));
+        menu.addItem(item(Rez.Strings.DemoOverdue2d, null, :overdue2d));
         menu.addItem(item(Rez.Strings.DemoOverdueLarge, null, :overdueLarge));
         menu.addItem(item(Rez.Strings.DemoRingFree, null, :ringFree));
         menu.addItem(item(Rez.Strings.DemoFreeDay3, null, :freeDay3));
@@ -183,6 +188,9 @@ module Menus {
         menu.addItem(item(Rez.Strings.DemoTemp310, null, :temp310));
         menu.addItem(item(Rez.Strings.DemoReminder2, null, :reminder2));
         menu.addItem(item(Rez.Strings.DemoExtended35, null, :extended35));
+        menu.addItem(item(Rez.Strings.DemoRingIn29d, null, :ringIn29d));
+        menu.addItem(item(Rez.Strings.DemoRingFree8d, null, :ringFree8d));
+        menu.addItem(item(Rez.Strings.DemoWarningWrapLong, null, :warningWrapLong));
         menu.addItem(item(Rez.Strings.DemoLargestCountdown, null, :largestCountdown));
         menu.addItem(item(Rez.Strings.DemoClock12Long, null, :clock12Long));
         menu.addItem(item(Rez.Strings.DemoClock24, null, :clock24));

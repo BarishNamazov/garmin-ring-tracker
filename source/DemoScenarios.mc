@@ -34,37 +34,39 @@ function isTransientOptionalSeed(action as Lang.Symbol, data) as Lang.Boolean {
 (:debug)
 function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as Lang.Number) as Void {
     var scenario = data as Lang.Symbol;
-    var title = null;
-    var subtitle = null;
-    var body = null;
+    var kind = null;
+    var reminderSlot = 0;
     if (scenario == :notificationDayBefore) {
-        title = "Remove ring tomorrow";
-        subtitle = "Due " + Ui.timeForUtc(((state[:active] as Lang.Dictionary)[:removeDueUtc]),
-            (state[:reminders] as Lang.Dictionary)[:clockFormat]);
-    } else if (scenario == :notificationReminder1 || scenario == :notificationReminder2) {
-        title = "Remove ring today";
-        subtitle = "Due " + Ui.timeForUtc(((state[:active] as Lang.Dictionary)[:removeDueUtc]),
-            (state[:reminders] as Lang.Dictionary)[:clockFormat]);
+        kind = 5;
+    } else if (scenario == :notificationReminder1) {
+        kind = 4;
+        reminderSlot = 1;
+    } else if (scenario == :notificationReminder2) {
+        kind = 4;
+        reminderSlot = 2;
     } else if (scenario == :notificationOverdue) {
-        title = "Ring overdue 1d 4h";
-        subtitle = "Remove ring";
+        kind = 3;
     } else if (scenario == :notificationTemp) {
-        title = "Out over 3h";
-        subtitle = "Reinsert now";
-        body = "Use backup 7 days.";
+        kind = 1;
     } else if (scenario == :notificationFree) {
-        title = "Insert now";
-        subtitle = "Ring out over 7d";
-        body = "Use backup 7 days.";
+        kind = 0;
     } else if (scenario == :notificationFourWeeks) {
-        title = "Replace now";
-        subtitle = "Ring in over 4 weeks";
+        kind = 2;
     }
-    if (title == null) { return; }
+    if (kind == null) { return; }
+    var active = state[:active] as Lang.Dictionary;
+    var referenceUtc = active[:removeDueUtc] as Lang.Number;
+    if (kind == 0) { referenceUtc = active[:insertDueUtc] as Lang.Number; }
+    else if (kind == 1) {
+        referenceUtc = (ScheduleModel.tempOpen(active) as Lang.Dictionary)[:outUtc] as Lang.Number;
+    }
+    var copy = (new RingServiceDelegate()).notificationIds(kind as Lang.Number, 0,
+        referenceUtc, (state[:reminders] as Lang.Dictionary)[:clockFormat], nowUtc,
+        reminderSlot);
     var options = { :data => [((state[:active] as Lang.Dictionary)[:cycleId]), 0],
         :dismissPrevious => true };
-    if (body != null) { options[:body] = body; }
-    Notifications.showNotification(title as Lang.String, subtitle as Lang.String, options);
+    if (copy[2] != null) { options[:body] = copy[2]; }
+    Notifications.showNotification(copy[0] as Lang.String, copy[1] as Lang.String, options);
 }
 
 (:debug)
@@ -116,11 +118,34 @@ function reportOptionalServiceResult(kind, notificationShown as Lang.Boolean,
 }
 
 (:debug)
+function mainDemoReferenceUtc(fallback as Lang.Number) as Lang.Number {
+    var wall = {
+        :year=>2026, :month=>9, :day=>17,
+        :hour=>12, :minute=>26, :second=>0
+    };
+    var resolved = CalendarMath.wallToUtcUsingDevice(wall);
+    return resolved == null ? fallback : resolved[:utc];
+}
+
+(:debug)
+function mainDemoWallUtc(year as Lang.Number, month as Lang.Number, day as Lang.Number,
+                         hour as Lang.Number, minute as Lang.Number,
+                         fallback as Lang.Number) as Lang.Number {
+    var resolved = CalendarMath.wallToUtcUsingDevice({
+        :year=>year, :month=>month, :day=>day,
+        :hour=>hour, :minute=>minute, :second=>0
+    });
+    return resolved == null ? fallback : resolved[:utc];
+}
+
+(:debug)
 function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dictionary {
     if (scenario == :overdueRemoval) {
         nowUtc = demoLocalUtc(2026, 12, 25, 9, 0);
     } else if (scenario == :maximumState) {
         nowUtc = demoLocalUtc(2026, 10, 6, 9, 0);
+    } else {
+        nowUtc = mainDemoReferenceUtc(nowUtc);
     }
     Storage.setValue("debugNowUtc", nowUtc);
     var state = ScheduleModel.defaultState();
@@ -136,28 +161,55 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     else if (scenario == :overdueLarge) {
         insertion = nowUtc - (33 * CalendarMath.SECONDS_PER_DAY) - (23 * CalendarMath.SECONDS_PER_HOUR);
     }
+    else if (scenario == :overdue29h) {
+        insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY)
+            - (5 * CalendarMath.SECONDS_PER_HOUR);
+    }
+    else if (scenario == :overdue2d) {
+        insertion = nowUtc - (23 * CalendarMath.SECONDS_PER_DAY);
+    }
     else if (scenario == :ringFree) { insertion = nowUtc - (23 * CalendarMath.SECONDS_PER_DAY); }
     else if (scenario == :freeDay3) {
         regimen[:daysOut] = 3;
         insertion = nowUtc - (28 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR);
     }
-    else if (scenario == :freeExceeded || scenario == :notificationFree || scenario == :backgroundFree) { insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY); }
+    else if (scenario == :freeExceeded || scenario == :ringFree8d
+        || scenario == :notificationFree || scenario == :backgroundFree) {
+        insertion = nowUtc - (30 * CalendarMath.SECONDS_PER_DAY);
+    }
     else if (scenario == :temp250 || scenario == :temp310 || scenario == :notificationTemp
-        || scenario == :backgroundTemp || scenario == :reminder2) { insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY); }
+        || scenario == :backgroundTemp || scenario == :reminder2) {
+        insertion = nowUtc - (5 * CalendarMath.SECONDS_PER_DAY);
+    }
+    else if (scenario == :ringIn1d12h) {
+        insertion = nowUtc - (19 * CalendarMath.SECONDS_PER_DAY)
+            - (12 * CalendarMath.SECONDS_PER_HOUR);
+    }
+    else if (scenario == :ringIn14h || scenario == :backgroundCorrupt) {
+        insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY)
+            - (10 * CalendarMath.SECONDS_PER_HOUR);
+    }
+    else if (scenario == :ringIn45m || scenario == :backgroundNil) {
+        insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY)
+            - (23 * CalendarMath.SECONDS_PER_HOUR) - (15 * 60);
+    }
+    else if (scenario == :warningWrapLong || scenario == :backgroundNoOp) {
+        insertion = nowUtc + CalendarMath.SECONDS_PER_HOUR;
+    }
     else if (scenario == :extended35 || scenario == :notificationFourWeeks
-        || scenario == :backgroundFourWeeks || scenario == :largestCountdown) {
+        || scenario == :backgroundFourWeeks || scenario == :largestCountdown
+        || scenario == :ringIn29d) {
         regimen[:daysIn] = 35;
         insertion = (scenario == :extended35 || scenario == :notificationFourWeeks
-            || scenario == :backgroundFourWeeks)
+            || scenario == :backgroundFourWeeks || scenario == :ringIn29d)
             ? nowUtc - (29 * CalendarMath.SECONDS_PER_DAY) : nowUtc;
     }
-    else if (scenario == :clock12Long || scenario == :clock24) {
-        var targetWall = CalendarMath.localFields(nowUtc - (4 * CalendarMath.SECONDS_PER_DAY));
-        targetWall[:hour] = 23;
-        targetWall[:minute] = 59;
-        targetWall[:second] = 0;
-        var target = CalendarMath.wallToUtcUsingDevice(targetWall);
-        if (target != null) { insertion = target[:utc]; }
+    else if (scenario == :clock12Long) {
+        insertion = mainDemoWallUtc(2026, 9, 9, 12, 26, insertion);
+    }
+    else if (scenario == :clock24) {
+        insertion = nowUtc - (19 * CalendarMath.SECONDS_PER_DAY)
+            - CalendarMath.SECONDS_PER_HOUR;
     }
     else if (scenario == :notificationDayBefore || scenario == :backgroundDayBefore) {
         insertion = nowUtc - (20 * CalendarMath.SECONDS_PER_DAY);
@@ -174,7 +226,10 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     if (scenario == :overdueRemoval) { addListDemoHistory(state, active); }
     if (scenario == :ringFree) { ScheduleModel.recordRemoval(active, nowUtc - (2 * CalendarMath.SECONDS_PER_DAY), regimen); }
     else if (scenario == :freeDay3) { ScheduleModel.recordRemoval(active, nowUtc - (3 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR), regimen); }
-    else if (scenario == :freeExceeded || scenario == :notificationFree || scenario == :backgroundFree) { ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen); }
+    else if (scenario == :freeExceeded || scenario == :ringFree8d
+        || scenario == :notificationFree || scenario == :backgroundFree) {
+        ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen);
+    }
     else if (scenario == :temp250) { ScheduleModel.startTemporaryOut(active, nowUtc - (2 * 3600) - (50 * 60)); }
     else if (scenario == :temp310 || scenario == :notificationTemp || scenario == :backgroundTemp) { ScheduleModel.startTemporaryOut(active, nowUtc - (3 * 3600) - (10 * 60)); }
     else if (scenario == :reminder2) {
