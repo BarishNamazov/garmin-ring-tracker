@@ -7,6 +7,41 @@ happened; projects upcoming cycles; keeps 24 archived cycles; and evaluates
 local reminder slots. The manifest application UUID is
 `99f92e0c-a120-4641-b832-6da4d958585b`; the minimum API is 5.1.0.
 
+## UX round: menus/settings/text
+
+The v1.3.0 UX round makes every context menu describe the live state and puts
+the current action first. Ring-in, ring-free, temporary-out, and no-cycle menus
+now have distinct item sets; every state retains Settings and About. Temporary
+ring-out records can be undone or converted into a ring-free week anchored to
+the original out time. No-cycle setup also accepts a past insertion through the
+shared date/time picker. Early insertion during a ring-free week has a separate
+day-of-seven guard.
+
+Confirmations pair the action with a schedule fact. Differences below 24 hours
+use whole written hours; differences of at least 24 hours use floor-days. Date
+edits show a weekday timestamp, and Correct dates shows both recorded values.
+The Removed row remains non-editable until a removal exists and initial focus
+lands on the most recent recorded event.
+
+Watch Settings is flat: Reminder 2, Day before, Vibration, and Sound are native
+toggles; Reminder 2 time appears only while its toggle is on. Repeat if missed
+offers Every hour, Every 3 hours, Every 6 hours, and Off. Ring-in and ring-out
+durations show their units. Pickers retain their current values, and selection
+menus identify the current choice. The Clock control was removed from both the
+watch and phone. Property-schema migration 3 silently clears old 12/24-hour
+overrides, after which every foreground and reminder timestamp follows the
+watch's `is24Hour` setting.
+
+First run, About, Regimen, and the migration notice share one accent-colored
+bottom action. Their body text uses the regular system face, a scroll rail is
+drawn only when content overflows, and touch and button navigation reach every
+row and action. About identifies `Ring Tracker 1.3.0`; the medical disclaimer
+appears only on first run and About.
+
+The Workstream C regression suite covers confirmation units and direction,
+clock-format migration, and undo/keep-out state transitions. The complete test
+personality currently passes **133 tests with 0 failures and 0 errors**.
+
 `SPEC-1.1.md` remains the reminder and settings-conflict contract. `SPEC.md`
 and `UI.md` remain the v1.0 base where later requirements do not override them,
 and `REGIMEN.md` remains the medical-model source record.

@@ -399,8 +399,7 @@ The complete phone settings list is:
 | Reminder 2 | On or Off |
 | Reminder 2 time | 12-hour AM/PM list at 15-minute intervals; retained while Off |
 | Day-before reminder | On or Off; uses Reminder 1's time |
-| Overdue repeat | `1`, `3`, `6`, `12`, or `24` hours |
-| Clock | System, 12-hour, or 24-hour |
+| Repeat if missed | Every hour, every 3 hours, every 6 hours, or Off |
 | Vibration / sound | On or Off for foreground feedback |
 
 ## Remove Ring Tracker
