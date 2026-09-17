@@ -184,7 +184,7 @@ function notificationLaunchRequiresKnownTypedKind(logger as Test.Logger) as Bool
 function replacementReminderUsesReplacementCopy(logger as Test.Logger) as Boolean {
     var service = new RingServiceDelegate();
     var due = testWall(2026, 9, 2, 9, 0);
-    Test.assertEqual("Replace tomorrow",
+    Test.assertEqual("Replace soon",
         service.notificationIds(5, 2, due, 24, due - 3600, 0)[0]);
     Test.assertEqual("Replace ring",
         service.notificationIds(4, 2, due, 24, due - 3600, 1)[0]);

@@ -234,7 +234,7 @@ Phone $2$</string>
     <string id="GlanceOverSuffix" scope="glance"> over</string>
     <string id="NotifyRemoveTomorrow" scope="background">Remove tomorrow</string>
     <string id="NotifyInsertTomorrow" scope="background">Insert tomorrow</string>
-    <string id="NotifyReplaceTomorrow" scope="background">Replace tomorrow</string>
+    <string id="NotifyReplaceTomorrow" scope="background">Replace soon</string>
     <string id="NotifyRemoveRing" scope="background">Remove ring</string>
     <string id="NotifyInsertRing" scope="background">Insert ring</string>
     <string id="NotifyReplaceRing" scope="background">Replace ring</string>

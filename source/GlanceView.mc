@@ -112,13 +112,13 @@ class RingGlanceView extends WatchUi.GlanceView {
         if (top < 1) { top = 1; }
         var valueY = top + titleHeight + rowGap;
         var barY = valueY + valueHeight + barGap;
+        if (barY > height - 6) { barY = height - 6; }
 
         title = ellipsis(dc, title, titleFont, maxWidth);
-        value = ellipsis(dc, value, valueFont, maxWidth);
         dc.setColor(overdue ? ORANGE : NEUTRAL, Graphics.COLOR_TRANSPARENT);
         dc.drawText(left, top, titleFont, title, Graphics.TEXT_JUSTIFY_LEFT);
         dc.setColor(overdue || ringOutOver ? ORANGE : WHITE, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left, valueY, valueFont, value, Graphics.TEXT_JUSTIFY_LEFT);
+        drawValue(dc, left, right, valueY, value, valueFont, titleFont);
 
         var totalDays = daysIn + daysOut;
         var split = totalDays <= 0 ? right : left + ((barWidth * daysIn) / totalDays);
@@ -185,6 +185,30 @@ class RingGlanceView extends WatchUi.GlanceView {
         dc.drawLine(left, y, right, y);
         dc.fillCircle(left, y, 2);
         dc.fillCircle(right, y, 2);
+    }
+
+    private function drawValue(dc as Graphics.Dc, left as Lang.Number,
+                               right as Lang.Number, y as Lang.Number,
+                               value as Lang.String, numberFont, unitFont) as Void {
+        var numberHeight = dc.getFontHeight(numberFont);
+        var unitHeight = dc.getFontHeight(unitFont);
+        var unitY = y + numberHeight - unitHeight - 7;
+        if (unitY < y) { unitY = y; }
+        var x = left;
+        for (var i = 0; i < value.length(); i += 1) {
+            var character = value.substring(i, i + 1);
+            var numeric = "0123456789".find(character) != null;
+            var font = numeric ? numberFont : unitFont;
+            var width = dc.getTextWidthInPixels(character, font);
+            if (x + width > right) {
+                dc.drawText(x, unitY, unitFont, gs(Rez.Strings.GlanceEllipsis),
+                    Graphics.TEXT_JUSTIFY_LEFT);
+                return;
+            }
+            dc.drawText(x, numeric ? y : unitY, font, character,
+                Graphics.TEXT_JUSTIFY_LEFT);
+            x += width;
+        }
     }
 
     private function gs(id as Lang.ResourceId) as Lang.String {

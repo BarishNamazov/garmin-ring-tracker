@@ -48,8 +48,12 @@ function uxDNotificationTitlesAreVerbFirstAndNumberFree(logger as Test.Logger) a
     var expected = ["Remove tomorrow", "Remove ring", "Remove now",
         "Put ring back", "Insert ring", "Replace ring"];
     for (var i = 0; i < cases.size(); i += 1) {
-        Test.assertEqual(expected[i], (cases[i] as Lang.Array)[0]);
-        Test.assert(((cases[i] as Lang.Array)[0] as Lang.String).find("1") == null);
+        var title = (cases[i] as Lang.Array)[0] as Lang.String;
+        Test.assertEqual(expected[i], title);
+        Test.assert(title.length() <= 15);
+        for (var digit = 0; digit < 10; digit += 1) {
+            Test.assert(title.find(digit.toString()) == null);
+        }
     }
     return true;
 }

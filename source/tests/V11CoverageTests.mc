@@ -233,7 +233,7 @@ function v11ThresholdThenDayOfThenOverdueProgression(logger as Test.Logger) as B
 function v11NotificationCopyCoversEveryKindAndBody(logger as Test.Logger) as Boolean {
     var service = new RingServiceDelegate();
     var due = testWall(2026, 9, 2, 9, 0);
-    var tomorrow = ["Remove tomorrow", "Insert tomorrow", "Replace tomorrow"];
+    var tomorrow = ["Remove tomorrow", "Insert tomorrow", "Replace soon"];
     var today = ["Remove ring", "Insert ring", "Replace ring"];
     var second = ["Still in — remove", "Still out — insert", "Still in — replace"];
     var overdueTitle = ["Remove now", "Insert now", "Replace ring"];
