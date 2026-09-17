@@ -171,6 +171,7 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
         insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY) - (4 * CalendarMath.SECONDS_PER_HOUR);
     }
     var active = ScheduleModel.insertOrReplace(state, insertion);
+    if (scenario == :overdueRemoval) { addListDemoHistory(state, active); }
     if (scenario == :ringFree) { ScheduleModel.recordRemoval(active, nowUtc - (2 * CalendarMath.SECONDS_PER_DAY), regimen); }
     else if (scenario == :freeDay3) { ScheduleModel.recordRemoval(active, nowUtc - (3 * CalendarMath.SECONDS_PER_DAY) - (5 * CalendarMath.SECONDS_PER_HOUR), regimen); }
     else if (scenario == :freeExceeded || scenario == :notificationFree || scenario == :backgroundFree) { ScheduleModel.recordRemoval(active, nowUtc - (8 * CalendarMath.SECONDS_PER_DAY), regimen); }
@@ -203,6 +204,37 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
         notificationLedger[:dayOf1Sent] = true;
     }
     return state;
+}
+
+(:debug)
+function addListDemoHistory(state as Lang.Dictionary, active as Lang.Dictionary) as Void {
+    var latestInsertion = demoLocalUtc(2026, 9, 30, 9, 0);
+    var history = [];
+    for (var c = 0; c < ScheduleModel.MAX_HISTORY; c += 1) {
+        var inserted = latestInsertion
+            - ((ScheduleModel.MAX_HISTORY - c - 1) * 40 * CalendarMath.SECONDS_PER_DAY);
+        var removed = inserted + (6 * CalendarMath.SECONDS_PER_DAY);
+        var removeDue = CalendarMath.addLocalCalendarDays(inserted, 21)[:utc];
+        var insertDue = CalendarMath.addLocalCalendarDays(removed, 7)[:utc];
+        var nextInserted = inserted + (28 * CalendarMath.SECONDS_PER_DAY);
+        var firstRecorded = c == 0;
+        var insertionPlan = firstRecorded ? null
+            : inserted - (15 * CalendarMath.SECONDS_PER_DAY);
+        history.add({:cycleId=>c + 1, :insertionUtc=>inserted,
+            :insertionPlanUtc=>insertionPlan,
+            :insertionDeltaSeconds=>firstRecorded ? null : 15 * CalendarMath.SECONDS_PER_DAY,
+            :removeDueUtc=>removeDue, :removalUtc=>removed,
+            :removalDeltaSeconds=>removed - removeDue, :insertDueUtc=>insertDue,
+            :nextInsertionUtc=>nextInserted, :nextInsertionDeltaSeconds=>nextInserted - insertDue,
+            :closeReason=>"replaced", :regimenDaysIn=>21, :regimenDaysOut=>7,
+            :temporaryOut=>[],
+            :temporaryOutSummary=>{:shortIntervalCount=>0, :shortIntervalSeconds=>0}});
+    }
+    state[:history] = history;
+    active[:cycleId] = ScheduleModel.MAX_HISTORY + 1;
+    state[:nextCycleId] = ScheduleModel.MAX_HISTORY + 2;
+    var ledger = state[:reminderLedger] as Lang.Dictionary;
+    ledger[:cycleId] = active[:cycleId];
 }
 
 (:debug)

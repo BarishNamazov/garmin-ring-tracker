@@ -35,7 +35,7 @@ scheduled-removal count is explicitly labelled `Removals (all)` in the footer.
 
 Debug list fixtures cover `Wed 30 Sep`, a December-to-January projection, a
 three-day-overdue current cycle, 15-day early/late variance, and the 24-cycle
-history limit. Five focused tests cover date ranges, planned current endpoints,
+history limit. Six focused tests cover date ranges, planned current endpoints,
 cycle-scoped variance text/severity, and the single January year cue.
 
 ## v1.2 changes
@@ -177,7 +177,7 @@ the compiled settings schema are the available visual/build evidence.
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Reduced mirror codecs, glance rendering, and hourly reminder service |
 | Build variants | `source/Clock.mc`, `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `resources-debug/` | Production seams and debug-only clock, fixtures, notification previews, temporal-event diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Audited visible copy, launcher assets, and background notification icon |
-| Tests | `source/tests/*.mc` | 134 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
+| Tests | `source/tests/*.mc` | 135 deterministic domain, picker, migration, settings, storage, reminder, layout-helper, and review-regression tests |
 | Build checks | `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/IqPrgHashes.java` | Three-target warning-free builds, portable `grep` background resource/exit guard, simulator tests, and Store-package PRG hashes |
 | Visual evidence | `docs/screenshots/` | 102 native-resolution captures, including nine v1.2 picker states |
 
@@ -243,7 +243,7 @@ and the dedicated constrained implementations are tagged into those scopes.
 
 ## Tests
 
-The final simulator result is **134 passed, 0 failed, 0 errors**:
+The final simulator result is **135 passed, 0 failed, 0 errors**:
 
 | File | Tests |
 | --- | ---: |
@@ -256,7 +256,7 @@ The final simulator result is **134 passed, 0 failed, 0 errors**:
 | `V11Tests.mc` | 12 |
 | `V11CoverageTests.mc` | 16 |
 | `V12Tests.mc` | 9 |
-| `ListUiTests.mc` | 5 |
+| `ListUiTests.mc` | 6 |
 
 The suite covers exact and crossed regimen boundaries, leap/month/year and DST
 calendar behavior, per-minute picker values, quarter-hour phone rounding and

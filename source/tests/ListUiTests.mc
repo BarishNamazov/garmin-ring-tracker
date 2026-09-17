@@ -57,3 +57,18 @@ function listJanuaryCueAppearsOnceAtYearBoundary(logger as Test.Logger) as Boole
         (rows[1] as Lang.Dictionary)[:outUtc], false));
     return true;
 }
+
+(:test)
+function listDemoFixtureRetainsTwentyFourValidCycles(logger as Test.Logger) as Boolean {
+    var state = ScheduleModel.defaultState();
+    state[:setupStep] = 3;
+    var active = ScheduleModel.insertOrReplace(state, testWall(2026, 12, 1, 9, 0));
+    addListDemoHistory(state, active);
+    Test.assert(ScheduleModel.validState(state));
+    Test.assertEqual(24, (state[:history] as Lang.Array).size());
+    Test.assertEqual(25, active[:cycleId]);
+    var latest = (state[:history] as Lang.Array<Lang.Dictionary>)[23];
+    Test.assertEqual(-15 * CalendarMath.SECONDS_PER_DAY, latest[:removalDeltaSeconds]);
+    Test.assertEqual(15 * CalendarMath.SECONDS_PER_DAY, latest[:insertionDeltaSeconds]);
+    return true;
+}
