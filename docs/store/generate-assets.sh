@@ -23,8 +23,8 @@ rsvg-convert --width 500 --height 500 \
   "${tmp_dir}/launcher-store.svg"
 
 "${python_bin}" - "${repo_root}" "${script_dir}" "${tmp_dir}" <<'PY'
-from io import BytesIO
 from pathlib import Path
+import struct
 import sys
 
 from PIL import Image, ImageChops, ImageCms
@@ -33,7 +33,16 @@ repo_root = Path(sys.argv[1])
 store_dir = Path(sys.argv[2])
 tmp_dir = Path(sys.argv[3])
 
-srgb_profile = ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+srgb_profile_bytes = bytearray(
+    ImageCms.ImageCmsProfile(ImageCms.createProfile("sRGB")).tobytes()
+)
+# LittleCMS stamps newly created profiles with the current time, which makes
+# otherwise identical PNGs change on every run. Use a fixed valid creation
+# date and leave the optional profile ID unset so generated assets are
+# byte-reproducible across runs with the same Pillow/libpng toolchain.
+srgb_profile_bytes[24:36] = struct.pack(">6H", 2026, 9, 17, 0, 0, 0)
+srgb_profile_bytes[84:100] = bytes(16)
+srgb_profile = bytes(srgb_profile_bytes)
 
 
 def save_srgb(source: Path, destination: Path) -> None:
