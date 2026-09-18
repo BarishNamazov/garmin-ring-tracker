@@ -2,12 +2,12 @@
 
 All notable changes to Ring Tracker are documented in this file.
 
-## [1.3.0] - 2026-09-17
+## [1.3.0] - 2026-09-18
 
 ### Added
 
 - See the next action at a glance with a clearer main-screen hierarchy,
-  single-unit countdowns, late/overdue states, and a three-hour ring-out timer.
+  tiered countdowns, late/overdue states, and a three-hour ring-out timer.
 - Review six upcoming cycles in fixed date columns and browse a cleaner History
   with per-cycle timing details.
 - Correct recorded insertion and removal dates with alarm-style time pickers and
@@ -25,6 +25,19 @@ All notable changes to Ring Tracker are documented in this file.
   dates**.
 - Improved phone App Settings with grouped controls, native insertion-date
   input, and 15-minute time lists while retaining exact watch minutes.
+
+### Fixed
+
+- Kept the action time visible on ring-free screens, separated wrapped clock
+  warnings, and prevented orphaned separators in warning lines.
+- Standardized lateness across Main, Upcoming, glance, alerts, and reminders:
+  hours below 48 hours, then whole days.
+- Centered every picker column on all three watch sizes and made pending
+  removal dates read-only with a clear explanation.
+- Improved round-screen list spacing, year-rollover cues, current-cycle marks,
+  and the temporary-out reinsertion deadline.
+- Restored normal debug startup after screenshot capture and repaired the
+  extended-wear notification preview.
 
 ### Removed
 

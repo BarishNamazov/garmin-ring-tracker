@@ -1,4 +1,10 @@
-# UI and interaction specification
+# Original UI and interaction specification
+
+This is the original design reference. For the shipped v1.3.0 interface, use
+[IMPLEMENTATION.md](IMPLEMENTATION.md), the [round-1 decisions](ux-review/DECISIONS.md),
+and the overriding [round-2 decisions](ux-review/round2/DECISIONS.md). The current
+[screen gallery](screenshots/) records the final layouts; geometry and navigation
+below may describe an earlier design.
 
 Target canvas: 416 × 416 reference design, round AMOLED  
 Scaled targets: 390 × 390 and 454 × 454  

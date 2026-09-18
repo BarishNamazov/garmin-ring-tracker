@@ -73,13 +73,13 @@ A beta URL works only for the Garmin account that submitted it; it is not an unl
 | --- | --- |
 | Insertion date | Native date control; interpreted as a calendar date, not as a UTC instant |
 | Insertion time | 15-minute list in 12-hour AM/PM form |
-| Days ring in | `21–35` |
-| Days ring-free | `0–7`; `0` means replace immediately |
+| Days worn | `21–35` |
+| Days out | `0–7`; `0` means replace immediately |
 | Reminder 1 | 15-minute list in 12-hour AM/PM form; always enabled |
 | Reminder 2 | On or off; defaults Off |
 | Reminder 2 time | 15-minute list in 12-hour AM/PM form; retained while Off |
 | Day-before reminder | On or off; uses Reminder 1's time |
-| Repeat overdue | `1`, `3`, `6`, `12`, or `24` hours |
+| Repeat if missed | Every hour, every 3 hours, every 6 hours, or Off |
 | Vibration / sound | On or off; these control foreground feedback after Ring Tracker opens |
 
 Phone settings are configuration only: Ring Tracker has no phone dashboard, phone status push, or phone-generated reminder. Time display always follows the watch's 12/24-hour setting. Watch pickers retain exact minutes. When an exact watch value is mirrored into a 15-minute phone list, only the phone property is rounded to the nearest quarter-hour; the canonical watch value is unchanged. The watch remains the canonical schedule and asks before accepting a changed phone insertion date or time.
@@ -96,7 +96,7 @@ The app's vibration and sound switches apply only after an alert opens in the fo
 
 On first run, read the safety text and choose **I understand**, review the default **21 days in / 7 days out** regimen, and record the actual insertion date and time. Choose **Insert now** only when the insertion just happened; otherwise use **Choose date & time**.
 
-Open the main menu to choose **Insert ring**, **Remove ring**, or **Ring out briefly**. While a temporary-out timer is open, use **START** or **Put ring back** when the ring is reinserted. Every state-changing action has a confirmation. The confirmed actual removal anchors the next insertion date, and the confirmed actual insertion anchors the next removal date. Use **Correct dates** to correct only actual insertion or removal timestamps instead of recording a false event. **History** shows archived cycles, early/late variance, and retained temporary-out records; deleting history also requires confirmation.
+Open the main menu to choose **Insert ring**, **Remove ring**, or **Take out briefly**. While a temporary-out timer is open, use **START** or **Put ring back** when the ring is reinserted. Every state-changing action has a confirmation. The confirmed actual removal anchors the next insertion date, and the confirmed actual insertion anchors the next removal date. Use **Correct dates** to correct only actual insertion or removal timestamps instead of recording a false event. **History** shows archived cycles, early/late variance, and retained temporary-out records; deleting history also requires confirmation.
 
 All settings can be changed on the watch. Ring Tracker is for NuvaRing only. Non-default schedules support clinician-directed plans of 21–35 days in and 0–7 days out. The app does not recommend an extended plan: it requires an acknowledgement, treats zero ring-free days as immediate replacement, and marks 29–35 days as outside the FDA-labelled duration. Read [the regimen model and source notes](docs/REGIMEN.md) before using a non-default plan.
 
@@ -157,7 +157,7 @@ Release history is recorded in [CHANGELOG.md](CHANGELOG.md).
 - [SPEC-1.1.md](docs/SPEC-1.1.md) — v1.1 delta contract for copy, reminders, actual-event anchors, Upcoming, Main, migration, and verification.
 - [REVIEW-2.md](docs/REVIEW-2.md) — second-round findings and the regression cases resolved in v1.1.
 - [TOOLCHAIN.md](docs/TOOLCHAIN.md) — reproducible SDK, Java, device-definition, font, signing, and simulator setup.
-- [UI.md](docs/UI.md) — layouts, visual states, navigation, accessibility, and interaction flows.
+- [UI.md](docs/UI.md) — original design reference, with links to the v1.3.0 layout decisions.
 - [devices/](docs/devices/) — pinned compiler-definition snapshots for the three target IDs.
 - [screenshots/](docs/screenshots/) — native-resolution simulator captures used in the gallery and QA.
 - [toolchain-font-proof.png](docs/toolchain-font-proof.png) — simulator font-rendering proof recorded during toolchain setup.

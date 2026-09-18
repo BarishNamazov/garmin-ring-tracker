@@ -260,8 +260,9 @@ a qualified clinician.
    then select the hour and minute in separate columns. In 12-hour mode, select
    AM or PM as the final column. Review the summary and confirm it.
 4. **Review the main screen.** The outer arc shows the configured cycle. The
-   center identifies **RING IN**, **RING FREE**, or **OVERDUE**, gives the time
-   until removal/insertion, and shows the next-action date.
+   center identifies **RING IN** or **RING FREE** with the next-action countdown
+   and date. Overdue states say **REMOVE NOW** or **INSERT NOW** and show
+   elapsed lateness; extended wear says **REPLACE NOW**.
 5. **Set reminders.** From the main screen, hold **MENU**, open **Settings**, and
    set **Reminder 1**, optional **Reminder 2**, **Day before**,
    **Repeat if missed**, vibration, and sound. Reminder 1
@@ -274,7 +275,7 @@ a qualified clinician.
 From Main, press **UP** for six projected **Upcoming** cycles, **DOWN** for
 **History**, **START** or tap for the context menu, and hold **MENU** for the
 same menu. Within Upcoming or History, UP/DOWN scrolls and BACK returns. In
-normal use, choose **Remove ring**, **Insert ring**, **Ring out briefly**, or
+normal use, choose **Remove ring**, **Insert ring**, **Take out briefly**, or
 **Put ring back** as the event occurs. State-changing actions require confirmation. The
 actual removal anchors the next insertion; the actual insertion anchors the
 next removal. Use **Correct dates** to correct only recorded insertion/removal
@@ -394,7 +395,7 @@ The complete phone settings list is:
 | --- | --- |
 | Insertion date | Native date control |
 | Insertion time | 12-hour AM/PM list at 15-minute intervals |
-| Days ring in / ring-free | `21–35` / `0–7` |
+| Days worn / Days out | `21–35` / `0–7` |
 | Reminder 1 | 12-hour AM/PM list at 15-minute intervals; always enabled |
 | Reminder 2 | On or Off |
 | Reminder 2 time | 12-hour AM/PM list at 15-minute intervals; retained while Off |

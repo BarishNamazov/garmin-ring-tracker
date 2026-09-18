@@ -43,12 +43,12 @@ Support: https://github.com/BarishNamazov/garmin-ring-tracker/issues
 Ring Tracker is an independent project and is not affiliated with or endorsed by Garmin or the manufacturer of NuvaRing.
 ```
 
-### What's New — 717/4,000 characters
+### What's New — 683/4,000 characters
 
 ```text
-Version 1.3.0 redesigns Ring Tracker for faster reading on round screens. Main has clearer countdowns, overdue and long-duration warnings, and a steadier temporary-out timer. Upcoming, History, glance, state menus, confirmations, Correct dates, settings, and notification wording are all easier to scan. Reminder 2, Day before, vibration, and sound are direct toggles, while time display follows the watch setting.
+Version 1.3.0 makes Ring Tracker easier to read on round screens. Main keeps action dates and times visible, uses consistent late counts, and shows a reinsertion deadline during brief ring-outs. Upcoming and History have clearer columns, current-cycle markers, and year cues. Glance and reminders use shorter, consistent wording.
 
-This release also includes the previously unreleased alarm-style time and date pickers plus improved phone App Settings: a native insertion-date control, clear AM/PM time lists, and grouped Schedule and Reminders sections. Existing dates, reminders, and the old Clock preference migrate automatically.
+Time and date pickers show every column together. Correct dates distinguishes recorded events from pending removal. Settings use Days worn and Days out, direct reminder toggles, and the watch's time format. Phone App Settings include a native insertion-date control and quarter-hour AM/PM time lists. Existing dates and reminders migrate automatically.
 ```
 
 ### Category — required

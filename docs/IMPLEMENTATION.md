@@ -42,7 +42,7 @@ format so both layouts remain visually testable.
 | Persistence | `source/RingStore.mc` | Schema migration, validation, revisioned canonical/history writes, constrained mirrors, preflight, and compaction |
 | Settings | `source/SettingsBridge.mc`, `resources/settings/`, `resources/settings/properties.xml` | Watch and phone settings, native date and 15-minute phone controls, migration, validation, and watch-wins repair |
 | Application shell | `source/RingTrackerApp.mc` | Startup, notification launch, navigation, confirmations, deferred writes, and settings orchestration |
-| Main and common UI | `source/MainView.mc`, `source/UiUtils.mc` | Main states, cycle/lateness arcs, measured countdown typography, date/time degradation, and warnings |
+| Main and common UI | `source/MainView.mc`, `source/UiUtils.mc`, `source/Lateness.mc` | Main states, cycle/lateness arcs, measured countdown typography, date/time degradation, and warnings |
 | Lists | `source/UpcomingView.mc`, `source/HistoryView.mc`, `source/ListUi.mc` | Six-cycle projection, history, cycle detail helpers, scrolling, dates, variance, and round-screen geometry |
 | Menus and supporting views | `source/Menus.mc`, `source/StaticViews.mc`, `source/Pickers.mc` | State menus, settings, confirmations, Correct dates, setup/About/migration screens, and date/time/number pickers |
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Glance rendering, compact background decoding, notifications, ledger updates, and single-exit handling |
@@ -110,7 +110,8 @@ env -i HOME=$HOME PATH=/usr/bin:/bin bash -lc \
 ./scripts/ci/check-release.sh bin/release
 ```
 
-All compiler invocations use warnings-as-errors. The v1.3.0 suite contains 164
+All compiler invocations enable warnings (`-w`); the final release, debug,
+and test builds produced no compiler warnings. The v1.3.0 suite passes 167
 tests. It covers schedule boundaries, DST gaps/folds, actual-event anchoring,
 temporary-out identity, reminder priority/deduplication, migrations, storage
 interruption and compaction, settings repair, phone/watch picker conversion,
@@ -130,7 +131,7 @@ This is a simulator temporal-event test, separate from unit tests:
 5. Record `RING_TRACKER_BACKGROUND_RESULT` and
    `RING_TRACKER_BACKGROUND_MEMORY`, then repeat for every row.
 
-The final 1.3.0 run produced:
+The final 1.3.0 temporal-event run on 2026-09-18 produced:
 
 | Fixture | Kind | Notification | Ledger saved | Caught | Exit | Result |
 | --- | ---: | --- | --- | --- | ---: | --- |
@@ -152,15 +153,15 @@ ledger changed.
 
 ## Memory verification
 
-Measurements use the 47 mm debug build, so they conservatively include fixture
-and diagnostic overhead. Used and free values are derived from
+Measurements use the final 47 mm source in debug fixture harnesses, so they
+include fixture navigation and diagnostic overhead. Used and free values are derived from
 `System.getSystemStats()` at the rendered state.
 
 | Personality/state | Used | Free | Total | Limit result |
 | --- | ---: | ---: | ---: | --- |
-| Foreground, maximum 24-cycle history with Upcoming open | 170,576 B (166.6 KiB) | 611,312 B (597.0 KiB) | 781,888 B | within foreground budget |
-| Glance, peak temporary-out over-limit state | 22,296 B (21.8 KiB) | 38,960 B (38.0 KiB) | 61,256 B | used memory below 45 KiB |
-| Background, peak injected-exception path | 18,352 B (17.9 KiB) | 42,904 B (41.9 KiB) | 61,256 B | used memory below 45 KiB |
+| Foreground, maximum 24-cycle history with Upcoming open | 172,152 B (168.1 KiB) | 609,736 B (595.4 KiB) | 781,888 B | within foreground budget |
+| Glance, peak across five states | 22,624 B (22.1 KiB) | 38,632 B (37.7 KiB) | 61,256 B | used memory below 45 KiB |
+| Background, peak across eleven paths | 18,696 B (18.3 KiB) | 42,560 B (41.6 KiB) | 61,256 B | used memory below 45 KiB |
 
 ## Debug fixtures and screenshots
 
@@ -190,20 +191,22 @@ Native screenshot crops are 390×390 at `+118+260`, 416×416 at `+122+263`, and
 | Alert detail | 47 mm | 1 |
 | **Total** |  | **119** |
 
-Every image was regenerated from the integrated debug source and inspected for
+Every image was regenerated from the final integrated source using temporary
+fixture/navigation harnesses and inspected for
 round-edge clearance, clipping, overlap, scroll position, and state accuracy.
 The seven notification captures use a debug-only evidence surface that mirrors
 the production title, subtitle, body, and icon because the Linux simulator's
 native popup obscures the app surface during deterministic capture. Production
 passes the same title, subtitle, body, icon, launch data, and dismiss policy
 directly to Garmin's Notifications API. The large-number/divider collision is
-absent.
+absent. Capture automation stays outside the app: ordinary debug startup loads
+saved state and Demo scenarios are selected explicitly from the menu.
 
 `docs/store/generate-assets.sh` converts eight selected 47 mm captures to RGB
 sRGB PNGs. All are 416×416 and below the Store's 150 KiB limit. It also renders
 the centered 500×500 launcher with 118 px minimum artwork padding.
 
-## UX round (v1.3.0)
+## UX rounds (v1.3.0)
 
 Version 1.3.0 combines the unreleased picker/phone-settings work with the four
 review workstreams. Main now uses measured mixed-size countdowns, scaled arcs,
@@ -230,27 +233,26 @@ Two contract tensions are intentional and documented:
 
 - Garmin supplies the app glyph beside a glance, so it cannot be recoloured by
   state. Round 2 makes that shared launcher glyph neutral grey; the title,
-  value, and bar carry state colour.
+  value, and bar carry state colour. In the 51 mm simulator's full-screen
+  glance preview, the circular mask clips part of that native glyph at the
+  upper-left edge; app-drawn text and bars fit. Placement in the real watch's
+  glance list remains a hardware verification item.
 - Garmin's native notification API controls text colour. The debug evidence
   surface renders late lines orange, while production supplies the same late
   copy to the native card without an unsupported colour option. The mandated
   `Remove ring today` / `Insert ring today` titles exceed 15 characters but
   fit the target card; all titles whose wording is flexible remain at most 15.
 
-Round-2 constrained-UI polish uses the same local lateness rule in both
-personalities (`29h` below 48 hours, `2d` from 48 hours), keeps the glance icon
-neutral, gives temporary ring-out its own reinsert copy, and standardizes
-notification hints and serious-state facts. The local formatters deliberately
-avoid a foreground dependency and can be replaced by the shared formatter at
-integration.
+Main, Upcoming, glance, background notifications, and Alert detail share
+`Lateness.mc`: hours below 48 hours, whole days thereafter. The module has no
+foreground UI or calendar dependency, so constrained personalities can reuse
+it. The final integration preserves time in the ring-free action line and
+removes the separator when a serious-state secondary line wraps. The clock
+validity warning uses separate title/body spacing even when the body wraps on
+the 390 px display.
 
-The round-2 verification rerun regenerated all glance and notification
-evidence, rechecked the eleven background paths, and measured both constrained
-personalities below the 45 KiB limit.
-
-No other item in `docs/ux-review/DECISIONS.md` remains unimplemented. Native
-menus may reveal a deliberately partial adjacent row at the round bezel while
-scrolling; the selected row and every custom-rendered value remain unclipped.
+Native menus may reveal a partial adjacent row at the round bezel while
+scrolling; selected rows and custom-rendered values were visually checked.
 
 The round-2 list pass keeps Upcoming on fixed 78 px row pitches with shared
 column anchors, a proportional elapsed/overdue track, chord-safe rails, and the
