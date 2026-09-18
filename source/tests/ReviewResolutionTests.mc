@@ -190,7 +190,8 @@ function replacementReminderUsesReplacementCopy(logger as Test.Logger) as Boolea
         service.notificationIds(4, 2, due, 24, due - 3600, 1)[0]);
     Test.assertEqual("Due today · 09:00",
         service.notificationIds(4, 2, due, 24, due - 3600, 1)[1]);
-    Test.assert(service.notificationIds(4, 2, due, 24, due - 3600, 1)[2] == null);
+    Test.assertEqual("Tap to log",
+        service.notificationIds(4, 2, due, 24, due - 3600, 1)[2]);
     return true;
 }
 

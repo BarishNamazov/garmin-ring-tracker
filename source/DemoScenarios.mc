@@ -71,6 +71,8 @@ function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as L
     if (kind == 0) { referenceUtc = active[:insertDueUtc] as Lang.Number; }
     else if (kind == 1) {
         referenceUtc = (ScheduleModel.tempOpen(active) as Lang.Dictionary)[:outUtc] as Lang.Number;
+    } else if (kind == 2) {
+        referenceUtc = active[:fourWeekUtc] as Lang.Number;
     }
     var copy = (new RingServiceDelegate()).notificationIds(kind as Lang.Number, 0,
         referenceUtc, (state[:reminders] as Lang.Dictionary)[:clockFormat], nowUtc,
@@ -94,19 +96,37 @@ class NotificationPreviewView extends WatchUi.View {
 
     function onUpdate(dc as Graphics.Dc) as Void {
         Ui.clear(dc);
+        var centerX = dc.getWidth() / 2;
+        dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(Ui.px(dc, 3));
+        dc.drawCircle(centerX, Ui.px(dc, 30), Ui.px(dc, 8));
+        dc.fillCircle(centerX + Ui.px(dc, 8), Ui.px(dc, 22), Ui.px(dc, 3));
+        Ui.centered(dc, Ui.px(dc, 80), _copy[0] as Lang.String,
+            Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 340));
+        dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.setPenWidth(1);
+        dc.drawLine(Ui.px(dc, 10), Ui.px(dc, 148),
+            dc.getWidth() - Ui.px(dc, 10), Ui.px(dc, 148));
         var subtitle = _copy[1] as Lang.String;
         var separator = " · ";
         var split = subtitle.find(separator);
         var bodyY = Ui.px(dc, 260);
         if (split == null) {
             Ui.centered(dc, Ui.px(dc, 190), subtitle,
-                Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 330));
+                Graphics.FONT_SYSTEM_SMALL,
+                subtitle.find("late") == null ? Ui.PRIMARY : Ui.AMBER,
+                Ui.px(dc, 330));
         } else {
-            Ui.centered(dc, Ui.px(dc, 178), subtitle.substring(0, split),
-                Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 330));
+            var firstLine = subtitle.substring(0, split);
+            var secondLine = subtitle.substring(split + separator.length(), subtitle.length());
+            Ui.centered(dc, Ui.px(dc, 178), firstLine,
+                Graphics.FONT_SYSTEM_SMALL,
+                firstLine.find("late") == null ? Ui.PRIMARY : Ui.AMBER,
+                Ui.px(dc, 330));
             Ui.centered(dc, Ui.px(dc, 222),
-                subtitle.substring(split + separator.length(), subtitle.length()),
-                Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 330));
+                secondLine, Graphics.FONT_SYSTEM_SMALL,
+                secondLine.find("late") == null ? Ui.PRIMARY : Ui.AMBER,
+                Ui.px(dc, 330));
             bodyY = Ui.px(dc, 286);
         }
         if (_copy[2] != null) {
@@ -247,9 +267,10 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
         || scenario == :backgroundFourWeeks || scenario == :largestCountdown
         || scenario == :ringIn29d) {
         regimen[:daysIn] = 35;
-        insertion = (scenario == :extended35 || scenario == :notificationFourWeeks
-            || scenario == :backgroundFourWeeks || scenario == :ringIn29d)
-            ? nowUtc - (29 * CalendarMath.SECONDS_PER_DAY) : nowUtc;
+        insertion = (scenario == :notificationFourWeeks || scenario == :backgroundFourWeeks)
+            ? nowUtc - (34 * CalendarMath.SECONDS_PER_DAY)
+            : ((scenario == :extended35 || scenario == :ringIn29d)
+                ? nowUtc - (29 * CalendarMath.SECONDS_PER_DAY) : nowUtc);
     }
     else if (scenario == :clock12Long) {
         insertion = mainDemoWallUtc(2026, 9, 9, 12, 26, insertion);
@@ -266,8 +287,11 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
         || scenario == :backgroundThrow) {
         insertion = nowUtc - (21 * CalendarMath.SECONDS_PER_DAY);
     }
-    else if (scenario == :notificationOverdue || scenario == :backgroundOverdue
-        || scenario == :alertDetail) {
+    else if (scenario == :notificationOverdue || scenario == :backgroundOverdue) {
+        insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY)
+            - (5 * CalendarMath.SECONDS_PER_HOUR);
+    }
+    else if (scenario == :alertDetail) {
         insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY) - (4 * CalendarMath.SECONDS_PER_HOUR);
     }
     var active = ScheduleModel.insertOrReplace(state, insertion);

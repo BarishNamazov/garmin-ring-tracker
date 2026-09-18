@@ -330,13 +330,13 @@ Phone $2$</string>
     <string id="GlanceRemoveOverdueTitle" scope="glance">Remove overdue</string>
     <string id="GlanceInsertOverdueTitle" scope="glance">Insert overdue</string>
     <string id="GlanceReplaceOverdueTitle" scope="glance">Replace overdue</string>
-    <string id="GlanceOutTitle" scope="glance">Ring out</string>
+    <string id="GlanceReinsertTitle" scope="glance">Reinsert in</string>
+    <string id="GlanceReinsertNowTitle" scope="glance">Reinsert now</string>
     <string id="GlanceEllipsis" scope="glance">…</string>
     <string id="GlanceOneDaySuffix" scope="glance"> day</string>
     <string id="GlanceDaysSuffix" scope="glance"> days</string>
     <string id="GlanceHourSuffix" scope="glance"> h </string>
     <string id="GlanceMinuteSuffix" scope="glance"> min</string>
-    <string id="GlanceLeftSuffix" scope="glance"> left</string>
     <string id="GlanceOverSuffix" scope="glance"> over</string>
     <string id="NotifyRemoveTomorrow" scope="background">Remove tomorrow</string>
     <string id="NotifyInsertTomorrow" scope="background">Insert tomorrow</string>
@@ -344,23 +344,19 @@ Phone $2$</string>
     <string id="NotifyRemoveRing" scope="background">Remove ring</string>
     <string id="NotifyInsertRing" scope="background">Insert ring</string>
     <string id="NotifyReplaceRing" scope="background">Replace ring</string>
-    <string id="NotifyStillInRemove" scope="background">Still in — remove</string>
-    <string id="NotifyStillOutInsert" scope="background">Still out — insert</string>
-    <string id="NotifyStillInReplace" scope="background">Still in — replace</string>
+    <string id="NotifyRemoveToday" scope="background">Remove ring today</string>
+    <string id="NotifyInsertToday" scope="background">Insert ring today</string>
+    <string id="NotifyReplaceToday" scope="background">Replace today</string>
     <string id="NotifyRemoveNow" scope="background">Remove now</string>
     <string id="NotifyInsertNow" scope="background">Insert now</string>
+    <string id="NotifyReplaceNow" scope="background">Replace now</string>
     <string id="NotifyPutRingBack" scope="background">Put ring back</string>
     <string id="NotifyDueToday" scope="background">Due today · $1$</string>
-    <string id="NotifyDueTimeToday" scope="background">Due $1$ today</string>
-    <string id="NotifyLogOnceOut" scope="background">Tap to log once out</string>
-    <string id="NotifyLogOnceIn" scope="background">Tap to log once in</string>
-    <string id="NotifyLogReplacement" scope="background">Tap to log replacement</string>
+    <string id="NotifyTapToLog" scope="background">Tap to log</string>
     <string id="NotifyLateDue" scope="background">$1$ late · due $2$</string>
-    <string id="NotifyChooseWhatHappened" scope="background">Choose what happened</string>
     <string id="NotifyOutFor" scope="background">Out $1$</string>
-    <string id="NotifyBackupDetail" scope="background">Backup advised — see detail</string>
-    <string id="NotifyBreakLate" scope="background">Break over 7 days · $1$ late</string>
-    <string id="NotifyFourWeeksOver" scope="background">In over 4 weeks · $1$ over</string>
+    <string id="NotifyBreakLate" scope="background">Ring-free $1$ days · $2$ late</string>
+    <string id="NotifyFourWeeksOver" scope="background">Ring in $1$ days · $2$ late</string>
     <string id="NotifyBackup" scope="background">Backup advised</string>
     <string id="NotifyDateTime" scope="background">$1$ · $2$</string>
     <string id="NotifyDate" scope="background">$1$ $2$ $3$</string>

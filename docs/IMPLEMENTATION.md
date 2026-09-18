@@ -215,12 +215,21 @@ ring/dot icon.
 
 Two contract tensions are intentional and documented:
 
-- Garmin supplies the app glyph beside a glance, so it remains the green
-  launcher glyph; the drawable cannot recolour it per glance state. Overdue
-  state is still carried by the orange title, value, bar, and overflow tail.
-- The required Reminder 2 titles `Still in — remove` and
-  `Still out — insert` exceed the nominal 15-character title budget. The
-  required distinguishing phrases take precedence and fit the target card.
+- Garmin supplies the app glyph beside a glance, so it cannot be recoloured by
+  state. Round 2 makes that shared launcher glyph neutral grey; the title,
+  value, and bar carry state colour.
+- Garmin's native notification API controls text colour. The debug evidence
+  surface renders late lines orange, while production supplies the same late
+  copy to the native card without an unsupported colour option. The mandated
+  `Remove ring today` / `Insert ring today` titles exceed 15 characters but
+  fit the target card; all titles whose wording is flexible remain at most 15.
+
+Round-2 constrained-UI polish uses the same local lateness rule in both
+personalities (`29h` below 48 hours, `2d` from 48 hours), keeps the glance icon
+neutral, gives temporary ring-out its own reinsert copy, and standardizes
+notification hints and serious-state facts. The local formatters deliberately
+avoid a foreground dependency and can be replaced by the shared formatter at
+integration.
 
 No other item in `docs/ux-review/DECISIONS.md` remains unimplemented. Native
 menus may reveal a deliberately partial adjacent row at the round bezel while
