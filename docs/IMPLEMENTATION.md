@@ -220,6 +220,11 @@ adds the dimmed time separator. Correct dates now uses Menu2, duration settings
 read `Days worn` / `Days out`, and the setup, About, regimen, migration, and
 Alert detail screens share the revised copy hierarchy and action-slot pattern.
 
+The completed pass regenerated all 40 menu, confirmation, Correct dates,
+Settings, picker, and text/detail captures. The pending Removed item uses
+Menu2's native unfocused treatment and shows `Not removed yet` when selected;
+Menu2 does not expose a per-item text-colour override.
+
 Two contract tensions are intentional and documented:
 
 - Garmin supplies the app glyph beside a glance, so it remains the green
