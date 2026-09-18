@@ -7,10 +7,10 @@ the first-run setup, add the glance, and troubleshoot reminders.
 > **Health disclaimer:** Ring Tracker records dates and shows reminders. It does
 > not determine whether contraception is effective and is not a substitute for
 > the product label or advice from a qualified clinician. Read the in-app
-> safety text before use. Ring Tracker v1.2.0 is for NuvaRing only. See [the
+> safety text before use. Ring Tracker v1.3.0 is for NuvaRing only. See [the
 > regimen and source notes](REGIMEN.md).
 
-Information and menu names were checked on 14 September 2026. Garmin sometimes
+Information and menu names were checked on 17 September 2026. Garmin sometimes
 renames a menu in firmware updates; the route should remain similar.
 
 ## Choose the right installation method

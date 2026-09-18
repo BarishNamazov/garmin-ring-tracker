@@ -53,6 +53,16 @@ function uxCClockOverrideMigratesSilentlyToWatchFormat(logger as Test.Logger) as
 }
 
 (:test)
+function uxCDebugPickerFixturesCoverBothWatchFormats(logger as Test.Logger) as Boolean {
+    var reminders = ScheduleModel.defaultReminders();
+    reminders[:clockFormat] = 12;
+    Test.assert(!pickerUses24Hour(reminders));
+    reminders[:clockFormat] = 24;
+    Test.assert(pickerUses24Hour(reminders));
+    return true;
+}
+
+(:test)
 function uxCRepeatOffSuppressesMissedReminderSlots(logger as Test.Logger) as Boolean {
     var state = ScheduleModel.defaultState();
     var start = testWall(2026, 9, 1, 9, 0);

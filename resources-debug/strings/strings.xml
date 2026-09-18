@@ -48,6 +48,7 @@
     <string id="DemoBackgroundNil">BG · nil mirror</string>
     <string id="DemoBackgroundCorrupt">BG · corrupt mirror</string>
     <string id="DemoBackgroundThrow">BG · notification exception</string>
+    <string id="DemoAlertDetail">Alert detail</string>
     <string id="DemoSeedQuestion">Load demo?
-Replaces data.</string>
+Replaces data</string>
 </strings>

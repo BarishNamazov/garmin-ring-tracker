@@ -124,7 +124,7 @@ function mainDemoFixturesCoverSeriousTemporaryAndLongDateStates(logger as Test.L
     Test.assertEqual((3 * CalendarMath.SECONDS_PER_HOUR) + (10 * CalendarMath.SECONDS_PER_MINUTE),
         ScheduleModel.deriveStatus(now, tempAfter[:active], tempAfter[:regimen])[:tempElapsed]);
     Test.assert(ScheduleModel.deriveStatus(now, warning[:active], warning[:regimen])[:clockBeforeInsertion]);
-    Test.assert(Ui.s(Rez.Strings.MainClockBeforeInsertion).length() > 60);
+    Test.assert(Ui.s(Rez.Strings.MainClockBeforeInsertion).length() > 50);
     var longDue = (longDate[:active] as Lang.Dictionary)[:removeDueUtc];
     Test.assertEqual("Wed 30 Sep", Ui.shortDate(longDue));
     Test.assertEqual("12:26 PM", Ui.timeForUtc(longDue, 12));

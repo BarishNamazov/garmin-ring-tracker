@@ -249,15 +249,20 @@ function storageFullExceptionGetsDistinctSaveClassification(logger as Test.Logge
 
 (:test)
 function copyAndFormattingContractsMatchRegimen(logger as Test.Logger) as Boolean {
-    var disclaimer = Ui.s(Rez.Strings.DisclaimerLine1) + " "
-        + Ui.s(Rez.Strings.DisclaimerLine2) + " "
-        + Ui.s(Rez.Strings.DisclaimerLine3);
-    Test.assertEqual("Schedule aid, not medical advice. Cannot determine contraceptive effectiveness. Follow NuvaRing instructions. Ask a clinician or pharmacist if a ring is late, out too long, or pregnancy is possible.", disclaimer);
-    Test.assertEqual("3h reached. Put it back in.",
+    Test.assertEqual("Reminders for your ring schedule only. Not medical advice, and no measure of contraceptive protection.",
+        Ui.s(Rez.Strings.TextFirstRunBody));
+    Test.assertEqual("Reminders · Not medical advice",
+        Ui.s(Rez.Strings.TextAboutDisclaimer));
+    Test.assertEqual("Not for generics or Annovera.",
+        Ui.s(Rez.Strings.AnnoveraUnsupported));
+    Test.assertEqual("3h reached · Put it back in",
         Ui.s(Rez.Strings.ThreeHourReached));
-    Test.assertEqual("Out over 3h. Reinsert now. Use backup 7 days.", Ui.s(Rez.Strings.TempOverBody12));
-    Test.assertEqual("Insert now. Use backup 7 days.", Ui.s(Rez.Strings.RingFreeExceededBody));
-    Test.assertEqual("Ring in over 4 weeks. Replace now.", Ui.s(Rez.Strings.ExtendedBody));
+    Test.assertEqual("Out over 3h · Reinsert now · Backup advised · 7 days",
+        Ui.s(Rez.Strings.TempOverBody12));
+    Test.assertEqual("Insert now · Backup advised · 7 days",
+        Ui.s(Rez.Strings.RingFreeExceededBody));
+    Test.assertEqual("Ring in over 4 weeks · Replace now",
+        Ui.s(Rez.Strings.ExtendedBody));
     Test.assertEqual("Mon 5 Oct", Ui.shortDate(testWall(2026, 10, 5, 17, 6)));
     Test.assertEqual("5:06 PM", Ui.timeOnly(17, 6, 12));
     Test.assertEqual("17:06", Ui.timeOnly(17, 6, 24));

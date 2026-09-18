@@ -1,4 +1,5 @@
 import Toybox.Application.Storage;
+import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Notifications;
 
@@ -32,8 +33,19 @@ function isTransientOptionalSeed(action as Lang.Symbol, data) as Lang.Boolean {
 }
 
 (:debug)
+function pickerUses24Hour(reminders as Lang.Dictionary) as Lang.Boolean {
+    if (reminders[:clockFormat] == 12) { return false; }
+    if (reminders[:clockFormat] == 24) { return true; }
+    return Toybox.System.getDeviceSettings().is24Hour;
+}
+
+(:debug)
 function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as Lang.Number) as Void {
     var scenario = data as Lang.Symbol;
+    if (scenario == :alertDetail) {
+        getApp().showAlert();
+        return;
+    }
     var kind = null;
     var reminderSlot = 0;
     if (scenario == :notificationDayBefore) {
@@ -63,10 +75,45 @@ function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as L
     var copy = (new RingServiceDelegate()).notificationIds(kind as Lang.Number, 0,
         referenceUtc, (state[:reminders] as Lang.Dictionary)[:clockFormat], nowUtc,
         reminderSlot);
+    WatchUi.switchToView(new NotificationPreviewView(copy), new MainDelegate(),
+        WatchUi.SLIDE_IMMEDIATE);
     var options = { :data => [((state[:active] as Lang.Dictionary)[:cycleId]), 0],
         :dismissPrevious => true };
     if (copy[2] != null) { options[:body] = copy[2]; }
     Notifications.showNotification(copy[0] as Lang.String, copy[1] as Lang.String, options);
+}
+
+(:debug)
+class NotificationPreviewView extends WatchUi.View {
+    private var _copy as Lang.Array;
+
+    function initialize(copy as Lang.Array) {
+        View.initialize();
+        _copy = copy;
+    }
+
+    function onUpdate(dc as Graphics.Dc) as Void {
+        Ui.clear(dc);
+        var subtitle = _copy[1] as Lang.String;
+        var separator = " · ";
+        var split = subtitle.find(separator);
+        var bodyY = Ui.px(dc, 260);
+        if (split == null) {
+            Ui.centered(dc, Ui.px(dc, 190), subtitle,
+                Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 330));
+        } else {
+            Ui.centered(dc, Ui.px(dc, 178), subtitle.substring(0, split),
+                Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 330));
+            Ui.centered(dc, Ui.px(dc, 222),
+                subtitle.substring(split + separator.length(), subtitle.length()),
+                Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 330));
+            bodyY = Ui.px(dc, 286);
+        }
+        if (_copy[2] != null) {
+            Ui.centered(dc, bodyY, _copy[2] as Lang.String,
+                Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 310));
+        }
+    }
 }
 
 (:debug)
@@ -219,7 +266,8 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
         || scenario == :backgroundThrow) {
         insertion = nowUtc - (21 * CalendarMath.SECONDS_PER_DAY);
     }
-    else if (scenario == :notificationOverdue || scenario == :backgroundOverdue) {
+    else if (scenario == :notificationOverdue || scenario == :backgroundOverdue
+        || scenario == :alertDetail) {
         insertion = nowUtc - (22 * CalendarMath.SECONDS_PER_DAY) - (4 * CalendarMath.SECONDS_PER_HOUR);
     }
     var active = ScheduleModel.insertOrReplace(state, insertion);

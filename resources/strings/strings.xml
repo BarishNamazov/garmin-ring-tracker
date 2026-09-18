@@ -3,10 +3,10 @@
     <string id="AppName">Ring Tracker</string>
     <string id="SetInsertionDateTimeTitle">Insertion date &amp; time</string>
     <string id="SetInsertionDateTimePrompt">YYYY-MM-DDTHH:mm, local time</string>
-    <string id="InsertionDateTimeError">Choose a valid date and time.</string>
-    <string id="SettingValueError">Choose a valid value.</string>
+    <string id="InsertionDateTimeError">Choose a valid date and time</string>
+    <string id="SettingValueError">Choose a valid value</string>
     <string id="DstAdjustmentTitle">Time adjusted</string>
-    <string id="DstAdjustmentBody">That local time did not exist. Moved to the next valid minute.</string>
+    <string id="DstAdjustmentBody">That local time did not exist · Moved to the next valid minute</string>
     <string id="ReminderHourTitle">Reminder 1 hour</string>
     <string id="ReminderMinuteTitle">Reminder 1 minute</string>
     <string id="Reminder2EnabledTitle">Reminder 2</string>
@@ -16,17 +16,13 @@
     <string id="Reminder1">Reminder 1</string>
     <string id="Reminder2">Reminder 2</string>
     <string id="DaysInTitle">Days ring in</string>
-    <string id="DaysInPrompt">Use only with your clinician's advice.</string>
+    <string id="DaysInPrompt">Use only with your clinician's advice</string>
     <string id="DaysOutTitle">Days ring-free</string>
-    <string id="DaysOutPrompt">0 means replace immediately.</string>
+    <string id="DaysOutPrompt">0 means replace immediately</string>
     <string id="Repeat12Hours">12 hours</string>
     <string id="VibrationTitle">Vibration</string>
     <string id="SoundTitle">Sound</string>
-    <string id="ForegroundAttentionPrompt">When the app opens.</string>
-    <string id="ClockFormatTitle">Clock</string>
-    <string id="ClockSystem">System</string>
-    <string id="Clock12Hour">12-hour</string>
-    <string id="Clock24Hour">24-hour</string>
+    <string id="ForegroundAttentionPrompt">When the app opens</string>
     <string id="Am">AM</string>
     <string id="Pm">PM</string>
     <string id="MenuNoCycleTitle">No cycle</string>
@@ -50,9 +46,9 @@
     <string id="MenuLogsCurrentTime">Logs current time</string>
     <string id="MenuTitle">Menu</string>
     <string id="ScheduleAidTitle">Ring Tracker</string>
-    <string id="DisclaimerLine1">Schedule aid, not medical advice.</string>
-    <string id="DisclaimerLine2">Cannot determine contraceptive effectiveness.</string>
-    <string id="DisclaimerLine3">Follow NuvaRing instructions. Ask a clinician or pharmacist if a ring is late, out too long, or pregnancy is possible.</string>
+    <string id="DisclaimerLine1">Schedule aid, not medical advice</string>
+    <string id="DisclaimerLine2">Cannot determine contraceptive effectiveness</string>
+    <string id="DisclaimerLine3">Follow NuvaRing instructions · Ask a clinician or pharmacist if a ring is late, out too long, or pregnancy is possible</string>
     <string id="StartContinue">Continue</string>
     <string id="ContinueQuestion">Continue to setup?</string>
     <string id="RegimenTitle">Schedule</string>
@@ -172,7 +168,7 @@ Out $1$</string>
     <string id="MainLeftTemplate">$1$ left</string>
     <string id="MainOverTemplate">$1$ over</string>
     <string id="MainLimitReached">3h limit reached</string>
-    <string id="MainClockBeforeInsertion">Check insertion date · watch time is earlier than the recorded insertion</string>
+    <string id="MainClockBeforeInsertion">Check insertion date · watch time is earlier than insertion</string>
     <string id="InsertedLabel">Inserted</string>
     <string id="RemoveLabel">Remove</string>
     <string id="InsertLabel">Insert</string>
@@ -198,12 +194,12 @@ Out $1$</string>
     <string id="Wed">Wed</string><string id="Thu">Thu</string><string id="Fri">Fri</string>
     <string id="Sat">Sat</string>
     <string id="ThreeHourInTemplate">Put it back in</string>
-    <string id="ThreeHourReached">3h reached. Put it back in.</string>
-    <string id="RecordedOutOver3h">Out over 3h. Reinsert now. Use backup 7 days.</string>
+    <string id="ThreeHourReached">3h reached · Put it back in</string>
+    <string id="RecordedOutOver3h">Out over 3h · Reinsert now · Backup advised · 7 days</string>
     <string id="ReinsertSoon">Put it back in</string>
-    <string id="RingFreeLimitPassed">Insert now. Use backup 7 days.</string>
+    <string id="RingFreeLimitPassed">Insert now · Backup advised · 7 days</string>
     <string id="InsertNow">INSERT NOW</string>
-    <string id="BeyondFourWeeks">Ring in over 4 weeks. Replace now.</string>
+    <string id="BeyondFourWeeks">Ring in over 4 weeks · Replace now</string>
     <string id="WatchBeforeInsertion">Check insertion date</string>
     <string id="AdjustTitle">Edit dates</string>
     <string id="EditCorrectDates">Correct dates</string>
@@ -220,9 +216,9 @@ Out $1$</string>
     <string id="RangeSeparator"> — </string>
     <string id="NotRecorded">—</string>
     <string id="Ellipsis">…</string>
-    <string id="InvalidDate">Choose a valid date.</string>
-    <string id="InvalidEventOrder">That time conflicts with another event.</string>
-    <string id="FutureEvent">Choose now or an earlier time.</string>
+    <string id="InvalidDate">Choose a valid date</string>
+    <string id="InvalidEventOrder">That time conflicts with another event</string>
+    <string id="FutureEvent">Choose now or an earlier time</string>
     <string id="ReminderTime">Reminder 1</string>
     <string id="SettingsReminder1">Reminder 1</string>
     <string id="SettingsReminder2">Reminder 2</string>
@@ -244,20 +240,18 @@ Out $1$</string>
     <string id="RepeatOverdue">Overdue repeat</string>
     <string id="Vibration">Vibration</string>
     <string id="Sound">Sound</string>
-    <string id="Clock">Clock</string>
     <string id="On">On</string>
     <string id="Off">Off</string>
     <string id="ReplaceImmediately">Replace now</string>
     <string id="ResetApp">Reset app</string>
-    <string id="ExtendedUseNotice">Use only with your clinician's advice.</string>
-    <string id="OutsideLabelNotice">Over 4 weeks. Use only with your clinician's advice.</string>
+    <string id="ExtendedUseNotice">Use only with your clinician's advice</string>
+    <string id="OutsideLabelNotice">Over 4 weeks · Use only with your clinician's advice</string>
     <string id="OutsideLabelBadge">Over 4 weeks</string>
     <string id="AcknowledgeDurationQuestion">Save this length?
-Clinician advice only.</string>
+Clinician advice only</string>
     <string id="RegimenChangeQuestion">$1$
 → $2$</string>
     <string id="RepeatTitle">Overdue repeat</string>
-    <string id="ClockTitle">Clock</string>
     <string id="HistoryEmpty">No history yet</string>
     <string id="HistoryCountTemplate">$1$ cycles</string>
     <string id="HistoryEndTemplate">to $1$</string>
@@ -282,23 +276,23 @@ Clinician advice only.</string>
     <string id="TextContinue">Continue</string>
     <string id="TextAboutTitle">About</string>
     <string id="TextProductVersion">Ring Tracker 1.3.0</string>
-    <string id="TextAboutDisclaimer">Schedule reminders only. Not medical advice.</string>
+    <string id="TextAboutDisclaimer">Reminders · Not medical advice</string>
     <string id="TextDone">Done</string>
     <string id="TextMigrationTitle">Dates updated</string>
-    <string id="TextMigrationBody">Your schedule now uses the real dates you inserted and removed the ring. Review them under &quot;Edit dates&quot;.</string>
+    <string id="TextMigrationBody">Your schedule now uses the real dates you inserted and removed the ring · Review them under &quot;Correct dates&quot;</string>
     <string id="TextOK">OK</string>
     <string id="ProductVersion">Ring Tracker 1.3.0</string>
-    <string id="SupportedScope">NuvaRing only.</string>
-    <string id="ReminderLimit">Reminders can be delayed. Keep another reminder.</string>
-    <string id="Privacy">Data stays on your watch. Garmin App Settings syncs configuration.</string>
+    <string id="SupportedScope">NuvaRing only</string>
+    <string id="ReminderLimit">Reminders can be delayed · Keep another reminder</string>
+    <string id="Privacy">Data stays on your watch · Garmin App Settings syncs configuration</string>
     <string id="SourcesTitle">Sources</string>
     <string id="SourcesLine1">NuvaRing prescribing information</string>
     <string id="SourcesLine2">DailyMed; NHS NuvaRing guide</string>
     <string id="ActionDueTitle">Ring due</string>
-    <string id="ActionDueBody">Choose what happened.</string>
-    <string id="RingFreeExceededBody">Insert now. Use backup 7 days.</string>
-    <string id="TempOverBody12">Out over 3h. Reinsert now. Use backup 7 days.</string>
-    <string id="ExtendedBody">Ring in over 4 weeks. Replace now.</string>
+    <string id="ActionDueBody">Choose what happened</string>
+    <string id="RingFreeExceededBody">Insert now · Backup advised · 7 days</string>
+    <string id="TempOverBody12">Out over 3h · Reinsert now · Backup advised · 7 days</string>
+    <string id="ExtendedBody">Ring in over 4 weeks · Replace now</string>
     <string id="AlertOverdueTitle">Ring overdue</string>
     <string id="AlertRingFreeTitle">Insert now</string>
     <string id="AlertTemporaryTitle">Ring out</string>
@@ -313,21 +307,21 @@ Clinician advice only.</string>
     <string id="LabelInformationTitle">Safety</string>
     <string id="AboutSourcesHint">Sources: About</string>
     <string id="SetupNeeded">Add insertion date</string>
-    <string id="StorageError">Couldn't save. Nothing changed.</string>
-    <string id="SettingsMirrorRetry">Saved on watch. Settings sync will retry.</string>
-    <string id="TemporaryOutStorageError">Couldn't save ring-out time.</string>
-    <string id="ReminderRegistrationError">Reminders unavailable. Reopen to retry.</string>
-    <string id="RecoveredError">Saved dates were damaged. Schedule reset.</string>
-    <string id="IncompatibleData">Newer app data. Read-only.</string>
+    <string id="StorageError">Couldn't save · Nothing changed</string>
+    <string id="SettingsMirrorRetry">Saved on watch · Settings sync will retry</string>
+    <string id="TemporaryOutStorageError">Couldn't save ring-out time</string>
+    <string id="ReminderRegistrationError">Reminders unavailable · Reopen to retry</string>
+    <string id="RecoveredError">Saved dates were damaged · Schedule reset</string>
+    <string id="IncompatibleData">Newer app data · Read-only</string>
     <string id="SettingsReviewTitle">Review settings</string>
-    <string id="SettingsReviewBody">Review changes from Garmin App Settings.</string>
-    <string id="InvalidSettingsBody">A Garmin App Settings value was invalid.</string>
+    <string id="SettingsReviewBody">Review changes from Garmin App Settings</string>
+    <string id="InvalidSettingsBody">A Garmin App Settings value was invalid</string>
     <string id="SettingsReviewQuestion">Apply these settings?</string>
     <string id="RemoteInsertionQuestion">Watch $1$
 Phone $2$</string>
     <string id="InvalidSettingsQuestion">Keep watch dates?</string>
     <string id="MigrationTitle">Dates updated</string>
-    <string id="MigrationBody">Dates now follow actual insertions and removals. Check Edit dates.</string>
+    <string id="MigrationBody">Dates now follow actual insertions and removals · Check Correct dates</string>
     <string id="GlanceSetupTitle" scope="glance">Ring Tracker</string>
     <string id="GlanceSetupValue" scope="glance">Add insertion date</string>
     <string id="GlanceRemoveTitle" scope="glance">Remove in</string>
@@ -358,15 +352,16 @@ Phone $2$</string>
     <string id="NotifyPutRingBack" scope="background">Put ring back</string>
     <string id="NotifyDueToday" scope="background">Due today · $1$</string>
     <string id="NotifyDueTimeToday" scope="background">Due $1$ today</string>
-    <string id="NotifyLogOnceOut" scope="background">Tap to log once out.</string>
-    <string id="NotifyLogOnceIn" scope="background">Tap to log once in.</string>
-    <string id="NotifyLogReplacement" scope="background">Tap to log replacement.</string>
+    <string id="NotifyLogOnceOut" scope="background">Tap to log once out</string>
+    <string id="NotifyLogOnceIn" scope="background">Tap to log once in</string>
+    <string id="NotifyLogReplacement" scope="background">Tap to log replacement</string>
     <string id="NotifyLateDue" scope="background">$1$ late · due $2$</string>
+    <string id="NotifyChooseWhatHappened" scope="background">Choose what happened</string>
     <string id="NotifyOutFor" scope="background">Out $1$</string>
-    <string id="NotifyBackupDetail" scope="background">Backup advised — see detail.</string>
+    <string id="NotifyBackupDetail" scope="background">Backup advised — see detail</string>
     <string id="NotifyBreakLate" scope="background">Break over 7 days · $1$ late</string>
     <string id="NotifyFourWeeksOver" scope="background">In over 4 weeks · $1$ over</string>
-    <string id="NotifyBackup" scope="background">Backup advised.</string>
+    <string id="NotifyBackup" scope="background">Backup advised</string>
     <string id="NotifyDateTime" scope="background">$1$ · $2$</string>
     <string id="NotifyDate" scope="background">$1$ $2$ $3$</string>
     <string id="NotifyJan" scope="background">Jan</string>
@@ -395,17 +390,16 @@ Phone $2$</string>
     <string id="DisplaySettingsGroup">Display</string>
     <string id="SettingsDisplayDescription">Foreground alerts</string>
     <string id="InsertionDateTitle">Insertion date</string>
-    <string id="InsertionDatePrompt">Choose the actual insertion date.</string>
+    <string id="InsertionDatePrompt">Choose the actual insertion date</string>
     <string id="InsertionTimeTitle">Insertion time</string>
-    <string id="InsertionTimePrompt">Choose the nearest 15-minute time.</string>
+    <string id="InsertionTimePrompt">Choose the nearest 15-minute time</string>
     <string id="Reminder1TimeTitle">Reminder 1</string>
-    <string id="Reminder1TimePrompt">Choose an AM/PM reminder time.</string>
-    <string id="Reminder2EnabledPrompt">Turn on the second action-day reminder.</string>
+    <string id="Reminder1TimePrompt">Choose an AM/PM reminder time</string>
+    <string id="Reminder2EnabledPrompt">Turn on the second action-day reminder</string>
     <string id="Reminder2TimeTitle">Reminder 2 time</string>
-    <string id="Reminder2TimePrompt">Choose an AM/PM reminder time.</string>
-    <string id="DayBeforePrompt">Uses the Reminder 1 time.</string>
-    <string id="OverdueRepeatPrompt">Choose how often overdue alerts repeat.</string>
-    <string id="ClockFormatPrompt">Choose system, 12-hour, or 24-hour display.</string>
+    <string id="Reminder2TimePrompt">Choose an AM/PM reminder time</string>
+    <string id="DayBeforePrompt">Uses the Reminder 1 time</string>
+    <string id="OverdueRepeatPrompt">Choose how often overdue alerts repeat</string>
     <string id="PhoneTime0000">12:00 AM</string>
     <string id="PhoneTime0015">12:15 AM</string>
     <string id="PhoneTime0030">12:30 AM</string>

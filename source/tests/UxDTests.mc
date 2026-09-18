@@ -57,3 +57,12 @@ function uxDNotificationTitlesAreVerbFirstAndNumberFree(logger as Test.Logger) a
     }
     return true;
 }
+
+(:test)
+function uxDOverdueNotificationIncludesInstruction(logger as Test.Logger) as Boolean {
+    var due = testWall(2026, 9, 15, 17, 26);
+    var copy = (new RingServiceDelegate()).notificationIds(3, 0, due, 12,
+        due + 100800, 0);
+    Test.assertEqual("Choose what happened", copy[2]);
+    return true;
+}

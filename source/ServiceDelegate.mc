@@ -86,6 +86,7 @@ class RingServiceDelegate extends System.ServiceDelegate {
                 Rez.Strings.NotifyInsertNow, Rez.Strings.NotifyReplaceRing);
             subtitle = format(Rez.Strings.NotifyLateDue,
                 [elapsed(nowUtc - referenceUtc), dateFor(referenceUtc)]);
+            body = text(Rez.Strings.NotifyChooseWhatHappened);
         } else if (kind == 1) {
             title = text(Rez.Strings.NotifyPutRingBack);
             subtitle = format(Rez.Strings.NotifyOutFor,

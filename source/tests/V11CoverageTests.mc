@@ -246,14 +246,14 @@ function v11NotificationCopyCoversEveryKindAndBody(logger as Test.Logger) as Boo
         Test.assertEqual(tomorrow[i], before[0]); Test.assertEqual("Wed 2 Sep · 09:00", before[1]); Test.assert(before[2] == null);
         Test.assertEqual(today[i], dayOf[0]); Test.assertEqual("Due today · 09:00", dayOf[1]); Test.assert(dayOf[2] == null);
         Test.assertEqual(second[i], dayOf2[0]); Test.assertEqual("Due 09:00 today", dayOf2[1]); Test.assert(dayOf2[2] != null);
-        Test.assertEqual(overdueTitle[i], overdue[0]); Test.assertEqual("1d 4h late · due Wed 2 Sep", overdue[1]); Test.assert(overdue[2] == null);
+        Test.assertEqual(overdueTitle[i], overdue[0]); Test.assertEqual("1d 4h late · due Wed 2 Sep", overdue[1]); Test.assertEqual("Choose what happened", overdue[2]);
     }
     var temp = service.notificationIds(1, 0, due, 24, due + 11400, 0);
-    Test.assertEqual("Put ring back", temp[0]); Test.assertEqual("Out 3h 10m", temp[1]); Test.assertEqual("Backup advised — see detail.", temp[2]);
+    Test.assertEqual("Put ring back", temp[0]); Test.assertEqual("Out 3h 10m", temp[1]); Test.assertEqual("Backup advised — see detail", temp[2]);
     var free = service.notificationIds(0, 1, due, 24, due + 86400, 0);
-    Test.assertEqual("Insert ring", free[0]); Test.assertEqual("Break over 7 days · 1d late", free[1]); Test.assertEqual("Backup advised.", free[2]);
+    Test.assertEqual("Insert ring", free[0]); Test.assertEqual("Break over 7 days · 1d late", free[1]); Test.assertEqual("Backup advised", free[2]);
     var longIn = service.notificationIds(2, 0, due, 24, due + 86400, 0);
-    Test.assertEqual("Replace ring", longIn[0]); Test.assertEqual("In over 4 weeks · 1d over", longIn[1]); Test.assertEqual("Backup advised.", longIn[2]);
+    Test.assertEqual("Replace ring", longIn[0]); Test.assertEqual("In over 4 weeks · 1d over", longIn[1]); Test.assertEqual("Backup advised", longIn[2]);
     return true;
 }
 

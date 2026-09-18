@@ -217,6 +217,7 @@ module Menus {
         menu.addItem(item(Rez.Strings.DemoBackgroundNil, null, :backgroundNil));
         menu.addItem(item(Rez.Strings.DemoBackgroundCorrupt, null, :backgroundCorrupt));
         menu.addItem(item(Rez.Strings.DemoBackgroundThrow, null, :backgroundThrow));
+        menu.addItem(item(Rez.Strings.DemoAlertDetail, null, :alertDetail));
         return menu;
     }
 }

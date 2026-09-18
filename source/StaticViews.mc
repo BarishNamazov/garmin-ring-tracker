@@ -154,8 +154,8 @@ class RegimenDelegate extends WatchUi.BehaviorDelegate {
 class AboutView extends TextActionView {
     function initialize() {
         TextActionView.initialize(Rez.Strings.TextAboutTitle,
-            [Ui.s(Rez.Strings.TextAboutDisclaimer), Ui.s(Rez.Strings.SupportedScope),
-             Ui.s(Rez.Strings.AnnoveraUnsupported), Ui.s(Rez.Strings.ReminderLimit),
+            [Ui.s(Rez.Strings.SupportedScope), Ui.s(Rez.Strings.AnnoveraUnsupported),
+             Ui.s(Rez.Strings.ReminderLimit),
              Ui.s(Rez.Strings.Privacy), Ui.s(Rez.Strings.SourcesTitle),
              Ui.s(Rez.Strings.SourcesLine1), Ui.s(Rez.Strings.SourcesLine2)],
             Rez.Strings.TextDone);
@@ -166,7 +166,9 @@ class AboutView extends TextActionView {
             Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
         Ui.centered(dc, Ui.px(dc, 88), Ui.s(Rez.Strings.TextProductVersion),
             Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
-        var startY = Ui.px(dc, 126);
+        Ui.centered(dc, Ui.px(dc, 126), Ui.s(Rez.Strings.TextAboutDisclaimer),
+            Graphics.FONT_XTINY, Ui.PRIMARY, Ui.px(dc, 350));
+        var startY = Ui.px(dc, 158);
         var bottomY = Ui.px(dc, 286);
         _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
         if (_lineCount > 0) { _lineCount -= 1; }

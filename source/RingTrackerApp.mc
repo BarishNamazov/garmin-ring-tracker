@@ -393,7 +393,7 @@ class ForegroundController {
     function confirmAction(action as Lang.Symbol, atUtc as Lang.Number, data) as Void {
         var message = Ui.s(Rez.Strings.SaveChangeQuestion);
         var clock = 0;
-        var timestamp = Ui.shortTimestamp(atUtc, clock);
+        var timestamp = Ui.compactTimestamp(atUtc, clock);
         if (action == :acceptDisclaimer) { message = Ui.s(Rez.Strings.ContinueQuestion); }
         else if (action == :acceptRegimen) { message = Ui.s(Rez.Strings.ConfirmRegimenQuestion); }
         else if (action == :insert) {
@@ -431,7 +431,7 @@ class ForegroundController {
             var keepOpen = ScheduleModel.tempOpen(keepingOut);
             var removedAt = keepOpen == null ? atUtc : (keepOpen as Lang.Dictionary)[:outUtc];
             message = Ui.fmt(Rez.Strings.ConfirmKeepOut,
-                [Ui.shortTimestamp(removedAt, clock)]);
+                [Ui.compactTimestamp(removedAt, clock)]);
         }
         else if (action == :undoRingOut) {
             message = Ui.s(Rez.Strings.ConfirmUndoRingOut);

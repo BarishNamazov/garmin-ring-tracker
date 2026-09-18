@@ -1,7 +1,7 @@
 16/09/2026 12:53:01 passing arg to libvncserver: -rfbport
 16/09/2026 12:53:01 passing arg to libvncserver: 5999
 16/09/2026 12:53:01 passing arg to libvncserver: -rfbauth
-16/09/2026 12:53:01 passing arg to libvncserver: /home/agent/Dev/garmin-bc/scripts/remote-browser/.state/vnc-password
+16/09/2026 12:53:01 passing arg to libvncserver: scripts/remote-browser/.state/vnc-password
 16/09/2026 12:53:01 x11vnc version: 0.9.16 lastmod: 2019-01-05  pid: 1581983
 16/09/2026 12:53:01 Using X display :99
 16/09/2026 12:53:01 rootwin: 0x21f reswin: 0x200001 dpy: 0x8de09110

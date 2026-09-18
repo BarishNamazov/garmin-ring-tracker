@@ -1,6 +1,6 @@
 # Ring Tracker — Connect IQ Store listing
 
-This is the English (`en`) listing copy for version 1.2.0. Character counts include spaces and punctuation. Limits were checked against Garmin's current submission form on 2026-09-16.
+This is the English (`en`) listing copy for version 1.3.0. Character counts include spaces and punctuation. Limits were checked against Garmin's current submission form on 2026-09-16.
 
 ## Store fields
 
@@ -18,14 +18,14 @@ The current dashboard has no separate tagline field or published tagline limit. 
 Track your NuvaRing schedule and local reminders on your watch.
 ```
 
-### Description — 1,841/4,000 characters
+### Description — 1,881/4,000 characters
 
 ```text
 Ring Tracker is a private, on-watch schedule tracker for NuvaRing.
 
-See ring-in, ring-free, temporary-out, and overdue states at a glance. Record actual insertion, removal, and temporary-out times; view six upcoming cycles and up to 24 cycles of history; and correct recorded dates when needed.
+See ring-in, ring-free, temporary-out, and overdue states at a glance. Record actual insertion, removal, and temporary-out times; view six upcoming cycles and up to 24 cycles of history; and correct actual dates when needed.
 
-Set Reminder 1, optional Reminder 2, an optional day-before reminder, overdue repeats, clock format, and sound/vibration directly on the watch. The default schedule is 21 days in and 7 days out. Clinician-directed plans from 21–35 days in and 0–7 days out can be represented, but Ring Tracker does not recommend an extended plan.
+Set Reminder 1, optional Reminder 2, an optional day-before reminder, overdue repeats, and sound/vibration directly on the watch. Time display follows the watch's 12/24-hour setting. The default schedule is 21 days in and 7 days out. Clinician-directed plans from 21–35 days in and 0–7 days out can be represented, but Ring Tracker does not recommend an extended plan.
 
 Reminders are generated locally on the watch and do not require a phone or network connection. Garmin runs background checks approximately once per hour, and the operating system may delay or stop them. Do Not Disturb, Sleep Mode, and watch notification settings also affect delivery. Do not rely on Ring Tracker as your only time-critical reminder.
 
@@ -33,7 +33,7 @@ All schedule and history data stays on the watch. Ring Tracker has no network pe
 
 Designed and tested for epix Pro (Gen 2) watches in 42 mm, 47 mm, and 51 mm sizes. No other watch models are claimed as tested.
 
-This app is for NuvaRing only. Annovera is not supported.
+This app is for NuvaRing only. Not for generics or Annovera.
 
 This app is a scheduling aid, not medical advice. It cannot determine whether contraception is effective. Follow the instructions supplied with your ring and contact a qualified clinician or pharmacist if a ring is late, has been out too long, or pregnancy is possible.
 
@@ -43,10 +43,12 @@ Support: https://github.com/BarishNamazov/garmin-ring-tracker/issues
 Ring Tracker is an independent project and is not affiliated with or endorsed by Garmin or the manufacturer of NuvaRing.
 ```
 
-### What's New — 378/4,000 characters
+### What's New — 717/4,000 characters
 
 ```text
-Version 1.2.0 makes watch time entry match Garmin alarms: hour and minute are separate, every minute is selectable, 12-hour mode adds AM/PM, and date/time headings update as you scroll. Phone App Settings now uses a native insertion-date picker, clear AM/PM time lists, and Schedule, Reminders, and Display sections. Existing insertion and reminder values migrate automatically.
+Version 1.3.0 redesigns Ring Tracker for faster reading on round screens. Main has clearer countdowns, overdue and long-duration warnings, and a steadier temporary-out timer. Upcoming, History, glance, state menus, confirmations, Correct dates, settings, and notification wording are all easier to scan. Reminder 2, Day before, vibration, and sound are direct toggles, while time display follows the watch setting.
+
+This release also includes the previously unreleased alarm-style time and date pickers plus improved phone App Settings: a native insertion-date control, clear AM/PM time lists, and grouped Schedule and Reminders sections. Existing dates, reminders, and the old Clock preference migrate automatically.
 ```
 
 ### Category — required
@@ -66,7 +68,7 @@ The `.iq` manifest is authoritative for Store compatibility and contains `epix2p
 ### App version — 5/20 characters
 
 ```text
-1.2.0
+1.3.0
 ```
 
 ### Support URL — no current dedicated field or confirmed limit
