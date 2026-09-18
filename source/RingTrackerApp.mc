@@ -264,6 +264,11 @@ class ForegroundController {
         WatchUi.switchToView(Menus.settingsMenu(_state), new SettingsMenuDelegate(), WatchUi.SLIDE_RIGHT);
     }
 
+    function showCorrectDates() as Void {
+        WatchUi.switchToView(Menus.correctDatesMenu(_state),
+            new CorrectDatesDelegate(), WatchUi.SLIDE_LEFT);
+    }
+
     function setToggle(id, enabled as Lang.Boolean) as Void {
         var reminders = _state[:reminders] as Lang.Dictionary;
         if (id == :toggleReminder2) { reminders[:reminder2Enabled] = enabled; }
@@ -440,7 +445,10 @@ class ForegroundController {
             message = Ui.fmt(Rez.Strings.ConfirmChangeInsertion, [timestamp]);
         }
         else if (action == :adjustRemoval) {
-            message = Ui.fmt(Rez.Strings.ConfirmChangeRemoval, [timestamp]);
+            WatchUi.pushView(new CompactConfirmationView(
+                Ui.s(Rez.Strings.ConfirmChangeRemovalTitle), timestamp),
+                new CompactConfirmationDelegate(action, atUtc, data), WatchUi.SLIDE_UP);
+            return;
         }
         else if (action == :clearHistory) { message = Ui.s(Rez.Strings.ClearHistoryQuestion); }
         else if (action == :reset) { message = Ui.s(Rez.Strings.ResetQuestion); }

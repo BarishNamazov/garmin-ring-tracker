@@ -106,10 +106,10 @@
                     <listEntry value="1425">@Strings.PhoneTime2345</listEntry>
                 </settingConfig>
             </setting>
-            <setting propertyKey="@Properties.daysIn" title="@Strings.DaysInTitle" prompt="@Strings.DaysInPrompt">
+            <setting propertyKey="@Properties.daysIn" title="@Strings.SettingsRingIn" prompt="@Strings.DaysInPrompt">
                 <settingConfig type="numeric" min="21" max="35" required="true" />
             </setting>
-            <setting propertyKey="@Properties.daysOut" title="@Strings.DaysOutTitle" prompt="@Strings.DaysOutPrompt">
+            <setting propertyKey="@Properties.daysOut" title="@Strings.SettingsRingOut" prompt="@Strings.DaysOutPrompt">
                 <settingConfig type="numeric" min="0" max="7" required="true" />
             </setting>
         </group>

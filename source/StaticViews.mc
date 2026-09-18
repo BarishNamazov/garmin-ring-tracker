@@ -1,8 +1,44 @@
 import Toybox.Graphics;
 import Toybox.Attention;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.System;
 import Toybox.WatchUi;
+
+module TextScreenLayout {
+    function lines(dc as Graphics.Dc, paragraphs as Lang.Array<Lang.String>,
+                   font, maxWidth as Lang.Number, gaps as Lang.Boolean) as Lang.Array<Lang.String> {
+        var all = [] as Lang.Array<Lang.String>;
+        for (var i = 0; i < paragraphs.size(); i += 1) {
+            var wrapped = Ui.wrap(dc, paragraphs[i], font, maxWidth);
+            for (var j = 0; j < wrapped.size(); j += 1) { all.add(wrapped[j]); }
+            if (gaps && i + 1 < paragraphs.size()) { all.add(""); }
+        }
+        return all;
+    }
+
+    function draw(dc as Graphics.Dc, paragraphs as Lang.Array<Lang.String>,
+                  startY as Lang.Number, bottomY as Lang.Number, scrollLine as Lang.Number,
+                  gaps as Lang.Boolean) as Lang.Number {
+        var font = Graphics.FONT_TINY;
+        var lineHeight = Graphics.getFontHeight(font) + Ui.px(dc, 4);
+        var all = lines(dc, paragraphs, font, dc.getWidth() - Ui.px(dc, 72), gaps);
+        var y = startY;
+        dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
+        for (var i = scrollLine; i < all.size() && y <= bottomY; i += 1) {
+            dc.drawText(dc.getWidth() / 2, y, font, all[i],
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+            y += lineHeight;
+        }
+        return all.size();
+    }
+
+    function visibleLines(dc as Graphics.Dc, startY as Lang.Number,
+                          bottomY as Lang.Number) as Lang.Number {
+        var lineHeight = Graphics.getFontHeight(Graphics.FONT_TINY) + Ui.px(dc, 4);
+        return ((bottomY - startY) / lineHeight) + 1;
+    }
+}
 
 class InfoView extends WatchUi.View {
     protected var _title;
@@ -55,11 +91,10 @@ class TextActionView extends InfoView {
             Ui.PRIMARY, Ui.px(dc, 280));
         var startY = Ui.px(dc, 116);
         var bottomY = Ui.px(dc, 286);
-        _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
-        if (_lineCount > 0) { _lineCount -= 1; }
-        _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
+        _lineCount = TextScreenLayout.draw(dc, _paragraphs, startY, bottomY, _scroll, true);
+        _visibleLines = TextScreenLayout.visibleLines(dc, startY, bottomY);
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
-            _visibleLines, Ui.RING_IN);
+            _visibleLines, Ui.SECONDARY);
         var actionText = _action instanceof Lang.ResourceId ? Ui.s(_action) : _action as Lang.String;
         Ui.centered(dc, Ui.px(dc, 332), "[ " + actionText + " ]", Graphics.FONT_SYSTEM_XTINY,
             Ui.RING_IN, Ui.px(dc, 280));
@@ -104,7 +139,18 @@ class RegimenView extends WatchUi.View {
                                 focused as Lang.Boolean) as Void {
         var prefix = focused ? "[ " : "";
         var suffix = focused ? " ]" : "";
-        Ui.row(dc, y, prefix + label, value + suffix);
+        var left = Ui.px(dc, 66);
+        var right = dc.getWidth() - Ui.px(dc, 66);
+        var width = right - left;
+        var labelWidth = (width * 56) / 100;
+        dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(left, y, Graphics.FONT_SYSTEM_TINY,
+            Ui.ellipsize(dc, prefix + label, Graphics.FONT_SYSTEM_TINY, labelWidth),
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(right, y, Graphics.FONT_SYSTEM_TINY,
+            Ui.ellipsize(dc, value + suffix, Graphics.FONT_SYSTEM_TINY, width - labelWidth),
+            Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     function onUpdate(dc as Graphics.Dc) as Void {
@@ -117,7 +163,7 @@ class RegimenView extends WatchUi.View {
         regimenRow(dc, Ui.px(dc, 234), Ui.s(Rez.Strings.TextRegimenOut),
             Ui.fmt(regimen[:daysOut] == 1 ? Rez.Strings.OneDayTemplate : Rez.Strings.DaysTemplate,
                 [regimen[:daysOut]]), _focus == 1);
-        var action = Ui.s(Rez.Strings.TextContinue);
+        var action = Ui.s(Rez.Strings.TextDone);
         if (_focus == 2) { action = "[ " + action + " ]"; }
         Ui.centered(dc, Ui.px(dc, 332), action, Graphics.FONT_SYSTEM_XTINY,
             Ui.RING_IN, Ui.px(dc, 280));
@@ -154,27 +200,20 @@ class RegimenDelegate extends WatchUi.BehaviorDelegate {
 class AboutView extends TextActionView {
     function initialize() {
         TextActionView.initialize(Rez.Strings.TextAboutTitle,
-            [Ui.s(Rez.Strings.SupportedScope), Ui.s(Rez.Strings.AnnoveraUnsupported),
-             Ui.s(Rez.Strings.ReminderLimit),
-             Ui.s(Rez.Strings.Privacy), Ui.s(Rez.Strings.SourcesTitle),
-             Ui.s(Rez.Strings.SourcesLine1), Ui.s(Rez.Strings.SourcesLine2)],
+            [Ui.s(Rez.Strings.TextProductVersion), Ui.s(Rez.Strings.TextAboutDisclaimer),
+             Ui.s(Rez.Strings.TextAboutScope)],
             Rez.Strings.TextDone);
     }
     function onUpdate(dc as Graphics.Dc) as Void {
         Ui.clear(dc);
         Ui.centered(dc, Ui.px(dc, 52), Ui.s(Rez.Strings.TextAboutTitle),
             Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        Ui.centered(dc, Ui.px(dc, 88), Ui.s(Rez.Strings.TextProductVersion),
-            Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
-        Ui.centered(dc, Ui.px(dc, 126), Ui.s(Rez.Strings.TextAboutDisclaimer),
-            Graphics.FONT_XTINY, Ui.PRIMARY, Ui.px(dc, 350));
-        var startY = Ui.px(dc, 158);
+        var startY = Ui.px(dc, 108);
         var bottomY = Ui.px(dc, 286);
-        _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
-        if (_lineCount > 0) { _lineCount -= 1; }
-        _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
+        _lineCount = TextScreenLayout.draw(dc, _paragraphs, startY, bottomY, _scroll, false);
+        _visibleLines = TextScreenLayout.visibleLines(dc, startY, bottomY);
         Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
-            _visibleLines, Ui.RING_IN);
+            _visibleLines, Ui.SECONDARY);
         Ui.centered(dc, Ui.px(dc, 332), "[ " + Ui.s(Rez.Strings.TextDone) + " ]",
             Graphics.FONT_SYSTEM_XTINY, Ui.RING_IN, Ui.px(dc, 280));
     }
@@ -200,9 +239,8 @@ class MigrationView extends TextActionView {
             Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
         var startY = Ui.px(dc, 158);
         var bottomY = Ui.px(dc, 266);
-        _lineCount = Ui.drawParagraphs(dc, _paragraphs, startY, bottomY, _scroll);
-        if (_lineCount > 0) { _lineCount -= 1; }
-        _visibleLines = Ui.paragraphVisibleLines(dc, startY, bottomY);
+        _lineCount = TextScreenLayout.draw(dc, _paragraphs, startY, bottomY, _scroll, true);
+        _visibleLines = TextScreenLayout.visibleLines(dc, startY, bottomY);
         Ui.centered(dc, Ui.px(dc, 332), "[ " + Ui.s(Rez.Strings.TextOK) + " ]",
             Graphics.FONT_SYSTEM_XTINY, Ui.RING_IN, Ui.px(dc, 280));
     }
@@ -217,96 +255,21 @@ class MigrationDelegate extends ScrollDelegate {
     }
 }
 
-class CorrectDatesView extends WatchUi.View {
-    private var _focus as Lang.Number;
-
-    function initialize() {
-        View.initialize();
-        var active = getApp().getState()[:active] as Lang.Dictionary;
-        _focus = active[:removalUtc] == null ? 0 : 1;
-    }
-
-    function focus() as Lang.Number { return _focus; }
-
-    function setFocus(value as Lang.Number) as Lang.Boolean {
-        var active = getApp().getState()[:active] as Lang.Dictionary;
-        if (value == 1 && active[:removalUtc] == null) { return false; }
-        _focus = value;
-        WatchUi.requestUpdate();
-        return true;
-    }
-
-    function moveFocus(delta as Lang.Number) as Void {
-        var active = getApp().getState()[:active] as Lang.Dictionary;
-        if (active[:removalUtc] == null) { return; }
-        _focus = _focus == 0 ? 1 : 0;
-        WatchUi.requestUpdate();
-    }
-
-    private function row(dc as Graphics.Dc, y as Lang.Number, label as Lang.String,
-                         value as Lang.String, focused as Lang.Boolean,
-                         editable as Lang.Boolean) as Void {
-        var left = Ui.px(dc, 48);
-        var right = dc.getWidth() - Ui.px(dc, 48);
-        if (focused) {
-            dc.setColor(Ui.RING_FREE, Graphics.COLOR_TRANSPARENT);
-            dc.fillRectangle(Ui.px(dc, 31), y - Ui.px(dc, 35), Ui.px(dc, 4), Ui.px(dc, 72));
+class CorrectDatesDelegate extends WatchUi.Menu2InputDelegate {
+    function initialize() { Menu2InputDelegate.initialize(); }
+    function onSelect(item as WatchUi.MenuItem) as Void {
+        var id = item.getId();
+        if (id == :pendingRemoval) {
+            WatchUi.showToast(Rez.Strings.EditNotRemovedYet, null);
+            return;
         }
-        dc.setColor(editable ? Ui.PRIMARY : Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left, y - Ui.px(dc, 13), Graphics.FONT_SYSTEM_SMALL,
-            Ui.ellipsize(dc, label, Graphics.FONT_SYSTEM_SMALL, right - left),
-            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.setColor(editable ? Ui.SECONDARY : 0x78858C, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(left, y + Ui.px(dc, 21), Graphics.FONT_SYSTEM_XTINY,
-            Ui.ellipsize(dc, value, Graphics.FONT_SYSTEM_XTINY, right - left),
-            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
-    }
-
-    function onUpdate(dc as Graphics.Dc) as Void {
-        Ui.clear(dc);
-        var active = getApp().getState()[:active] as Lang.Dictionary;
-        Ui.centered(dc, Ui.px(dc, 58), Ui.s(Rez.Strings.EditCorrectDates),
-            Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
-        row(dc, Ui.px(dc, 151), Ui.s(Rez.Strings.EditInserted),
-            Ui.shortTimestamp(active[:insertionUtc], 0), _focus == 0, true);
-        var removed = active[:removalUtc];
-        var removalText = removed == null
-            ? Ui.fmt(Rez.Strings.EditNotYetDue, [Ui.shortDate(active[:removeDueUtc])])
-            : Ui.shortTimestamp(removed as Lang.Number, 0);
-        row(dc, Ui.px(dc, 266), Ui.s(Rez.Strings.EditRemoved), removalText,
-            _focus == 1, removed != null);
-    }
-}
-
-class CorrectDatesDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() { BehaviorDelegate.initialize(); }
-    private function view() as CorrectDatesView {
-        return WatchUi.getCurrentView()[0] as CorrectDatesView;
-    }
-    function onSelect() as Boolean {
         var state = getApp().getState();
         var active = state[:active] as Lang.Dictionary;
-        var id = view().focus() == 0 ? :adjustInsertion : :adjustRemoval;
         var start = id == :adjustInsertion ? active[:insertionUtc] : active[:removalUtc];
-        if (start == null) { return true; }
-        PickerFlow.openDate(id, start as Lang.Number);
-        return true;
+        if (start == null) { return; }
+        PickerFlow.openDate(id as Lang.Symbol, start as Lang.Number);
     }
-    function onNextPage() as Boolean { view().moveFocus(1); return true; }
-    function onPreviousPage() as Boolean { view().moveFocus(-1); return true; }
-    function onBack() as Boolean { getApp().showMainMenu(); return true; }
-    function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
-        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
-        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
-        if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
-        return false;
-    }
-    function onTap(event as WatchUi.ClickEvent) as Boolean {
-        var y = event.getCoordinates()[1];
-        if (y < 105 || y > 325) { return true; }
-        if (!view().setFocus(y < 210 ? 0 : 1)) { return true; }
-        return onSelect();
-    }
+    function onBack() as Void { getApp().showMainMenu(); }
 }
 
 class AlertView extends WatchUi.View {
@@ -342,7 +305,7 @@ class AlertView extends WatchUi.View {
         var status = ScheduleModel.deriveStatus(nowUtc, active, state[:regimen] as Lang.Dictionary);
         var title = Rez.Strings.ActionDueTitle;
         var color = Ui.AMBER;
-        var details = [Ui.s(Rez.Strings.ActionDueBody)];
+        var details = [] as Lang.Array<Lang.String>;
         var alertInterval = getApp().getAlertContext();
         if (alertInterval == null && status[:temporaryOutOpen]
             && status[:tempElapsed] > ScheduleModel.TEMP_LIMIT_SECONDS) {
@@ -351,17 +314,19 @@ class AlertView extends WatchUi.View {
         if (status[:ringFreeOverSevenDays]) {
             title = Rez.Strings.AlertRingFreeTitle;
             color = Ui.RED;
-            details = [Ui.s(Rez.Strings.RingFreeExceededBody)];
+            details = [Ui.s(Rez.Strings.TextBackupDirective)];
         } else if (alertInterval != null) {
             title = Rez.Strings.AlertTemporaryTitle;
             color = Ui.RED;
-            details = [Ui.s(Rez.Strings.TempOverBody12)];
+            details = [Ui.s(Rez.Strings.TextBackupDirective)];
         } else if (status[:ringInOverFourWeeks]) {
             title = Rez.Strings.AlertDurationTitle;
-            details = [Ui.s(Rez.Strings.ExtendedBody)];
+            color = Ui.RED;
+            details = [Ui.s(Rez.Strings.TextBackupDirective)];
         } else if (status[:clockBeforeInsertion]) {
             title = Rez.Strings.AlertDateReviewTitle;
             color = Ui.RED;
+            details = [Ui.s(Rez.Strings.AlertReviewDateHint)];
         } else if (status[:secondsRemaining] <= 0) {
             title = Rez.Strings.AlertOverdueTitle;
         }
@@ -372,24 +337,30 @@ class AlertView extends WatchUi.View {
         else if (status[:nextAction] == :ringBackIn) { action = Ui.s(Rez.Strings.RingBackInAction); }
         var timing = Ui.s(Rez.Strings.DueNow);
         if (status[:temporaryOutOpen]) {
-            timing = Ui.fmt(Rez.Strings.AlertOutFor, [Ui.countdownText(status[:tempElapsed])]);
+            timing = Ui.fmt(Rez.Strings.AlertOutFor, [Ui.mainElapsedText(status[:tempElapsed])]);
         } else if (status[:secondsRemaining] < 0) {
-            timing = Ui.fmt(Rez.Strings.AlertOverdueBy, [Ui.countdownText(status[:secondsRemaining])]);
+            timing = Ui.mainLatenessText(status[:secondsRemaining]);
         } else if (CalendarMath.dateOrdinal(nowUtc) == CalendarMath.dateOrdinal(status[:nextActionUtc])) {
             timing = Ui.fmt(Rez.Strings.AlertDueTodayAt,
                             [Ui.timeForUtc(status[:nextActionUtc], (state[:reminders] as Lang.Dictionary)[:clockFormat])]);
         } else {
-            timing = Ui.fmt(Rez.Strings.AlertDueIn, [Ui.countdownText(status[:secondsRemaining])]);
+            timing = Ui.fmt(Rez.Strings.AlertDueIn, [Ui.mainCountdownText(status[:secondsRemaining])]);
         }
         var clock = (state[:reminders] as Lang.Dictionary)[:clockFormat];
-        Ui.centered(dc, Ui.px(dc, 56), Ui.s(title), Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 286));
-        Ui.centered(dc, Ui.px(dc, 106), action, Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 151), timing, Graphics.FONT_SYSTEM_TINY, color, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 216), Ui.dateOnly(status[:nextActionUtc]),
-                    Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 300));
-        Ui.centered(dc, Ui.px(dc, 252), Ui.timeForUtc(status[:nextActionUtc], clock),
-                    Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
-        Ui.drawParagraphs(dc, details, Ui.px(dc, 292), Ui.px(dc, 350), 0);
+        Ui.centered(dc, Ui.px(dc, 52), Ui.s(title), Graphics.FONT_SYSTEM_SMALL, color, Ui.px(dc, 286));
+        Ui.centered(dc, Ui.px(dc, 101), action, Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 148), timing, Graphics.FONT_SYSTEM_TINY, color, Ui.px(dc, 300));
+        Ui.centered(dc, Ui.px(dc, 202), Ui.fmt(Rez.Strings.TextDueDate,
+                    [Ui.dateOnly(status[:nextActionUtc])]),
+                    Graphics.FONT_SYSTEM_TINY, Ui.PRIMARY, Ui.px(dc, 310));
+        Ui.centered(dc, Ui.px(dc, 238), Ui.timeForUtc(status[:nextActionUtc], clock),
+                    Graphics.FONT_SYSTEM_TINY, Ui.SECONDARY, Ui.px(dc, 260));
+        if (details.size() > 0) {
+            Ui.centered(dc, Ui.px(dc, 278), details[0] as Lang.String, Graphics.FONT_SYSTEM_TINY,
+                Ui.PRIMARY, Ui.px(dc, 310));
+        }
+        Ui.centered(dc, Ui.px(dc, 332), "[ " + Ui.s(Rez.Strings.TextWhatHappened) + " ]",
+            Graphics.FONT_SYSTEM_XTINY, Ui.RING_IN, Ui.px(dc, 280));
     }
 }
 
@@ -417,6 +388,10 @@ class AlertDelegate extends WatchUi.BehaviorDelegate {
     function initialize() { BehaviorDelegate.initialize(); }
     function onSelect() as Boolean { getApp().showAlertMenu(); return true; }
     function onBack() as Boolean { getApp().showMain(); return true; }
+    function onTap(event as WatchUi.ClickEvent) as Boolean {
+        var actionTop = (System.getDeviceSettings().screenHeight * 290) / 416;
+        return event.getCoordinates()[1] >= actionTop ? onSelect() : true;
+    }
     function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
         if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
         return false;
@@ -452,6 +427,65 @@ class SettingsConfirmationDelegate extends WatchUi.ConfirmationDelegate {
     function onResponse(value as WatchUi.Confirm) as Boolean {
         getApp().deferSettings(value == WatchUi.CONFIRM_YES);
         return true;
+    }
+}
+
+class CompactConfirmationView extends WatchUi.View {
+    private var _title as Lang.String;
+    private var _detail as Lang.String;
+
+    function initialize(title as Lang.String, detail as Lang.String) {
+        View.initialize();
+        _title = title;
+        _detail = detail;
+    }
+
+    function onUpdate(dc as Graphics.Dc) as Void {
+        Ui.clear(dc);
+        Ui.centered(dc, Ui.px(dc, 90), _title, Graphics.FONT_SYSTEM_TINY,
+            Ui.PRIMARY, Ui.px(dc, 330));
+        Ui.centered(dc, Ui.px(dc, 128), _detail, Graphics.FONT_SYSTEM_TINY,
+            Ui.PRIMARY, Ui.px(dc, 330));
+        dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(Math.round(dc.getWidth() * 0.27).toNumber(), Ui.px(dc, 224),
+            Graphics.FONT_SYSTEM_SMALL, Ui.s(Rez.Strings.ConfirmCancel),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.drawText(Math.round(dc.getWidth() * 0.73).toNumber(), Ui.px(dc, 224),
+            Graphics.FONT_SYSTEM_SMALL, Ui.s(Rez.Strings.ConfirmAccept),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+}
+
+class CompactConfirmationDelegate extends WatchUi.BehaviorDelegate {
+    private var _action as Lang.Symbol;
+    private var _atUtc as Lang.Number;
+    private var _data;
+
+    function initialize(action as Lang.Symbol, atUtc as Lang.Number, data) {
+        BehaviorDelegate.initialize();
+        _action = action;
+        _atUtc = atUtc;
+        _data = data;
+    }
+
+    function onSelect() as Lang.Boolean {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        getApp().deferAction(_action, _atUtc, _data);
+        return true;
+    }
+
+    function onBack() as Lang.Boolean {
+        WatchUi.popView(WatchUi.SLIDE_DOWN);
+        return true;
+    }
+
+    function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
+        return event.getCoordinates()[0] < System.getDeviceSettings().screenWidth / 2
+            ? onBack() : onSelect();
+    }
+
+    function onSwipe(event as WatchUi.SwipeEvent) as Lang.Boolean {
+        return event.getDirection() == WatchUi.SWIPE_RIGHT ? onBack() : false;
     }
 }
 

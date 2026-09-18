@@ -1,5 +1,6 @@
 import Toybox.Application.Properties;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.Test;
 
 (:test)
@@ -15,7 +16,7 @@ function uxCConfirmationFactsUseFlooredWrittenUnits(logger as Test.Logger) as Bo
 function uxCMenuTitlesDescribeCurrentState(logger as Test.Logger) as Boolean {
     var state = ScheduleModel.defaultState();
     var start = testWall(2026, 9, 1, 9, 0);
-    Test.assertEqual("No cycle", Menus.mainTitle(state, start));
+    Test.assertEqual("No ring logged", Menus.mainTitle(state, start));
     var active = ScheduleModel.insertOrReplace(state, start);
     Test.assertEqual("Ring in · day 5", Menus.mainTitle(state,
         testWall(2026, 9, 5, 9, 0)));
@@ -29,7 +30,57 @@ function uxCMenuTitlesDescribeCurrentState(logger as Test.Logger) as Boolean {
     var tempActive = ScheduleModel.insertOrReplace(temporary, start);
     var out = testWall(2026, 9, 5, 8, 0);
     Test.assert(ScheduleModel.startTemporaryOut(tempActive, out));
-    Test.assertEqual("Ring out · 0:42", Menus.mainTitle(temporary, out + (42 * 60)));
+    Test.assertEqual("Ring out · 10 min left", Menus.mainTitle(temporary, out + (2 * 3600) + (50 * 60)));
+    Test.assertEqual("Ring out · 10 min over", Menus.mainTitle(temporary, out + (3 * 3600) + (10 * 60)));
+    return true;
+}
+
+(:test)
+function uxCPickerGeometryFitsEveryTarget(logger as Test.Logger) as Boolean {
+    var widths = [390, 416, 454];
+    for (var i = 0; i < widths.size(); i += 1) {
+        var width = widths[i];
+        Test.assertEqual(width / 2, PickerScreen.xForColumn(width, 1, 0));
+        Test.assertEqual(Math.round(width * 0.25).toNumber(),
+            PickerScreen.xForColumn(width, 3, 0));
+        Test.assertEqual(Math.round(width * 0.50).toNumber(),
+            PickerScreen.xForColumn(width, 3, 1));
+        Test.assertEqual(Math.round(width * 0.75).toNumber(),
+            PickerScreen.xForColumn(width, 3, 2));
+        Test.assert(PickerValues.columnWidth(width, 3) * 3 <= width);
+        Test.assert(PickerValues.columnWidth(width, 2) * 2 <= width);
+        Test.assert(PickerValues.columnWidth(width, 3) >= (width * 27) / 100);
+        Test.assert(PickerValues.columnWidth(width, 2) >= (width * 34) / 100);
+        Test.assert(PickerValues.separatorWidth(width) > 0);
+        Test.assert(PickerValues.arrowHeight(width) <= (width * 12) / 100);
+    }
+    return true;
+}
+
+(:test)
+function uxCRoundTwoCopyContracts(logger as Test.Logger) as Boolean {
+    Test.assertEqual("Take out briefly", Ui.s(Rez.Strings.MenuTakeOutBriefly));
+    Test.assertEqual("Back in within 3 hours", Ui.s(Rez.Strings.MenuBackWithinThreeHours));
+    Test.assertEqual("Starts ring-free week", Ui.s(Rez.Strings.MenuStartsRingFree));
+    Test.assertEqual("Starts new 3-week cycle", Ui.s(Rez.Strings.MenuStartsNewCycle));
+    Test.assertEqual("Resumes current cycle", Ui.s(Rez.Strings.MenuResumesCycle));
+    Test.assertEqual("Counts from removal time", Ui.s(Rez.Strings.MenuCountsFromRemoval));
+    Test.assertEqual("Days worn", Ui.s(Rez.Strings.SettingsRingIn));
+    Test.assertEqual("Days out", Ui.s(Rez.Strings.SettingsRingOut));
+    Test.assertEqual("Ring in", Ui.s(Rez.Strings.TextRegimenIn));
+    Test.assertEqual("Ring out", Ui.s(Rez.Strings.TextRegimenOut));
+    Test.assertEqual("I understand", Ui.s(Rez.Strings.TextUnderstand));
+    Test.assertEqual("Done", Ui.s(Rez.Strings.TextDone));
+    Test.assertEqual("OK", Ui.s(Rez.Strings.TextOK));
+    Test.assertEqual("What happened?", Ui.s(Rez.Strings.TextWhatHappened));
+    Test.assertEqual("Due Wed 16 Sep",
+        Ui.fmt(Rez.Strings.TextDueDate, ["Wed 16 Sep"]));
+    Test.assertEqual("Use backup 7 days", Ui.s(Rez.Strings.TextBackupDirective));
+    Test.assertEqual("Change removal time?",
+        Ui.s(Rez.Strings.ConfirmChangeRemovalTitle));
+    Test.assertEqual("Change removal time?\n15 Sep · 12:26 PM",
+        Ui.fmt(Rez.Strings.ConfirmChangeRemoval, ["15 Sep · 12:26 PM"]));
+    Test.assertEqual("Not removed yet", Ui.s(Rez.Strings.EditNotRemovedYet));
     return true;
 }
 

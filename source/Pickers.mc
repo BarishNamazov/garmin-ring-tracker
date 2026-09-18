@@ -1,5 +1,6 @@
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.System;
 import Toybox.Time;
 import Toybox.Time.Gregorian;
@@ -39,6 +40,80 @@ module PickerValues {
         }
         return 0;
     }
+
+    function columnWidth(screenWidth as Lang.Number, columns as Lang.Number) as Lang.Number {
+        var ratio = columns == 2 ? 0.35 : 0.28;
+        return Math.round(screenWidth * ratio).toNumber();
+    }
+
+    function separatorWidth(screenWidth as Lang.Number) as Lang.Number {
+        return Math.round(screenWidth * 0.04).toNumber();
+    }
+
+    function titleHeight(screenHeight as Lang.Number) as Lang.Number {
+        return Math.round(screenHeight * 0.10).toNumber();
+    }
+
+    function arrowHeight(screenHeight as Lang.Number) as Lang.Number {
+        return Math.round(screenHeight * 0.10).toNumber();
+    }
+}
+
+module PickerScreen {
+    function xForColumn(width as Lang.Number, columns as Lang.Number,
+                        column as Lang.Number) as Lang.Number {
+        if (columns == 1) { return width / 2; }
+        if (columns == 2) {
+            return Math.round(width * (column == 0 ? 0.325 : 0.675)).toNumber();
+        }
+        return Math.round(width * (0.25 + (column * 0.25))).toNumber();
+    }
+
+    function focusForX(width as Lang.Number, columns as Lang.Number,
+                       x as Lang.Number) as Lang.Number {
+        if (columns == 2) { return x < width / 2 ? 0 : 1; }
+        if (x < (width * 3) / 8) { return 0; }
+        if (x < (width * 5) / 8) { return 1; }
+        return 2;
+    }
+
+    function drawArrow(dc as Graphics.Dc, x as Lang.Number, centerY as Lang.Number,
+                       pointsDown as Lang.Boolean) as Void {
+        var height = PickerValues.arrowHeight(dc.getHeight());
+        var halfHeight = height / 2;
+        var halfWidth = (height * 3) / 5;
+        dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
+        if (pointsDown) {
+            dc.fillPolygon([[x - halfWidth, centerY - halfHeight],
+                [x + halfWidth, centerY - halfHeight], [x, centerY + halfHeight]]);
+        } else {
+            dc.fillPolygon([[x, centerY - halfHeight],
+                [x + halfWidth, centerY + halfHeight], [x - halfWidth, centerY + halfHeight]]);
+        }
+    }
+
+    function drawFrame(dc as Graphics.Dc, title as Lang.String, columns as Lang.Array,
+                       fonts as Lang.Array, focus as Lang.Number) as Void {
+        Ui.clear(dc);
+        var count = columns.size();
+        var width = dc.getWidth();
+        var height = dc.getHeight();
+        var valueY = height / 2;
+        Ui.centered(dc, PickerValues.titleHeight(height), title,
+            Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY, Math.round(width * 0.84).toNumber());
+        for (var i = 0; i < count; i += 1) {
+            var x = xForColumn(width, count, i);
+            var shown = Ui.ellipsize(dc, columns[i] as Lang.String, fonts[i],
+                PickerValues.columnWidth(width, count));
+            dc.setColor(i == focus ? Ui.PRIMARY : Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText(x, valueY, fonts[i], shown,
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
+        }
+        var arrowX = xForColumn(width, count, focus);
+        var offset = Math.round(height * 0.18).toNumber();
+        drawArrow(dc, arrowX, valueY - offset, false);
+        drawArrow(dc, arrowX, valueY + offset, true);
+    }
 }
 
 module PickerFlow {
@@ -59,51 +134,54 @@ module PickerFlow {
     }
 }
 
-class RingNumberFactory extends WatchUi.PickerFactory {
+class RingNumberPicker extends WatchUi.View {
     private var _start as Lang.Number;
     private var _stop as Lang.Number;
-    private var _format as Lang.String;
-    private var _prefix as Lang.String;
-    function initialize(start as Lang.Number, stop as Lang.Number, format as Lang.String, prefix as Lang.String) {
-        PickerFactory.initialize();
+    private var _value as Lang.Number;
+    private var _title;
+
+    function initialize(start as Lang.Number, stop as Lang.Number, initial as Lang.Number, title) {
+        View.initialize();
         _start = start;
         _stop = stop;
-        _format = format;
-        _prefix = prefix;
+        _value = PickerValues.clamp(initial, start, stop);
+        _title = title;
     }
-    function getSize() as Lang.Number { return _stop - _start + 1; }
-    function getValue(index as Lang.Number) { return _start + index; }
-    function getDrawable(index as Lang.Number, selected as Lang.Boolean) as WatchUi.Drawable? {
-        var value = _prefix + (_start + index).format(_format);
-        return new WatchUi.Text({:text=>value, :font=>Graphics.FONT_SYSTEM_LARGE,
-            :color=>selected ? Ui.PRIMARY : Ui.SECONDARY,
-            :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_CENTER});
+    function value() as Lang.Number { return _value; }
+    function move(delta as Lang.Number) as Void {
+        _value += delta;
+        if (_value < _start) { _value = _stop; }
+        if (_value > _stop) { _value = _start; }
+        WatchUi.requestUpdate();
+    }
+    function onUpdate(dc as Graphics.Dc) as Void {
+        var title = _title instanceof Lang.ResourceId ? Ui.s(_title) : _title as Lang.String;
+        PickerScreen.drawFrame(dc, title, [_value.toString()],
+            [Graphics.FONT_SYSTEM_LARGE], 0);
     }
 }
 
-class RingNumberPicker extends WatchUi.Picker {
-    function initialize(start as Lang.Number, stop as Lang.Number, initial as Lang.Number, title) {
-        var titleDrawable = new WatchUi.Text({:text=>title,
-            :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_BOTTOM,
-            :color=>Ui.PRIMARY, :font=>Graphics.FONT_SYSTEM_XTINY});
-        var pattern = new Lang.Array<WatchUi.PickerFactory or WatchUi.Text>[1];
-        pattern[0] = new RingNumberFactory(start, stop, "%d", "");
-        var defaults = new Lang.Array<Lang.Number>[1];
-        defaults[0] = initial - start;
-        Picker.initialize({:title=>titleDrawable, :pattern=>pattern, :defaults=>defaults});
-    }
-    function onUpdate(dc as Graphics.Dc) as Void { Ui.clear(dc); Picker.onUpdate(dc); }
-}
-
-class RingNumberDelegate extends WatchUi.PickerDelegate {
+class RingNumberDelegate extends WatchUi.BehaviorDelegate {
     private var _action as Lang.Symbol;
-    function initialize(action as Lang.Symbol) { PickerDelegate.initialize(); _action = action; }
-    function onCancel() as Lang.Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
-    function onAccept(values as Lang.Array) as Lang.Boolean {
+    function initialize(action as Lang.Symbol) { BehaviorDelegate.initialize(); _action = action; }
+    private function view() as RingNumberPicker {
+        return WatchUi.getCurrentView()[0] as RingNumberPicker;
+    }
+    function onBack() as Lang.Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
+    function onSelect() as Lang.Boolean {
+        var value = view().value();
         WatchUi.popView(WatchUi.SLIDE_RIGHT);
-        getApp().confirmAction(_action, currentUtc(), values[0]);
+        getApp().confirmAction(_action, currentUtc(), value);
         return true;
     }
+    function onNextPage() as Lang.Boolean { view().move(1); return true; }
+    function onPreviousPage() as Lang.Boolean { view().move(-1); return true; }
+    function onSwipe(event as WatchUi.SwipeEvent) as Lang.Boolean {
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        return false;
+    }
+    function onTap(event as WatchUi.ClickEvent) as Lang.Boolean { return onSelect(); }
 }
 
 class RingTimeSelection {
@@ -139,65 +217,19 @@ class RingTimeSelection {
         _hour = value;
         return true;
     }
+    function hour() as Lang.Number { return _hour; }
+    function minute() as Lang.Number { return _minute; }
+    function uses24Hour() as Lang.Boolean { return _use24; }
     function title() as Lang.String { return Ui.timeOnly(_hour, _minute, _use24 ? 24 : 12); }
 }
 
-class RingTimeTitleDrawable extends WatchUi.Drawable {
+class RingTimePicker extends WatchUi.View {
     private var _selection as RingTimeSelection;
-    function initialize(selection as RingTimeSelection) {
-        Drawable.initialize({});
-        _selection = selection;
-    }
-    function draw(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.clear();
-        dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2, Graphics.FONT_SYSTEM_XTINY,
-            _selection.title(), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-    }
-}
-
-class RingTimeValueFactory extends WatchUi.PickerFactory {
-    private var _values as Lang.Array;
-    private var _kind as Lang.Symbol;
-    private var _selection as RingTimeSelection;
-    private var _format as Lang.String;
-    private var _font;
-
-    function initialize(values as Lang.Array, kind as Lang.Symbol,
-                        selection as RingTimeSelection, format as Lang.String, font) {
-        PickerFactory.initialize();
-        _values = values;
-        _kind = kind;
-        _selection = selection;
-        _format = format;
-        _font = font;
-    }
-
-    function getSize() as Lang.Number { return _values.size(); }
-    function getValue(index as Lang.Number) { return _values[index]; }
-    function getDrawable(index as Lang.Number, selected as Lang.Boolean) as WatchUi.Drawable? {
-        var value = _values[index] as Lang.Number;
-        var changed = false;
-        if (selected) {
-            if (_kind == :hour24) { changed = _selection.setHour24(value); }
-            else if (_kind == :hour12) { changed = _selection.setHour12(value); }
-            else if (_kind == :minute) { changed = _selection.setMinute(value); }
-            else { changed = _selection.setPeriod(value); }
-        }
-        if (changed) { WatchUi.requestUpdate(); }
-        var text = value.format(_format);
-        if (_kind == :period) { text = Ui.s(value == 0 ? Rez.Strings.Am : Rez.Strings.Pm); }
-        return new WatchUi.Text({:text=>text, :font=>_font,
-            :color=>selected ? Ui.PRIMARY : Ui.SECONDARY,
-            :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_CENTER});
-    }
-}
-
-class RingTimePicker extends WatchUi.Picker {
-    private var _selection as RingTimeSelection;
+    private var _focus as Lang.Number;
+    private var _columns as Lang.Number;
 
     function initialize(action as Lang.Symbol, initialUtc as Lang.Number) {
+        View.initialize();
         var state = getApp().getState();
         var reminders = state[:reminders] as Lang.Dictionary;
         var f = CalendarMath.localFields(initialUtc);
@@ -210,64 +242,96 @@ class RingTimePicker extends WatchUi.Picker {
         }
         var use24 = pickerUses24Hour(reminders);
         _selection = new RingTimeSelection(f[:hour], f[:minute], use24);
-
-        var hours = [];
-        if (use24) {
-            for (var h24 = 0; h24 < 24; h24 += 1) { hours.add(h24); }
-        } else {
-            for (var h12 = 1; h12 <= 12; h12 += 1) { hours.add(h12); }
-        }
-        var minutes = PickerValues.minuteEntries();
-        var title = new RingTimeTitleDrawable(_selection);
-
-        if (use24) {
-            var pattern24 = new Lang.Array<WatchUi.PickerFactory>[2];
-            pattern24[0] = new RingTimeValueFactory(hours, :hour24, _selection,
-                "%02d", Graphics.FONT_SYSTEM_LARGE);
-            pattern24[1] = new RingTimeValueFactory(minutes, :minute, _selection,
-                "%02d", Graphics.FONT_SYSTEM_LARGE);
-            var defaults24 = [f[:hour], PickerValues.indexOf(minutes, f[:minute])];
-            Picker.initialize({:title=>title, :pattern=>pattern24, :defaults=>defaults24});
-        } else {
-            var pattern12 = new Lang.Array<WatchUi.PickerFactory>[3];
-            pattern12[0] = new RingTimeValueFactory(hours, :hour12, _selection,
-                "%d", Graphics.FONT_SYSTEM_LARGE);
-            pattern12[1] = new RingTimeValueFactory(minutes, :minute, _selection,
-                "%02d", Graphics.FONT_SYSTEM_LARGE);
-            pattern12[2] = new RingTimeValueFactory([0, 1], :period, _selection,
-                "%d", Graphics.FONT_SYSTEM_SMALL);
-            var initial12 = f[:hour] % 12;
-            if (initial12 == 0) { initial12 = 12; }
-            var defaults12 = [initial12 - 1,
-                PickerValues.indexOf(minutes, f[:minute]), f[:hour] >= 12 ? 1 : 0];
-            Picker.initialize({:title=>title, :pattern=>pattern12, :defaults=>defaults12});
-        }
+        _focus = 0;
+        _columns = use24 ? 2 : 3;
     }
 
+    function focus() as Lang.Number { return _focus; }
+    function columnCount() as Lang.Number { return _columns; }
+    function hour() as Lang.Number { return _selection.hour(); }
+    function minute() as Lang.Number { return _selection.minute(); }
+    function uses24Hour() as Lang.Boolean { return _selection.uses24Hour(); }
+    function setFocus(value as Lang.Number) as Lang.Boolean {
+        var next = PickerValues.clamp(value, 0, _columns - 1);
+        var changed = next != _focus;
+        _focus = next;
+        WatchUi.requestUpdate();
+        return changed;
+    }
+    function advance() as Lang.Boolean {
+        if (_focus + 1 >= _columns) { return true; }
+        setFocus(_focus + 1);
+        return false;
+    }
+    function retreat() as Lang.Boolean {
+        if (_focus == 0) { return false; }
+        setFocus(_focus - 1);
+        return true;
+    }
+    function move(delta as Lang.Number) as Void {
+        if (_focus == 0) {
+            if (_selection.uses24Hour()) {
+                var hour24 = (_selection.hour() + delta + 24) % 24;
+                _selection.setHour24(hour24);
+            } else {
+                var hour12 = _selection.hour() % 12;
+                if (hour12 == 0) { hour12 = 12; }
+                hour12 = ((hour12 - 1 + delta + 12) % 12) + 1;
+                _selection.setHour12(hour12);
+            }
+        } else if (_focus == 1) {
+            _selection.setMinute((_selection.minute() + delta + 60) % 60);
+        } else {
+            _selection.setPeriod(_selection.hour() >= 12 ? 0 : 1);
+        }
+        WatchUi.requestUpdate();
+    }
     function onUpdate(dc as Graphics.Dc) as Void {
-        Ui.clear(dc);
-        Picker.onUpdate(dc);
+        var hour = _selection.hour();
+        var shownHour = hour;
+        if (!_selection.uses24Hour()) {
+            shownHour = hour % 12;
+            if (shownHour == 0) { shownHour = 12; }
+        }
+        var columns = [shownHour.format(_selection.uses24Hour() ? "%02d" : "%d"),
+            _selection.minute().format("%02d")];
+        var fonts = [Graphics.FONT_SYSTEM_LARGE, Graphics.FONT_SYSTEM_LARGE];
+        if (!_selection.uses24Hour()) {
+            columns.add(Ui.s(hour < 12 ? Rez.Strings.Am : Rez.Strings.Pm));
+            fonts.add(Graphics.FONT_SYSTEM_SMALL);
+        }
+        PickerScreen.drawFrame(dc, _selection.title(), columns, fonts, _focus);
+        var first = PickerScreen.xForColumn(dc.getWidth(), _columns, 0);
+        var second = PickerScreen.xForColumn(dc.getWidth(), _columns, 1);
+        dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText((first + second) / 2, dc.getHeight() / 2,
+            Graphics.FONT_SYSTEM_LARGE, Ui.s(Rez.Strings.TimeSeparator),
+            Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 }
 
-class RingTimeDelegate extends WatchUi.PickerDelegate {
+class RingTimeDelegate extends WatchUi.BehaviorDelegate {
     private var _action as Lang.Symbol;
     private var _initialUtc as Lang.Number;
     private var _dateFields as Lang.Dictionary?;
     function initialize(action as Lang.Symbol, initialUtc as Lang.Number,
                         dateFields as Lang.Dictionary?) {
-        PickerDelegate.initialize();
+        BehaviorDelegate.initialize();
         _action = action;
         _initialUtc = initialUtc;
         _dateFields = dateFields;
     }
-    function onCancel() as Lang.Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
-    function onAccept(values as Lang.Array) as Lang.Boolean {
-        var hour = values[0] as Lang.Number;
-        var minute = values[1] as Lang.Number;
-        if (values.size() == 3) {
-            hour = (hour % 12) + ((values[2] as Lang.Number) == 1 ? 12 : 0);
-        }
+    private function view() as RingTimePicker {
+        return WatchUi.getCurrentView()[0] as RingTimePicker;
+    }
+    function onBack() as Lang.Boolean {
+        if (!view().retreat()) { WatchUi.popView(WatchUi.SLIDE_RIGHT); }
+        return true;
+    }
+    function onSelect() as Lang.Boolean {
+        if (!view().advance()) { return true; }
+        var hour = view().hour();
+        var minute = view().minute();
         if (_action == :setReminder || _action == :setReminder2) {
             WatchUi.popView(WatchUi.SLIDE_RIGHT);
             getApp().confirmAction(_action, currentUtc(), [hour, minute]);
@@ -304,6 +368,19 @@ class RingTimeDelegate extends WatchUi.PickerDelegate {
         getApp().confirmAction(_action, atUtc, resolved[:adjusted]);
         return true;
     }
+    function onNextPage() as Lang.Boolean { view().move(1); return true; }
+    function onPreviousPage() as Lang.Boolean { view().move(-1); return true; }
+    function onSwipe(event as WatchUi.SwipeEvent) as Lang.Boolean {
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        return false;
+    }
+    function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
+        var current = view();
+        var focus = PickerScreen.focusForX(System.getDeviceSettings().screenWidth,
+            current.columnCount(), event.getCoordinates()[0]);
+        return current.setFocus(focus) ? true : onSelect();
+    }
 }
 
 class RingDateSelection {
@@ -336,6 +413,9 @@ class RingDateSelection {
         _day = PickerValues.clampDay(_year, _month, _day);
         return oldYear != _year || oldDay != _day;
     }
+    function year() as Lang.Number { return _year; }
+    function month() as Lang.Number { return _month; }
+    function day() as Lang.Number { return _day; }
     function title() as Lang.String {
         var noon = CalendarMath.utc(_year, _month, _day, 12, 0, 0);
         var info = Gregorian.utcInfo(new Time.Moment(noon), Time.FORMAT_SHORT);
@@ -344,93 +424,92 @@ class RingDateSelection {
     }
 }
 
-class RingDateTitleDrawable extends WatchUi.Drawable {
+class RingDatePicker extends WatchUi.View {
     private var _selection as RingDateSelection;
-    function initialize(selection as RingDateSelection) {
-        Drawable.initialize({});
-        _selection = selection;
-    }
-    function draw(dc as Graphics.Dc) as Void {
-        dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
-        dc.clear();
-        dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(dc.getWidth() / 2, dc.getHeight() / 2, Graphics.FONT_SYSTEM_XTINY,
-            _selection.title(), Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
-    }
-}
-
-class RingDateValueFactory extends WatchUi.PickerFactory {
-    private var _start as Lang.Number;
-    private var _stop as Lang.Number;
-    private var _kind as Lang.Symbol;
-    private var _selection as RingDateSelection;
-
-    function initialize(start as Lang.Number, stop as Lang.Number, kind as Lang.Symbol,
-                        selection as RingDateSelection) {
-        PickerFactory.initialize();
-        _start = start;
-        _stop = stop;
-        _kind = kind;
-        _selection = selection;
-    }
-    function getSize() as Lang.Number { return _stop - _start + 1; }
-    function getValue(index as Lang.Number) { return _start + index; }
-    function getDrawable(index as Lang.Number, selected as Lang.Boolean) as WatchUi.Drawable? {
-        var value = _start + index;
-        var changed = false;
-        if (selected) {
-            if (_kind == :day) { changed = _selection.setDay(value); }
-            else if (_kind == :month) { changed = _selection.setMonth(value); }
-            else { changed = _selection.setYear(value); }
-        }
-        if (changed) { WatchUi.requestUpdate(); }
-        var text = _kind == :month ? Ui.monthName(value) : value.toString();
-        var font = _kind == :day ? Graphics.FONT_SYSTEM_LARGE : Graphics.FONT_SYSTEM_TINY;
-        return new WatchUi.Text({:text=>text, :font=>font,
-            :color=>selected ? Ui.PRIMARY : Ui.SECONDARY,
-            :locX=>WatchUi.LAYOUT_HALIGN_CENTER, :locY=>WatchUi.LAYOUT_VALIGN_CENTER});
-    }
-}
-
-class RingDatePicker extends WatchUi.Picker {
-    private var _selection as RingDateSelection;
+    private var _focus as Lang.Number;
+    private var _startYear as Lang.Number;
+    private var _stopYear as Lang.Number;
 
     function initialize(action as Lang.Symbol, initialUtc as Lang.Number) {
+        View.initialize();
         var f = CalendarMath.localFields(initialUtc);
         var currentYear = CalendarMath.localFields(currentUtc())[:year];
-        var startYear = currentYear - 2;
-        var stopYear = currentYear + 2;
-        var selectedYear = PickerValues.clamp(f[:year], startYear, stopYear);
+        _startYear = currentYear - 2;
+        _stopYear = currentYear + 2;
+        var selectedYear = PickerValues.clamp(f[:year], _startYear, _stopYear);
         var selectedDay = PickerValues.clampDay(selectedYear, f[:month], f[:day]);
         _selection = new RingDateSelection(selectedYear, f[:month], selectedDay);
-        var title = new RingDateTitleDrawable(_selection);
-        var pattern = new Lang.Array<WatchUi.PickerFactory>[3];
-        pattern[0] = new RingDateValueFactory(1, 31, :day, _selection);
-        pattern[1] = new RingDateValueFactory(1, 12, :month, _selection);
-        pattern[2] = new RingDateValueFactory(startYear, stopYear, :year, _selection);
-        var defaults = [selectedDay - 1, f[:month] - 1, selectedYear - startYear];
-        Picker.initialize({:title=>title, :pattern=>pattern, :defaults=>defaults});
+        _focus = 0;
     }
 
+    function focus() as Lang.Number { return _focus; }
+    function year() as Lang.Number { return _selection.year(); }
+    function month() as Lang.Number { return _selection.month(); }
+    function day() as Lang.Number { return _selection.day(); }
+    function setFocus(value as Lang.Number) as Lang.Boolean {
+        var next = PickerValues.clamp(value, 0, 2);
+        var changed = next != _focus;
+        _focus = next;
+        WatchUi.requestUpdate();
+        return changed;
+    }
+    function advance() as Lang.Boolean {
+        if (_focus == 2) { return true; }
+        setFocus(_focus + 1);
+        return false;
+    }
+    function retreat() as Lang.Boolean {
+        if (_focus == 0) { return false; }
+        setFocus(_focus - 1);
+        return true;
+    }
+    function move(delta as Lang.Number) as Void {
+        if (_focus == 0) {
+            var maxDay = PickerValues.daysInMonth(_selection.year(), _selection.month());
+            var day = _selection.day() + delta;
+            if (day < 1) { day = maxDay; }
+            if (day > maxDay) { day = 1; }
+            _selection.setDay(day);
+        } else if (_focus == 1) {
+            var month = ((_selection.month() - 1 + delta + 12) % 12) + 1;
+            _selection.setMonth(month);
+        } else {
+            var year = _selection.year() + delta;
+            if (year < _startYear) { year = _stopYear; }
+            if (year > _stopYear) { year = _startYear; }
+            _selection.setYear(year);
+        }
+        WatchUi.requestUpdate();
+    }
     function onUpdate(dc as Graphics.Dc) as Void {
-        Ui.clear(dc);
-        Picker.onUpdate(dc);
+        PickerScreen.drawFrame(dc, _selection.title(),
+            [_selection.day().toString(), Ui.monthName(_selection.month()),
+             _selection.year().toString()],
+            [Graphics.FONT_SYSTEM_LARGE, Graphics.FONT_SYSTEM_TINY,
+             Graphics.FONT_SYSTEM_TINY], _focus);
     }
 }
 
-class RingDateDelegate extends WatchUi.PickerDelegate {
+class RingDateDelegate extends WatchUi.BehaviorDelegate {
     private var _action as Lang.Symbol;
     private var _initialUtc as Lang.Number;
     function initialize(action as Lang.Symbol, initialUtc as Lang.Number) {
-        PickerDelegate.initialize();
+        BehaviorDelegate.initialize();
         _action = action;
         _initialUtc = initialUtc;
     }
-    function onCancel() as Lang.Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
-    function onAccept(values as Lang.Array) as Lang.Boolean {
-        var year = values[2] as Lang.Number;
-        var month = values[1] as Lang.Number;
-        var day = PickerValues.clampDay(year, month, values[0] as Lang.Number);
+    private function view() as RingDatePicker {
+        return WatchUi.getCurrentView()[0] as RingDatePicker;
+    }
+    function onBack() as Lang.Boolean {
+        if (!view().retreat()) { WatchUi.popView(WatchUi.SLIDE_RIGHT); }
+        return true;
+    }
+    function onSelect() as Lang.Boolean {
+        if (!view().advance()) { return true; }
+        var year = view().year();
+        var month = view().month();
+        var day = PickerValues.clampDay(year, month, view().day());
         var original = CalendarMath.localFields(_initialUtc);
         var fields = {:year=>year, :month=>month, :day=>day,
             :hour=>original[:hour], :minute=>original[:minute], :second=>0};
@@ -438,5 +517,17 @@ class RingDateDelegate extends WatchUi.PickerDelegate {
         WatchUi.pushView(new RingTimePicker(_action, _initialUtc),
             new RingTimeDelegate(_action, _initialUtc, fields), WatchUi.SLIDE_LEFT);
         return true;
+    }
+    function onNextPage() as Lang.Boolean { view().move(1); return true; }
+    function onPreviousPage() as Lang.Boolean { view().move(-1); return true; }
+    function onSwipe(event as WatchUi.SwipeEvent) as Lang.Boolean {
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        return false;
+    }
+    function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
+        var focus = PickerScreen.focusForX(System.getDeviceSettings().screenWidth,
+            3, event.getCoordinates()[0]);
+        return view().setFocus(focus) ? true : onSelect();
     }
 }
