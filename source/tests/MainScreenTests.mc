@@ -77,6 +77,15 @@ function mainSeriousCopyKeepsLatenessAsHero(logger as Test.Logger) as Lang.Boole
         Ui.fmt(Rez.Strings.MainRingFreeTotal, ["8", "Wed 16 Sep"]));
     Test.assertEqual("Worn 29 d · was due Wed 16 Sep",
         Ui.fmt(Rez.Strings.MainWornTotal, ["29", "Wed 16 Sep"]));
+    Test.assertEqual("Ring-free 8 d",
+        Ui.fmt(Rez.Strings.MainRingFreeElapsed, ["8"]));
+    Test.assertEqual("Worn 29 d",
+        Ui.fmt(Rez.Strings.MainWornElapsed, ["29"]));
+    Test.assertEqual("was due Wed 16 Sep",
+        Ui.fmt(Rez.Strings.MainWasDueDate, ["Wed 16 Sep"]));
+    Test.assertEqual("Watch time is before insertion",
+        Ui.s(Rez.Strings.MainWatchBeforeInsertionLineOne) + " "
+        + Ui.s(Rez.Strings.MainWatchBeforeInsertionLineTwo));
     return true;
 }
 

@@ -235,7 +235,10 @@ actions use a one-line Today/Tomorrow label; longer schedule lines degrade by
 dropping detail instead of wrapping. Overdue and serious states share the
 UI-free `Lateness` formatter, while serious-state totals remain in the
 secondary line. Temporary-out states keep a stable fifth row and show an amber
-overrun tail after a black seam.
+overrun tail after a black seam. Chord-aware fallbacks preserve the complete
+serious-state context and validity message on 42 mm; the latter replaces the
+schedule line. All 48 main-state captures were regenerated and inspected at
+390, 416, and 454 px.
 
 ## Release bundle
 

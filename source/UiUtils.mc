@@ -16,6 +16,8 @@ module Ui {
     const RING_IN_DIM = 0x196047;
     const RING_FREE_DIM = 0x4B4173;
     const CYCLE_FREE_DIM = 0x1D1928;
+    const MAIN_RING_IN_OTHER = 0x228060;
+    const MAIN_RING_FREE_OTHER = 0x645699;
 
     function s(id as Lang.ResourceId) as Lang.String {
         return Application.loadResource(id) as Lang.String;
@@ -126,6 +128,13 @@ module Ui {
         if (dy >= radius) { return dc.getWidth() - (2 * clearance); }
         var halfChord = Math.sqrt((radius * radius) - (dy * dy));
         return Math.floor(halfChord * 2).toNumber() - (2 * clearance);
+    }
+
+    function mainInnerChordBudget(dc as Graphics.Dc, y as Lang.Number) as Lang.Number {
+        var radius = mainArcRadius(dc) - (mainArcStroke(dc) / 2) - px(dc, 5);
+        var dy = (y - (dc.getHeight() / 2)).abs();
+        if (dy >= radius) { return dc.getWidth() - px(dc, 96); }
+        return Math.floor(Math.sqrt((radius * radius) - (dy * dy)) * 2).toNumber();
     }
 
     function row(dc as Graphics.Dc, y as Lang.Number, label as Lang.String, value as Lang.String) as Void {

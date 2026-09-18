@@ -42,18 +42,18 @@ function pickerUses24Hour(reminders as Lang.Dictionary) as Lang.Boolean {
 }
 
 (:debug)
-function optionalMainCaptureState(state as Lang.Dictionary,
-                                  nowUtc as Lang.Number) as Lang.Dictionary {
-    var scenarios = [:clock12Long, :clock24, :largestCountdown, :overdue29h,
+function mainCaptureScenarios() as Lang.Array<Lang.Symbol> {
+    return [:clock12Long, :clock24, :largestCountdown, :overdue29h,
         :freeDay3, :overdueRemoval, :ringFree, :ringIn14h, :ringIn1d12h,
         :ringIn45m, :day5, :temp250, :temp310, :freeExceeded, :ringIn29d,
         :warningWrapLong];
-    var stored = Storage.getValue("debugMainCaptureIndex");
-    var index = stored instanceof Lang.Number ? stored : 0;
-    if (index < 0 || index >= scenarios.size()) { index = 0; }
-    Storage.setValue("debugMainCaptureIndex", index + 1);
-    Toybox.System.println("RING_TRACKER_MAIN_CAPTURE=" + index);
-    var captured = demoState(scenarios[index] as Lang.Symbol, nowUtc);
+}
+
+(:debug)
+function optionalMainCaptureState(state as Lang.Dictionary,
+                                  nowUtc as Lang.Number) as Lang.Dictionary {
+    System.println("RING_TRACKER_MAIN_CAPTURE=0");
+    var captured = demoState(mainCaptureScenarios()[0], nowUtc);
     SettingsBridge.mirrorAll(captured);
     return captured;
 }
@@ -61,18 +61,41 @@ function optionalMainCaptureState(state as Lang.Dictionary,
 (:debug)
 class MainCaptureExitController {
     var timer as Timer.Timer?;
+    var index as Lang.Number;
 
-    function initialize() { timer = null; }
+    function initialize() {
+        timer = null;
+        index = 0;
+    }
 
     function schedule() as Void {
         timer = new Timer.Timer();
-        (timer as Timer.Timer).start(method(:finish), 1500, false);
+        (timer as Timer.Timer).start(method(:advance), 6000, true);
     }
 
-    function finish() as Void {
-        if (timer != null) { (timer as Timer.Timer).stop(); }
-        timer = null;
-        System.exit();
+    function advance() as Void {
+        System.println("RING_TRACKER_MAIN_CAPTURE_DONE=" + index);
+        index += 1;
+        var scenarios = mainCaptureScenarios();
+        if (index >= scenarios.size()) {
+            if (timer != null) { (timer as Timer.Timer).stop(); }
+            timer = null;
+            System.exit();
+        }
+
+        var next = demoState(scenarios[index] as Lang.Symbol, currentUtc());
+        SettingsBridge.mirrorAll(next);
+        var state = getApp().getState();
+        var oldKeys = state.keys();
+        for (var i = 0; i < oldKeys.size(); i += 1) {
+            state.remove(oldKeys[i]);
+        }
+        var newKeys = next.keys();
+        for (var j = 0; j < newKeys.size(); j += 1) {
+            state.put(newKeys[j], next[newKeys[j]]);
+        }
+        System.println("RING_TRACKER_MAIN_CAPTURE=" + index);
+        WatchUi.requestUpdate();
     }
 }
 
