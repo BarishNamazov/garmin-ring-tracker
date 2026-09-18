@@ -285,8 +285,8 @@ class MainView extends WatchUi.View {
         Ui.drawMainDuration(dc, heroY,
             Ui.mainCountdownGroups(status[:secondsRemaining]), null, Ui.PRIMARY);
         if (warning) {
-            var warningTitleY = dateY - Ui.px(dc, 13);
-            var warningBodyY = dateY + Ui.px(dc, 17);
+            var warningTitleY = dateY - Ui.px(dc, 20);
+            var warningBodyY = dateY + Ui.px(dc, 20);
             var warningTitle = Ui.s(Rez.Strings.MainCheckInsertionDate);
             var warningTitleFont = Graphics.FONT_SYSTEM_TINY;
             var warningTitleBudget = Ui.mainInnerChordBudget(dc, warningTitleY);
@@ -308,14 +308,14 @@ class MainView extends WatchUi.View {
                 Ui.centered(dc, warningBodyY, warningBody, warningBodyFont,
                     Ui.PRIMARY, warningBodyBudget);
             } else {
-                Ui.centered(dc, dateY + Ui.px(dc, 10),
+                Ui.centered(dc, dateY + Ui.px(dc, 20),
                     Ui.s(Rez.Strings.MainWatchBeforeInsertionLineOne),
                     Graphics.FONT_XTINY, Ui.PRIMARY,
-                    Ui.mainInnerChordBudget(dc, dateY + Ui.px(dc, 10)));
-                Ui.centered(dc, dateY + Ui.px(dc, 30),
+                    Ui.mainInnerChordBudget(dc, dateY + Ui.px(dc, 20)));
+                Ui.centered(dc, dateY + Ui.px(dc, 43),
                     Ui.s(Rez.Strings.MainWatchBeforeInsertionLineTwo),
                     Graphics.FONT_XTINY, Ui.PRIMARY,
-                    Ui.mainInnerChordBudget(dc, dateY + Ui.px(dc, 30)));
+                    Ui.mainInnerChordBudget(dc, dateY + Ui.px(dc, 43)));
             }
         } else {
             drawActionDate(dc, dateY, status[:nextAction],
