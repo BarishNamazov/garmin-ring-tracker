@@ -120,6 +120,7 @@ class ForegroundController {
 
     function getInitialView() {
         _state = RingStore.load();
+        _state = optionalMainCaptureState(_state, currentUtc());
         if (_notificationData != null) {
             var active = _state[:active] as Lang.Dictionary?;
             var data = _notificationData as Lang.Array;
@@ -669,6 +670,7 @@ class ForegroundEntryView extends WatchUi.View {
         var initial = controller.getInitialView() as Lang.Array;
         var delegate = initial.size() > 1 ? initial[1] : null;
         WatchUi.switchToView(initial[0] as WatchUi.View, delegate as WatchUi.InputDelegate?, WatchUi.SLIDE_IMMEDIATE);
+        optionalMainCaptureExit();
     }
 }
 

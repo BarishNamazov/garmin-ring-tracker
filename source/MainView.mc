@@ -103,9 +103,10 @@ class MainView extends WatchUi.View {
         }
 
         if (status[:phase] == :overdue) {
-            var late = (-status[:secondsRemaining]).toFloat();
-            if (late > 0) {
-                var fraction = late / (7.0 * CalendarMath.SECONDS_PER_DAY);
+            var lateMinutes = Math.floor((-status[:secondsRemaining]).toFloat()
+                / CalendarMath.SECONDS_PER_MINUTE);
+            if (lateMinutes > 0) {
+                var fraction = lateMinutes / (7.0 * 1440.0);
                 if (fraction > 1.0) { fraction = 1.0; }
                 dc.setPenWidth(stroke);
                 dc.setColor(Ui.AMBER, Graphics.COLOR_TRANSPARENT);
@@ -135,9 +136,7 @@ class MainView extends WatchUi.View {
             return;
         }
 
-        var completedStroke = Math.round(stroke * 0.55).toNumber();
-        if (completedStroke < Ui.px(dc, 5)) { completedStroke = Ui.px(dc, 5); }
-        dc.setPenWidth(completedStroke);
+        dc.setPenWidth(stroke);
         dc.setColor(Ui.RED, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE, 90, 90);
 
@@ -145,9 +144,15 @@ class MainView extends WatchUi.View {
         if (overrun <= 0) { return; }
         var tailFraction = overrun.toFloat() / limit;
         if (tailFraction > 1.0) { tailFraction = 1.0; }
+        var gapDegrees = (Ui.px(dc, 2).toFloat() * 360.0)
+            / (2.0 * Math.PI * radius);
         dc.setPenWidth(stroke);
+        dc.setColor(Ui.BLACK, Graphics.COLOR_TRANSPARENT);
         dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE,
-            90, 90.0 - (360.0 * tailFraction));
+            90, 90.0 - gapDegrees);
+        dc.setColor(Ui.AMBER, Graphics.COLOR_TRANSPARENT);
+        dc.drawArc(cx, cy, radius, Graphics.ARC_CLOCKWISE,
+            90.0 - gapDegrees, 90.0 - gapDegrees - (360.0 * tailFraction));
     }
 
     private function drawScheduleArc(dc as Graphics.Dc, active as Lang.Dictionary,
@@ -189,22 +194,18 @@ class MainView extends WatchUi.View {
                 stroke, Ui.RING_IN);
         } else {
             drawArcRange(dc, cx, cy, radius, inStart, inEnd,
-                stroke, Ui.RING_IN_DIM);
+                stroke, Ui.MAIN_RING_IN_OTHER);
         }
 
         if (regimen[:daysOut] > 0) {
-            drawArcRange(dc, cx, cy, radius, outStart, outEnd,
-                stroke, Ui.CYCLE_FREE_DIM);
-            var freeStroke = stroke / 3;
-            if (freeStroke < Ui.px(dc, 3)) { freeStroke = Ui.px(dc, 3); }
             if (markerFraction < boundaryFraction) {
                 drawArcRange(dc, cx, cy, radius, outStart, outEnd,
-                    freeStroke, Ui.RING_FREE);
+                    stroke, Ui.MAIN_RING_FREE_OTHER);
             } else {
                 drawArcRange(dc, cx, cy, radius, outStart, markerAngle,
-                    freeStroke, Ui.RING_FREE_DIM);
+                    stroke, Ui.RING_FREE_DIM);
                 drawArcRange(dc, cx, cy, radius, markerAngle, outEnd,
-                    freeStroke, Ui.RING_FREE);
+                    stroke, Ui.RING_FREE);
             }
         }
 
@@ -248,7 +249,8 @@ class MainView extends WatchUi.View {
                                 radius as Lang.Number, angle as Lang.Numeric,
                                 stroke as Lang.Number) as Void {
         var point = arcPoint(cx, cy, radius, angle);
-        var markerRadius = Math.round(stroke * 0.72).toNumber();
+        var markerRadius = (stroke / 2) - Ui.px(dc, 1);
+        if (markerRadius < Ui.px(dc, 3)) { markerRadius = Ui.px(dc, 3); }
         dc.setColor(Ui.BLACK, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(point[0], point[1], markerRadius + Ui.px(dc, 2));
         dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
@@ -263,31 +265,61 @@ class MainView extends WatchUi.View {
         } else if (status[:phase] == :overdue) {
             drawOverdue(dc, status, reminders);
         } else {
-            drawNormal(dc, status, reminders);
+            drawNormal(dc, status, reminders, nowUtc);
         }
     }
 
     private function drawNormal(dc as Graphics.Dc, status as Lang.Dictionary,
-                                reminders as Lang.Dictionary) as Void {
+                                reminders as Lang.Dictionary,
+                                nowUtc as Lang.Number) as Void {
         var ringFree = status[:phase] == :ringFree;
         var phaseText = Ui.s(ringFree ? Rez.Strings.PhaseRingFree : Rez.Strings.PhaseRingIn);
         var phaseColor = ringFree ? Ui.RING_FREE : Ui.RING_IN;
-        var warning = status[:clockBeforeInsertion]
-            ? Ui.s(Rez.Strings.MainClockBeforeInsertion) : null;
-        var warningLayout = warning != null;
-        var headerY = Ui.px(dc, warningLayout ? 90 : 113);
-        var heroY = Ui.px(dc, warningLayout ? 174 : 205);
-        var dateY = Ui.px(dc, warningLayout ? 252 : 297);
+        var warning = status[:clockBeforeInsertion];
+        var headerY = Ui.px(dc, 113);
+        var heroY = Ui.px(dc, 205);
+        var dateY = Ui.px(dc, 291);
 
         Ui.trackedCentered(dc, headerY, phaseText, Graphics.FONT_SYSTEM_TINY,
             phaseColor, Ui.px(dc, 1));
         Ui.drawMainDuration(dc, heroY,
             Ui.mainCountdownGroups(status[:secondsRemaining]), null, Ui.PRIMARY);
-        drawActionDate(dc, dateY, status[:nextAction], status[:underlyingActionUtc],
-            reminders[:clockFormat]);
-        if (warning != null) {
-            drawWarning(dc, warning as Lang.String, Ui.px(dc, 292),
-                Ui.px(dc, 370), Ui.RED);
+        if (warning) {
+            var warningTitleY = dateY - Ui.px(dc, 13);
+            var warningBodyY = dateY + Ui.px(dc, 17);
+            var warningTitle = Ui.s(Rez.Strings.MainCheckInsertionDate);
+            var warningTitleFont = Graphics.FONT_SYSTEM_TINY;
+            var warningTitleBudget = Ui.mainInnerChordBudget(dc, warningTitleY);
+            if (dc.getTextWidthInPixels(warningTitle, warningTitleFont)
+                > warningTitleBudget) {
+                warningTitleFont = Graphics.FONT_SYSTEM_XTINY;
+            }
+            Ui.centered(dc, warningTitleY, warningTitle, warningTitleFont,
+                Ui.AMBER, warningTitleBudget);
+            var warningBody = Ui.s(Rez.Strings.MainWatchBeforeInsertion);
+            var warningBodyFont = Graphics.FONT_SYSTEM_XTINY;
+            var warningBodyBudget = Ui.mainInnerChordBudget(dc, warningBodyY);
+            if (dc.getTextWidthInPixels(warningBody, warningBodyFont)
+                > warningBodyBudget) {
+                warningBodyFont = Graphics.FONT_XTINY;
+            }
+            if (dc.getTextWidthInPixels(warningBody, warningBodyFont)
+                <= warningBodyBudget) {
+                Ui.centered(dc, warningBodyY, warningBody, warningBodyFont,
+                    Ui.PRIMARY, warningBodyBudget);
+            } else {
+                Ui.centered(dc, dateY + Ui.px(dc, 10),
+                    Ui.s(Rez.Strings.MainWatchBeforeInsertionLineOne),
+                    Graphics.FONT_XTINY, Ui.PRIMARY,
+                    Ui.mainInnerChordBudget(dc, dateY + Ui.px(dc, 10)));
+                Ui.centered(dc, dateY + Ui.px(dc, 30),
+                    Ui.s(Rez.Strings.MainWatchBeforeInsertionLineTwo),
+                    Graphics.FONT_XTINY, Ui.PRIMARY,
+                    Ui.mainInnerChordBudget(dc, dateY + Ui.px(dc, 30)));
+            }
+        } else {
+            drawActionDate(dc, dateY, status[:nextAction],
+                status[:underlyingActionUtc], reminders[:clockFormat], nowUtc);
         }
     }
 
@@ -318,16 +350,39 @@ class MainView extends WatchUi.View {
         var elapsed = isFree ? nowUtc - active[:removalUtc]
             : nowUtc - active[:insertionUtc];
         var dueUtc = isFree ? active[:ringFreeCeilingUtc] : active[:labelFourWeekUtc];
-        var suffix = Ui.s(isFree ? Rez.Strings.MainOutSuffix : Rez.Strings.MainInSuffix);
-        Ui.trackedCentered(dc, Ui.px(dc, 89), heading, Graphics.FONT_SYSTEM_MEDIUM,
+        var late = nowUtc - dueUtc;
+        var elapsedDays = Math.floor(elapsed / CalendarMath.SECONDS_PER_DAY);
+        var summary = Ui.fmt(isFree ? Rez.Strings.MainRingFreeTotal
+            : Rez.Strings.MainWornTotal,
+            [elapsedDays.toString(), Ui.shortDate(dueUtc)]);
+        Ui.trackedCentered(dc, Ui.px(dc, 103), heading, Graphics.FONT_SYSTEM_MEDIUM,
             Ui.RED, Ui.px(dc, 1));
-        Ui.drawMainDuration(dc, Ui.px(dc, 167),
-            [[Math.floor(elapsed / CalendarMath.SECONDS_PER_DAY).toString(),
-                Ui.s(Rez.Strings.DayUnit)]], suffix, Ui.PRIMARY);
-        drawDueLine(dc, Ui.px(dc, 258), dueUtc, reminders[:clockFormat]);
-        Ui.centered(dc, Ui.px(dc, 322), Ui.s(Rez.Strings.MainBackupAdvised),
-            Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY,
-            Ui.mainChordClearanceBudget(dc, Ui.px(dc, 322)));
+        Ui.drawMainDuration(dc, Ui.px(dc, 196), [Lateness.parts(late)],
+            Ui.s(Rez.Strings.MainLateSuffix), Ui.PRIMARY);
+        var summaryY = Ui.px(dc, 268);
+        var summaryBudget = Ui.mainInnerChordBudget(dc, summaryY);
+        var summaryFont = Graphics.FONT_SYSTEM_XTINY;
+        if (dc.getTextWidthInPixels(summary, summaryFont) > summaryBudget) {
+            summaryFont = Graphics.FONT_XTINY;
+        }
+        if (dc.getTextWidthInPixels(summary, summaryFont) <= summaryBudget) {
+            Ui.centered(dc, summaryY, summary, summaryFont, Ui.SECONDARY,
+                summaryBudget);
+        } else {
+            var elapsedSummary = Ui.fmt(isFree ? Rez.Strings.MainRingFreeElapsed
+                : Rez.Strings.MainWornElapsed, [elapsedDays.toString()]);
+            var dueSummary = Ui.fmt(Rez.Strings.MainWasDueDate,
+                [Ui.shortDate(dueUtc)]);
+            Ui.centered(dc, Ui.px(dc, 254), elapsedSummary,
+                Graphics.FONT_XTINY, Ui.SECONDARY,
+                Ui.mainInnerChordBudget(dc, Ui.px(dc, 254)));
+            Ui.centered(dc, Ui.px(dc, 282), dueSummary,
+                Graphics.FONT_XTINY, Ui.SECONDARY,
+                Ui.mainInnerChordBudget(dc, Ui.px(dc, 282)));
+        }
+        Ui.centered(dc, Ui.px(dc, 318), Ui.s(Rez.Strings.MainBackupAdvised),
+            Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY,
+            Ui.mainChordClearanceBudget(dc, Ui.px(dc, 318)));
     }
 
     private function actionPrefix(action as Lang.Symbol) as Lang.String {
@@ -337,7 +392,8 @@ class MainView extends WatchUi.View {
     }
 
     private function drawActionDate(dc as Graphics.Dc, y as Lang.Number, action as Lang.Symbol,
-                                    dueUtc as Lang.Number, clockFormat as Lang.Number) as Void {
+                                    dueUtc as Lang.Number, clockFormat as Lang.Number,
+                                    nowUtc as Lang.Number) as Void {
         var prefix = actionPrefix(action);
         var date = Ui.shortDate(dueUtc);
         var compact = Ui.compactDate(dueUtc);
@@ -345,24 +401,60 @@ class MainView extends WatchUi.View {
         var separator = Ui.s(Rez.Strings.DateTimeSeparator);
         var font = Graphics.FONT_SYSTEM_TINY;
         var budget = Ui.mainChordBudget(dc, y);
-
-        var fullRuns = [[prefix + separator, Ui.SECONDARY],
-            [date + separator + time, Ui.PRIMARY]];
-        if (Ui.runsWidth(dc, fullRuns, font) <= budget) {
-            Ui.centeredRuns(dc, y, fullRuns, font);
+        var dayDifference = CalendarMath.dateOrdinal(dueUtc)
+            - CalendarMath.dateOrdinal(nowUtc);
+        if ((dueUtc - nowUtc).abs() < CalendarMath.SECONDS_PER_DAY
+            && (dayDifference == 0 || dayDifference == 1)) {
+            date = Ui.s(dayDifference == 0 ? Rez.Strings.MainToday
+                : Rez.Strings.MainTomorrow);
+            var relativeBudget = Ui.mainChordClearanceBudget(dc, y);
+            if (actionDateLineWidth(dc, prefix + separator, date, time, font)
+                > relativeBudget) {
+                font = Graphics.FONT_SYSTEM_XTINY;
+            }
+            drawActionDateLine(dc, y, prefix + separator, date, time, font);
             return;
         }
 
-        var dateRuns = [[prefix + separator, Ui.SECONDARY], [date, Ui.PRIMARY]];
-        if (Ui.runsWidth(dc, dateRuns, font) > budget) {
-            dateRuns = [[prefix + separator, Ui.SECONDARY], [compact, Ui.PRIMARY]];
+        if (actionDateLineWidth(dc, prefix + separator, date, time, font) <= budget) {
+            drawActionDateLine(dc, y, prefix + separator, date, time, font);
+            return;
         }
-        if (Ui.runsWidth(dc, dateRuns, font) > budget) {
-            font = Graphics.FONT_SYSTEM_XTINY;
+        if (actionDateLineWidth(dc, prefix + separator, compact, time, font) <= budget) {
+            drawActionDateLine(dc, y, prefix + separator, compact, time, font);
+            return;
         }
-        Ui.centeredRuns(dc, y - Ui.px(dc, 13), dateRuns, font);
-        Ui.centered(dc, y + Ui.px(dc, 16), time, Graphics.FONT_SYSTEM_XTINY,
-            Ui.PRIMARY, Ui.mainChordBudget(dc, y + Ui.px(dc, 16)));
+        var dateOnly = prefix + separator + compact;
+        if (dc.getTextWidthInPixels(dateOnly, font) <= budget) {
+            Ui.centeredRuns(dc, y,
+                [[prefix + separator, Ui.SECONDARY], [compact, Ui.PRIMARY]], font);
+            return;
+        }
+        Ui.centered(dc, y, compact, font, Ui.PRIMARY, budget);
+    }
+
+    private function actionDateLineWidth(dc as Graphics.Dc, prefix as Lang.String,
+                                         date as Lang.String, time as Lang.String,
+                                         font) as Lang.Number {
+        return dc.getTextWidthInPixels(prefix + date, font) + Ui.px(dc, 9)
+            + dc.getTextWidthInPixels(time, font);
+    }
+
+    private function drawActionDateLine(dc as Graphics.Dc, y as Lang.Number,
+                                        prefix as Lang.String, date as Lang.String,
+                                        time as Lang.String, font) as Void {
+        var width = actionDateLineWidth(dc, prefix, date, time, font);
+        var x = (dc.getWidth() - width) / 2;
+        dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, font, prefix,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        x += dc.getTextWidthInPixels(prefix, font);
+        dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(x, y, font, date,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+        x += dc.getTextWidthInPixels(date, font) + Ui.px(dc, 9);
+        dc.drawText(x, y, font, time,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
     }
 
     private function drawDueLine(dc as Graphics.Dc, y as Lang.Number, dueUtc as Lang.Number,
@@ -406,26 +498,21 @@ class MainView extends WatchUi.View {
                 [Ui.timeForUtc(outUtc, reminders[:clockFormat])]),
             Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 260));
         if (over) {
-            Ui.centered(dc, Ui.px(dc, 292), Ui.s(Rez.Strings.MainReinsertNow),
+            Ui.centered(dc, Ui.px(dc, 306), Ui.s(Rez.Strings.MainReinsertNow),
                 Graphics.FONT_SYSTEM_MEDIUM, Ui.PRIMARY, Ui.px(dc, 270));
-            Ui.centered(dc, Ui.px(dc, 326), Ui.s(Rez.Strings.MainBackupAdvised),
-                Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY,
-                Ui.mainChordClearanceBudget(dc, Ui.px(dc, 326)));
+            Ui.centered(dc, Ui.px(dc, 340), Ui.s(Rez.Strings.MainBackupAdvised),
+                Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY,
+                Ui.mainChordClearanceBudget(dc, Ui.px(dc, 340)));
+        } else {
+            var reinsertUtc = outUtc + ScheduleModel.TEMP_LIMIT_SECONDS;
+            Ui.centered(dc, Ui.px(dc, 292),
+                Ui.fmt(Rez.Strings.MainReinsertBy,
+                    [Ui.timeForUtc(reinsertUtc, reminders[:clockFormat])]),
+                Graphics.FONT_SYSTEM_XTINY, Ui.PRIMARY,
+                Ui.mainChordClearanceBudget(dc, Ui.px(dc, 292)));
         }
     }
 
-    private function drawWarning(dc as Graphics.Dc, text as Lang.String,
-                                 startY as Lang.Number, bottomY as Lang.Number,
-                                 color as Lang.Number) as Void {
-        var maxWidth = dc.getWidth() - Ui.px(dc, 124);
-        var lines = Ui.warningLines(dc, text, Graphics.FONT_SYSTEM_XTINY, maxWidth);
-        var lineHeight = Graphics.getFontHeight(Graphics.FONT_SYSTEM_XTINY) + Ui.px(dc, 4);
-        var y = startY;
-        for (var i = 0; i < lines.size() && y <= bottomY; i += 1) {
-            Ui.centered(dc, y, lines[i], Graphics.FONT_SYSTEM_XTINY, color, maxWidth);
-            y += lineHeight;
-        }
-    }
 }
 
 class MainDelegate extends WatchUi.BehaviorDelegate {

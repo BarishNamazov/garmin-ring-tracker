@@ -16,6 +16,8 @@ module Ui {
     const RING_IN_DIM = 0x196047;
     const RING_FREE_DIM = 0x4B4173;
     const CYCLE_FREE_DIM = 0x1D1928;
+    const MAIN_RING_IN_OTHER = 0x228060;
+    const MAIN_RING_FREE_OTHER = 0x645699;
 
     function s(id as Lang.ResourceId) as Lang.String {
         return Application.loadResource(id) as Lang.String;
@@ -126,6 +128,13 @@ module Ui {
         if (dy >= radius) { return dc.getWidth() - (2 * clearance); }
         var halfChord = Math.sqrt((radius * radius) - (dy * dy));
         return Math.floor(halfChord * 2).toNumber() - (2 * clearance);
+    }
+
+    function mainInnerChordBudget(dc as Graphics.Dc, y as Lang.Number) as Lang.Number {
+        var radius = mainArcRadius(dc) - (mainArcStroke(dc) / 2) - px(dc, 5);
+        var dy = (y - (dc.getHeight() / 2)).abs();
+        if (dy >= radius) { return dc.getWidth() - px(dc, 96); }
+        return Math.floor(Math.sqrt((radius * radius) - (dy * dy)) * 2).toNumber();
     }
 
     function row(dc as Graphics.Dc, y as Lang.Number, label as Lang.String, value as Lang.String) as Void {
@@ -322,18 +331,7 @@ module Ui {
     }
 
     function mainLatenessGroups(delta as Lang.Number) as Lang.Array {
-        var value = delta.abs();
-        if (value >= 2 * CalendarMath.SECONDS_PER_DAY) {
-            return [[Math.floor(value / CalendarMath.SECONDS_PER_DAY).toString(),
-                s(Rez.Strings.DayUnit)]];
-        }
-        if (value >= CalendarMath.SECONDS_PER_HOUR) {
-            return [[Math.floor(value / CalendarMath.SECONDS_PER_HOUR).toString(),
-                s(Rez.Strings.HourUnit)]];
-        }
-        var minutes = Math.floor(value / CalendarMath.SECONDS_PER_MINUTE);
-        if (minutes < 1) { minutes = 1; }
-        return [[minutes.toString(), s(Rez.Strings.MinuteUnit)]];
+        return [Lateness.parts(delta)];
     }
 
     function mainElapsedGroups(elapsed as Lang.Number) as Lang.Array {
@@ -366,7 +364,7 @@ module Ui {
 
     function mainLatenessText(delta as Lang.Number) as Lang.String {
         if (delta == 0) { return s(Rez.Strings.DueNow); }
-        return mainGroupsText(mainLatenessGroups(delta)) + " " + s(Rez.Strings.MainLateSuffix);
+        return Lateness.format(delta);
     }
 
     function mainElapsedText(elapsed as Lang.Number) as Lang.String {
@@ -383,14 +381,11 @@ module Ui {
             : Rez.Strings.MainOverTemplate, [value]);
     }
 
-    function mainWholeDaysText(elapsed as Lang.Number, suffix as Lang.String) as Lang.String {
-        var days = Math.floor(elapsed.abs() / CalendarMath.SECONDS_PER_DAY);
-        return days.toString() + s(Rez.Strings.DayUnit) + " " + suffix;
-    }
-
     function drawMainDuration(dc as Graphics.Dc, centerY as Lang.Number,
                               groups as Lang.Array, suffix, color as Lang.Number) as Void {
-        var digitFont = Graphics.FONT_SYSTEM_NUMBER_HOT;
+        var digitFont = dc.getWidth() >= 454
+            ? Graphics.FONT_SYSTEM_NUMBER_THAI_HOT
+            : Graphics.FONT_SYSTEM_NUMBER_HOT;
         var unitFont = Graphics.FONT_SYSTEM_SMALL;
         var unitGap = px(dc, 6);
         var groupGap = px(dc, 16);
@@ -405,7 +400,9 @@ module Ui {
         if (suffix != null) {
             total += suffixGap + dc.getTextWidthInPixels(suffix as Lang.String, unitFont);
         }
-        var x = (dc.getWidth() - total) / 2;
+        // Garmin's hot-number font has asymmetric side bearings. Its measured
+        // advance box sits optically right of the visible digit/unit group.
+        var x = (dc.getWidth() - total) / 2 - px(dc, 8);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
         for (var j = 0; j < groups.size(); j += 1) {
             if (j > 0) { x += groupGap; }
