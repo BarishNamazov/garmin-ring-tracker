@@ -66,36 +66,50 @@ class UpcomingView extends WatchUi.View {
 
         var dateFont = dateFontFor(dc);
         var xIn = inColumnEdge(dc, dateFont);
-        var xOut = dc.getWidth() - Ui.px(dc, 64);
+        var xOut = xIn + Ui.px(dc, 16);
+        var inHeader = Ui.s(Rez.Strings.ListUpcomingIn);
+        var outHeader = Ui.s(Rez.Strings.ListUpcomingOut);
+        if (_januaryUtc != null) {
+            if (ListUi.januaryIsIn(_rows, _januaryUtc as Lang.Number)) {
+                inHeader = ListUi.yearHeader(inHeader, _januaryUtc as Lang.Number);
+            } else {
+                outHeader = ListUi.yearHeader(outHeader, _januaryUtc as Lang.Number);
+            }
+        }
         dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xIn, Ui.px(dc, 70), Graphics.FONT_SYSTEM_XTINY,
-            Ui.s(Rez.Strings.ListUpcomingIn),
+            inHeader,
             Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.drawText(xOut, Ui.px(dc, 70), Graphics.FONT_SYSTEM_XTINY,
-            Ui.s(Rez.Strings.ListUpcomingOut),
-            Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+            outHeader,
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
 
         var firstPageWithDivider = _topIndex == 0 && _rows.size() > 1
             && (_rows[1] as Lang.Dictionary)[:ifDoneToday] == true;
-        var rowYs = firstPageWithDivider ? [104, 203, 269] : [108, 183, 258];
+        var rowY = Ui.px(dc, 104);
+        var rowPitch = Ui.px(dc, 78);
+        var currentExtra = Ui.px(dc, 29);
         for (var visible = 0; visible < 3; visible += 1) {
             var rowIndex = _topIndex + visible;
             if (rowIndex >= _rows.size()) { break; }
             drawRow(dc, _rows[rowIndex] as Lang.Dictionary, rowIndex,
-                Ui.px(dc, rowYs[visible]), visible == 0 && rowIndex == 0,
-                xIn, xOut, dateFont, false);
+                rowY, visible == 0 && rowIndex == 0, xIn, xOut, dateFont);
+            rowY += rowPitch;
+            if (rowIndex == 0) { rowY += currentExtra; }
         }
         if (firstPageWithDivider) {
-            Ui.centered(dc, Ui.px(dc, 170), Ui.s(Rez.Strings.ListIfRemovedToday),
-                Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 250));
+            dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+            dc.drawText((dc.getWidth() / 2) - Ui.px(dc, 8), Ui.px(dc, 182),
+                Graphics.FONT_SYSTEM_XTINY, Ui.s(Rez.Strings.ListIfRemovedToday),
+                Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
         var peekIndex = _topIndex + 3;
         if (peekIndex < _rows.size()) {
             drawRow(dc, _rows[peekIndex] as Lang.Dictionary, peekIndex,
-                Ui.px(dc, 350), false, xIn, xOut, dateFont, true);
+                rowY, false, xIn, xOut, dateFont);
         }
-        Ui.drawScrollIndicator(dc, Ui.px(dc, 72), Ui.px(dc, 348),
+        ListUi.drawScrollIndicator(dc, Ui.px(dc, 72), Ui.px(dc, 350),
             _topIndex, 6, 3, Ui.SECONDARY);
     }
 
@@ -103,13 +117,10 @@ class UpcomingView extends WatchUi.View {
                              rowIndex as Lang.Number, y as Lang.Number,
                              drawCurrentState as Lang.Boolean,
                              xIn as Lang.Number, defaultXOut as Lang.Number,
-                             dateFont, peek as Lang.Boolean) as Void {
+                             dateFont) as Void {
         var xLeft = Ui.px(dc, 56);
-        var rowFont = peek ? Graphics.FONT_SYSTEM_XTINY : dateFont;
-        var chordX = ListUi.textRightEdge(dc, y, rowFont, Ui.px(dc, 7));
-        var xOut = chordX < defaultXOut ? chordX : defaultXOut;
         if (rowIndex == 0) {
-            dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
+            dc.setColor(Ui.RING_IN, Graphics.COLOR_TRANSPARENT);
             dc.drawText(xLeft, y, Graphics.FONT_SYSTEM_XTINY,
                 Ui.s(Rez.Strings.ListNow),
                 Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
@@ -123,29 +134,31 @@ class UpcomingView extends WatchUi.View {
         var inUtc = row[:inUtc] as Lang.Number;
         var outUtc = row[:outUtc] as Lang.Number;
         dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xIn, y, rowFont,
-            ListUi.dateWithYearCue(inUtc, _januaryUtc != null && inUtc == _januaryUtc),
+        dc.drawText(xIn, y, dateFont, Ui.compactDate(inUtc),
             Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xOut, y, rowFont,
-            ListUi.dateWithYearCue(outUtc, _januaryUtc != null && outUtc == _januaryUtc),
-            Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+        dc.setColor(drawCurrentState && _overdueSeconds != null
+            ? Ui.AMBER : Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
+        dc.drawText(defaultXOut, y, dateFont, Ui.compactDate(outUtc),
+            Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
 
         if (!drawCurrentState) { return; }
         if (_overdueSeconds != null) {
             dc.setColor(Ui.AMBER, Graphics.COLOR_TRANSPARENT);
-            dc.drawText(xOut, y + Ui.px(dc, 30), Graphics.FONT_SYSTEM_XTINY,
+            dc.drawText(defaultXOut, y + Ui.px(dc, 29), Graphics.FONT_SYSTEM_XTINY,
                 ListUi.overdueText(_overdueSeconds as Lang.Number),
-                Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
+                Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
-        drawCurrentBar(dc, row, y + Ui.px(dc, 51));
+        drawCurrentBar(dc, row, y + Ui.px(dc, 50));
     }
 
     private function dateFontFor(dc as Graphics.Dc) {
         var small = Graphics.FONT_SYSTEM_SMALL;
-        var available = (dc.getWidth() - Ui.px(dc, 64))
-            - (Ui.px(dc, 56) + widestEyebrow(dc) + Ui.px(dc, 12));
-        if (widestDateColumns(dc, small) + Ui.px(dc, 10) <= available) { return small; }
+        var left = Ui.px(dc, 56) + widestEyebrow(dc) + Ui.px(dc, 12);
+        var right = ListUi.scrollIndicatorX(dc.getWidth(), dc.getHeight(),
+            Ui.px(dc, 72), Ui.px(dc, 350), Ui.px(dc, 2)) - Ui.px(dc, 9);
+        if (widestDateColumns(dc, small) + Ui.px(dc, 16) <= right - left) {
+            return small;
+        }
         return Graphics.FONT_SYSTEM_TINY;
     }
 
@@ -164,10 +177,8 @@ class UpcomingView extends WatchUi.View {
             var row = _rows[i] as Lang.Dictionary;
             var inUtc = row[:inUtc] as Lang.Number;
             var outUtc = row[:outUtc] as Lang.Number;
-            var inWidth = dc.getTextWidthInPixels(
-                ListUi.dateWithYearCue(inUtc, _januaryUtc != null && inUtc == _januaryUtc), font);
-            var outWidth = dc.getTextWidthInPixels(
-                ListUi.dateWithYearCue(outUtc, _januaryUtc != null && outUtc == _januaryUtc), font);
+            var inWidth = dc.getTextWidthInPixels(Ui.compactDate(inUtc), font);
+            var outWidth = dc.getTextWidthInPixels(Ui.compactDate(outUtc), font);
             if (inWidth > widestIn) { widestIn = inWidth; }
             if (outWidth > widestOut) { widestOut = outWidth; }
         }
@@ -179,8 +190,7 @@ class UpcomingView extends WatchUi.View {
         for (var i = 0; i < _rows.size(); i += 1) {
             var row = _rows[i] as Lang.Dictionary;
             var inUtc = row[:inUtc] as Lang.Number;
-            var width = dc.getTextWidthInPixels(
-                ListUi.dateWithYearCue(inUtc, _januaryUtc != null && inUtc == _januaryUtc), font);
+            var width = dc.getTextWidthInPixels(Ui.compactDate(inUtc), font);
             if (width > widestIn) { widestIn = width; }
         }
         return Ui.px(dc, 56) + widestEyebrow(dc) + Ui.px(dc, 12) + widestIn;
@@ -194,33 +204,46 @@ class UpcomingView extends WatchUi.View {
         var regimen = getApp().getState()[:regimen] as Lang.Dictionary;
         var startUtc = row[:inUtc] as Lang.Number;
         var boundaryUtc = row[:outUtc] as Lang.Number;
-        var endUtc = CalendarMath.addLocalCalendarDays(
+        var scheduledEndUtc = CalendarMath.addLocalCalendarDays(
             boundaryUtc, regimen[:daysOut] as Lang.Number)[:utc] as Lang.Number;
+        var nowUtc = currentUtc();
+        var endUtc = nowUtc > scheduledEndUtc ? nowUtc : scheduledEndUtc;
         var total = endUtc - startUtc;
-        if (total <= 0) { total = boundaryUtc - startUtc; }
+        if (total <= 0) { total = scheduledEndUtc - startUtc; }
         if (total <= 0) { total = 1; }
         var boundaryX = xLeft + (((boundaryUtc - startUtc) * width) / total);
         if (boundaryX < xLeft) { boundaryX = xLeft; }
         if (boundaryX > xRight) { boundaryX = xRight; }
-        var nowX = xLeft + (((currentUtc() - startUtc) * width) / total);
+        var dueUtc = row[:outActual] == true ? scheduledEndUtc : boundaryUtc;
+        var dueX = xLeft + (((dueUtc - startUtc) * width) / total);
+        if (dueX < xLeft) { dueX = xLeft; }
+        if (dueX > xRight) { dueX = xRight; }
+        var nowX = xLeft + (((nowUtc - startUtc) * width) / total);
         if (nowX < xLeft) { nowX = xLeft; }
         if (nowX > xRight) { nowX = xRight; }
 
         dc.setPenWidth(Ui.px(dc, 5));
         dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
         dc.drawLine(xLeft, y, xRight, y);
-        dc.setColor(Ui.RING_IN, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(xLeft, y, boundaryX, y);
-        if ((regimen[:daysOut] as Lang.Number) > 0) {
+        if (row[:outActual] == true) {
+            dc.setColor(Ui.RING_IN, Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(xLeft, y, boundaryX, y);
             dc.setColor(Ui.RING_FREE, Graphics.COLOR_TRANSPARENT);
-            dc.drawLine(boundaryX + Ui.px(dc, 2), y, xRight, y);
+            dc.drawLine(boundaryX, y, nowX < dueX ? nowX : dueX, y);
+        } else {
+            dc.setColor(Ui.RING_IN, Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(xLeft, y, nowX < dueX ? nowX : dueX, y);
+        }
+        if (_overdueSeconds != null) {
+            dc.setColor(Ui.AMBER, Graphics.COLOR_TRANSPARENT);
+            dc.drawLine(dueX, y, nowX, y);
         }
         dc.setPenWidth(Ui.px(dc, 5));
         dc.setColor(Ui.BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(nowX, y - Ui.px(dc, 7), nowX, y + Ui.px(dc, 7));
+        dc.drawLine(nowX, y - Ui.px(dc, 3), nowX, y + Ui.px(dc, 3));
         dc.setPenWidth(Ui.px(dc, 2));
         dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(nowX, y - Ui.px(dc, 7), nowX, y + Ui.px(dc, 7));
+        dc.drawLine(nowX, y - Ui.px(dc, 3), nowX, y + Ui.px(dc, 3));
     }
 }
 

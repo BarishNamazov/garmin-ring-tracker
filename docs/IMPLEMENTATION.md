@@ -109,7 +109,7 @@ env -i HOME=$HOME PATH=/usr/bin:/bin bash -lc \
 ./scripts/ci/check-release.sh bin/release
 ```
 
-All compiler invocations use warnings-as-errors. The v1.3.0 suite contains 160
+All compiler invocations use warnings-as-errors. The v1.3.0 suite contains 164
 tests. It covers schedule boundaries, DST gaps/folds, actual-event anchoring,
 temporary-out identity, reminder priority/deduplication, migrations, storage
 interruption and compaction, settings repair, phone/watch picker conversion,
@@ -225,6 +225,11 @@ Two contract tensions are intentional and documented:
 No other item in `docs/ux-review/DECISIONS.md` remains unimplemented. Native
 menus may reveal a deliberately partial adjacent row at the round bezel while
 scrolling; the selected row and every custom-rendered value remain unclipped.
+
+The round-2 list pass keeps Upcoming on fixed 78 px row pitches with shared
+column anchors, a proportional elapsed/overdue track, chord-safe rails, and the
+rollover year in the column header. History uses full-width selection bands and
+`NOW`; cycle detail compacts its populated rows, dates, and brief-out count.
 
 ## Release bundle
 

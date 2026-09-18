@@ -190,7 +190,7 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     if (scenario == :overdueRemoval) {
         nowUtc = demoLocalUtc(2026, 12, 25, 9, 0);
     } else if (scenario == :maximumState) {
-        nowUtc = demoLocalUtc(2026, 10, 6, 9, 0);
+        nowUtc = demoLocalUtc(2026, 10, 6, 12, 26);
     } else {
         nowUtc = mainDemoReferenceUtc(nowUtc);
     }
@@ -356,6 +356,8 @@ function demoLocalUtc(year as Lang.Number, month as Lang.Number, day as Lang.Num
 (:debug)
 function maximumDemoState(state as Lang.Dictionary, nowUtc as Lang.Number) as Lang.Dictionary {
     state[:setupStep] = 3;
+    var reminders = state[:reminders] as Lang.Dictionary;
+    reminders[:clockFormat] = 12;
     var history = [];
     for (var c = 0; c < ScheduleModel.MAX_HISTORY; c += 1) {
         var inserted = nowUtc - ((ScheduleModel.MAX_HISTORY - c) * 40 * CalendarMath.SECONDS_PER_DAY);

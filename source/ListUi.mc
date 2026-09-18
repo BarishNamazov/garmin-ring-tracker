@@ -10,13 +10,6 @@ module ListUi {
     const VARIANCE_AMBER = 1;
     const VARIANCE_RED = 2;
 
-    function dateWithYearCue(utcSeconds as Lang.Number, showYear as Lang.Boolean) as Lang.String {
-        var date = Ui.compactDate(utcSeconds);
-        if (!showYear) { return date; }
-        var year = (CalendarMath.localFields(utcSeconds)[:year] as Lang.Number) % 100;
-        return Ui.fmt(Rez.Strings.ListDateYearTemplate, [date, year.format("%02d")]);
-    }
-
     function firstJanuaryUtc(rows as Lang.Array) {
         for (var i = 0; i < rows.size(); i += 1) {
             var row = rows[i] as Lang.Dictionary;
@@ -28,6 +21,20 @@ module ListUi {
             }
         }
         return null;
+    }
+
+    function januaryIsIn(rows as Lang.Array, januaryUtc as Lang.Number) as Lang.Boolean {
+        for (var i = 0; i < rows.size(); i += 1) {
+            var row = rows[i] as Lang.Dictionary;
+            if (row[:inUtc] == januaryUtc) { return true; }
+            if (row[:outUtc] == januaryUtc) { return false; }
+        }
+        return false;
+    }
+
+    function yearHeader(label as Lang.String, utcSeconds as Lang.Number) as Lang.String {
+        var year = CalendarMath.localFields(utcSeconds)[:year] as Lang.Number;
+        return Ui.fmt(Rez.Strings.ListColumnYearTemplate, [label, year]);
     }
 
     function dateRange(startUtc as Lang.Number, endUtc as Lang.Number) as Lang.String {
@@ -94,7 +101,7 @@ module ListUi {
     function overdueText(seconds as Lang.Number) as Lang.String {
         var elapsed = seconds.abs();
         var amount;
-        if (elapsed >= CalendarMath.SECONDS_PER_DAY) {
+        if (elapsed >= (2 * CalendarMath.SECONDS_PER_DAY)) {
             amount = Math.floor(elapsed / CalendarMath.SECONDS_PER_DAY).toNumber().toString()
                 + Ui.s(Rez.Strings.DayUnit);
         } else if (elapsed >= CalendarMath.SECONDS_PER_HOUR) {
@@ -129,8 +136,48 @@ module ListUi {
             Graphics.getFontHeight(font) / 2, margin);
     }
 
+    function scrollIndicatorX(width as Lang.Number, height as Lang.Number,
+                              startY as Lang.Number, bottomY as Lang.Number,
+                              margin as Lang.Number) as Lang.Number {
+        var topEdge = roundRightEdge(width, height, startY, 0, margin);
+        var bottomEdge = roundRightEdge(width, height, bottomY, 0, margin);
+        var circleEdge = topEdge < bottomEdge ? topEdge : bottomEdge;
+        var fixedInset = width - Math.round(width * 0.07).toNumber();
+        return circleEdge < fixedInset ? circleEdge : fixedInset;
+    }
+
+    function drawScrollIndicator(dc as Graphics.Dc, startY as Lang.Number,
+                                 bottomY as Lang.Number, position as Lang.Number,
+                                 total as Lang.Number, visible as Lang.Number,
+                                 color as Lang.Number) as Void {
+        if (total <= visible || visible <= 0) { return; }
+        var maxPosition = total - visible;
+        if (position < 0) { position = 0; }
+        if (position > maxPosition) { position = maxPosition; }
+        var trackHeight = bottomY - startY;
+        var thumbHeight = (trackHeight * visible) / total;
+        if (thumbHeight < Ui.px(dc, 18)) { thumbHeight = Ui.px(dc, 18); }
+        var thumbY = startY;
+        if (maxPosition > 0) {
+            thumbY += ((trackHeight - thumbHeight) * position) / maxPosition;
+        }
+        var x = scrollIndicatorX(dc.getWidth(), dc.getHeight(), startY, bottomY,
+            Ui.px(dc, 2));
+        dc.setColor(Ui.BLACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x - Ui.px(dc, 7), startY, Ui.px(dc, 15), trackHeight);
+        dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x, startY, Ui.px(dc, 2), trackHeight);
+        dc.setColor(color, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(x - Ui.px(dc, 1), thumbY, Ui.px(dc, 4), thumbHeight);
+    }
+
     function dueText(utcSeconds as Lang.Number) as Lang.String {
-        return Ui.fmt(Rez.Strings.ListDueTemplate, [Ui.shortDate(utcSeconds)]);
+        return Ui.fmt(Rez.Strings.ListDueTemplate, [Ui.compactDate(utcSeconds)]);
+    }
+
+    function detailTimestamp(utcSeconds as Lang.Number, clockFormat as Lang.Number) as Lang.String {
+        return Ui.compactDate(utcSeconds) + Ui.s(Rez.Strings.DateTimeSeparator)
+            + Ui.timeForUtc(utcSeconds, clockFormat);
     }
 
     function plannedText(utcSeconds as Lang.Number) as Lang.String {
@@ -141,6 +188,10 @@ module ListUi {
         var count = (cycle[:temporaryOut] as Lang.Array).size();
         var summary = cycle[:temporaryOutSummary] as Lang.Dictionary;
         return count + (summary[:shortIntervalCount] as Lang.Number);
+    }
+
+    function briefOutText(cycle as Lang.Dictionary) as Lang.String {
+        return Ui.fmt(Rez.Strings.ListBriefOutCountTemplate, [briefOutCount(cycle)]);
     }
 
     function drawHistoryRange(dc as Graphics.Dc, x as Lang.Number, y as Lang.Number,

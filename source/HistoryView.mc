@@ -107,8 +107,8 @@ class HistoryView extends WatchUi.View {
             return;
         }
 
-        _rowStart = Ui.px(dc, 67);
-        _rowStep = Ui.px(dc, 91);
+        _rowStart = Ui.px(dc, 78);
+        _rowStep = Ui.px(dc, 94);
         for (var visible = 0; visible < HistoryUi.VISIBLE_ROWS; visible += 1) {
             var index = _topIndex + visible;
             if (index >= itemCount()) { break; }
@@ -119,60 +119,68 @@ class HistoryView extends WatchUi.View {
                 drawClear(dc, y, index == _selected);
             }
         }
-        Ui.drawScrollIndicator(dc, _rowStart, Ui.px(dc, 342),
+        ListUi.drawScrollIndicator(dc, _rowStart, Ui.px(dc, 350),
             _topIndex, itemCount(), HistoryUi.VISIBLE_ROWS, Ui.SECONDARY);
     }
 
-    private function drawFocus(dc as Graphics.Dc, y as Lang.Number, selected as Lang.Boolean,
-                               xLeft as Lang.Number, xRight as Lang.Number) as Void {
+    private function drawFocus(dc as Graphics.Dc, selected as Lang.Boolean,
+                               contentTop as Lang.Number, contentBottom as Lang.Number) as Void {
         if (!selected) { return; }
+        var padding = Ui.px(dc, 10);
         dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(xLeft - Ui.px(dc, 8), y + Ui.px(dc, 4),
-            (xRight - xLeft) + Ui.px(dc, 16), Ui.px(dc, 83));
+        dc.fillRectangle(0, contentTop - padding, dc.getWidth(),
+            (contentBottom - contentTop) + (2 * padding));
     }
 
     private function drawCycle(dc as Graphics.Dc, entry as Lang.Dictionary,
                                y as Lang.Number, selected as Lang.Boolean) as Void {
         var cycle = entry[:cycle] as Lang.Dictionary;
         var active = entry[:active] as Lang.Boolean;
-        var xLeft = Ui.px(dc, 54);
-        var xRight = dc.getWidth() - Ui.px(dc, 54);
+        var xLeft = Ui.px(dc, 48);
+        var xRight = ListUi.scrollIndicatorX(dc.getWidth(), dc.getHeight(),
+            _rowStart, Ui.px(dc, 350), Ui.px(dc, 2)) - Ui.px(dc, 9);
         var width = xRight - xLeft;
-        drawFocus(dc, y, selected, xLeft, xRight);
+        var rangeY = y + Ui.px(dc, 18);
+        var cycleY = y + Ui.px(dc, 47);
+        var varianceY = y + Ui.px(dc, 72);
+        var variance = HistoryUi.listVariance(cycle, active);
+        var contentTop = rangeY - (Graphics.getFontHeight(Graphics.FONT_SYSTEM_SMALL) / 2);
+        var contentBottom = (variance.equals("") ? cycleY : varianceY)
+            + (Graphics.getFontHeight(Graphics.FONT_SYSTEM_XTINY) / 2);
+        drawFocus(dc, selected, contentTop, contentBottom);
 
         var endUtc = ListUi.historyEndUtc(cycle, active);
-        ListUi.drawHistoryRange(dc, xLeft, y + Ui.px(dc, 20),
+        ListUi.drawHistoryRange(dc, xLeft, rangeY,
             cycle[:insertionUtc] as Lang.Number, endUtc,
             ListUi.historyEndIsPlanned(cycle, active));
 
         var cycleText = Ui.fmt(Rez.Strings.CycleTemplate, [cycle[:cycleId]]);
         dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xLeft, y + Ui.px(dc, 48), Graphics.FONT_SYSTEM_XTINY,
+        dc.drawText(xLeft, cycleY, Graphics.FONT_SYSTEM_XTINY,
             cycleText, Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         if (active) {
             dc.setColor(Ui.RING_IN, Graphics.COLOR_TRANSPARENT);
             dc.drawText(xLeft + dc.getTextWidthInPixels(cycleText, Graphics.FONT_SYSTEM_XTINY),
-                y + Ui.px(dc, 48), Graphics.FONT_SYSTEM_XTINY,
+                cycleY, Graphics.FONT_SYSTEM_XTINY,
                 Ui.s(Rez.Strings.DateTimeSeparator) +
-                Ui.s(Rez.Strings.CurrentCycle),
+                Ui.s(Rez.Strings.ListNow),
                 Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
-        var variance = HistoryUi.listVariance(cycle, active);
         if (!variance.equals("")) {
             dc.setColor(ListUi.varianceColor(ListUi.varianceLevel(cycle)),
                 Graphics.COLOR_TRANSPARENT);
-            dc.drawText(xLeft, y + Ui.px(dc, 73), Graphics.FONT_SYSTEM_XTINY,
+            dc.drawText(xLeft, varianceY, Graphics.FONT_SYSTEM_XTINY,
                 Ui.ellipsize(dc, variance, Graphics.FONT_SYSTEM_XTINY, width),
                 Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
     }
 
     private function drawClear(dc as Graphics.Dc, y as Lang.Number, selected as Lang.Boolean) as Void {
-        var xLeft = Ui.px(dc, 54);
-        var xRight = dc.getWidth() - Ui.px(dc, 54);
-        drawFocus(dc, y, selected, xLeft, xRight);
-        Ui.centered(dc, y + Ui.px(dc, 45), Ui.s(Rez.Strings.ClearHistory),
+        var textY = y + Ui.px(dc, 47);
+        var halfHeight = Graphics.getFontHeight(Graphics.FONT_SYSTEM_SMALL) / 2;
+        drawFocus(dc, selected, textY - halfHeight, textY + halfHeight);
+        Ui.centered(dc, textY, Ui.s(Rez.Strings.ClearHistory),
             Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
     }
 }
@@ -208,45 +216,89 @@ class CycleDetailView extends WatchUi.View {
         var cycle = activeRow ? state[:active] as Lang.Dictionary
             : (state[:history] as Lang.Array<Lang.Dictionary>)[_index as Lang.Number];
         var clock = (state[:reminders] as Lang.Dictionary)[:clockFormat];
-        Ui.centered(dc, Ui.px(dc, 35), Ui.fmt(Rez.Strings.CycleDetailTitle, [cycle[:cycleId]]),
+        var titleY = Ui.px(dc, 35);
+        var detailFont = Graphics.FONT_SYSTEM_XTINY;
+        var detailHeight = Graphics.getFontHeight(detailFont);
+        Ui.centered(dc, titleY, Ui.fmt(Rez.Strings.CycleDetailTitle, [cycle[:cycleId]]),
             Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
+        var headerBottom = titleY + (Graphics.getFontHeight(Graphics.FONT_SYSTEM_SMALL) / 2);
         if (cycle[:insertionPlanUtc] == null) {
-            Ui.centered(dc, Ui.px(dc, 62), Ui.s(Rez.Strings.ListFirstRecorded),
-                Graphics.FONT_SYSTEM_XTINY, Ui.SECONDARY, Ui.px(dc, 280));
+            var subtitleTop = headerBottom + Ui.px(dc, 12);
+            var subtitleY = subtitleTop + (detailHeight / 2);
+            Ui.centered(dc, subtitleY, Ui.s(Rez.Strings.ListFirstRecorded),
+                detailFont, Ui.SECONDARY, Ui.px(dc, 280));
+            headerBottom = subtitleTop + detailHeight + Ui.px(dc, 20);
+        } else {
+            headerBottom += Ui.px(dc, 20);
         }
 
-        drawRecordedEvent(dc, Ui.px(dc, 93), Ui.s(Rez.Strings.InsertedLabel),
+        var hasThird = (activeRow && cycle[:removalUtc] != null && cycle[:insertDueUtc] != null)
+            || (!activeRow && cycle[:nextInsertionUtc] != null);
+        var insertedContext = cycle[:insertionPlanUtc] != null
+            || cycle[:insertionDeltaSeconds] != null;
+        var removedContext = cycle[:removalUtc] != null
+            && (cycle[:removeDueUtc] != null || cycle[:removalDeltaSeconds] != null);
+        var thirdContext = !activeRow && hasThird;
+        var eventCount = hasThird ? 3 : 2;
+        var contextOffset = Ui.px(dc, 25);
+        var rowGap = Ui.px(dc, 8);
+        var dividerGap = Ui.px(dc, 12);
+        var dividerToStats = Ui.px(dc, 12);
+        var totalHeight = (eventCount * detailHeight)
+            + (insertedContext ? contextOffset : 0)
+            + (removedContext ? contextOffset : 0)
+            + (thirdContext ? contextOffset : 0)
+            + ((eventCount - 1) * rowGap)
+            + dividerGap + Ui.px(dc, 1) + dividerToStats
+            + (2 * detailHeight);
+        var safeBottom = dc.getHeight() - Ui.px(dc, 72);
+        var contentTop = headerBottom
+            + ((safeBottom - headerBottom - totalHeight) / 2);
+        if (contentTop < headerBottom) { contentTop = headerBottom; }
+        var cursor = contentTop;
+
+        drawRecordedEvent(dc, cursor + (detailHeight / 2), Ui.s(Rez.Strings.InsertedLabel),
             cycle[:insertionUtc] as Lang.Number, cycle[:insertionPlanUtc],
             cycle[:insertionDeltaSeconds], clock);
+        cursor += detailHeight + (insertedContext ? contextOffset : 0) + rowGap;
         if (cycle[:removalUtc] == null) {
-            drawDueEvent(dc, Ui.px(dc, 158), Ui.s(Rez.Strings.RemovedLabel),
+            drawDueEvent(dc, cursor + (detailHeight / 2), Ui.s(Rez.Strings.RemovedLabel),
                 cycle[:removeDueUtc] as Lang.Number);
         } else {
-            drawRecordedEvent(dc, Ui.px(dc, 158), Ui.s(Rez.Strings.RemovedLabel),
+            drawRecordedEvent(dc, cursor + (detailHeight / 2), Ui.s(Rez.Strings.RemovedLabel),
                 cycle[:removalUtc] as Lang.Number, cycle[:removeDueUtc],
                 cycle[:removalDeltaSeconds], clock);
         }
+        cursor += detailHeight + (removedContext ? contextOffset : 0);
 
-        if (activeRow && cycle[:removalUtc] != null && cycle[:insertDueUtc] != null) {
-            drawDueEvent(dc, Ui.px(dc, 223), Ui.s(Rez.Strings.ListNextIn),
-                cycle[:insertDueUtc] as Lang.Number);
-        } else if (!activeRow && cycle[:nextInsertionUtc] != null) {
-            var nextPlan = cycle[:removalUtc] == null ? cycle[:removeDueUtc] : cycle[:insertDueUtc];
-            drawRecordedEvent(dc, Ui.px(dc, 223), Ui.s(Rez.Strings.ListNextIn),
-                cycle[:nextInsertionUtc] as Lang.Number, nextPlan,
-                cycle[:nextInsertionDeltaSeconds], clock);
+        if (hasThird) {
+            cursor += rowGap;
+            if (activeRow) {
+                drawDueEvent(dc, cursor + (detailHeight / 2), Ui.s(Rez.Strings.ListNextIn),
+                    cycle[:insertDueUtc] as Lang.Number);
+            } else {
+                var nextPlan = cycle[:removalUtc] == null
+                    ? cycle[:removeDueUtc] : cycle[:insertDueUtc];
+                drawRecordedEvent(dc, cursor + (detailHeight / 2),
+                    Ui.s(Rez.Strings.ListNextIn), cycle[:nextInsertionUtc] as Lang.Number,
+                    nextPlan, cycle[:nextInsertionDeltaSeconds], clock);
+            }
+            cursor += detailHeight + (thirdContext ? contextOffset : 0);
         }
 
         var daysIn = activeRow ? (state[:regimen] as Lang.Dictionary)[:daysIn] : cycle[:regimenDaysIn];
         var daysOut = activeRow ? (state[:regimen] as Lang.Dictionary)[:daysOut] : cycle[:regimenDaysOut];
+        cursor += dividerGap;
         dc.setPenWidth(Ui.px(dc, 1));
         dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
-        dc.drawLine(Ui.px(dc, 50), Ui.px(dc, 270),
-            dc.getWidth() - Ui.px(dc, 50), Ui.px(dc, 270));
-        drawStat(dc, Ui.px(dc, 294), Ui.s(Rez.Strings.RegimenLabel),
+        dc.drawLine(Ui.px(dc, 50), cursor,
+            dc.getWidth() - Ui.px(dc, 50), cursor);
+        cursor += Ui.px(dc, 1) + dividerToStats;
+        drawStat(dc, cursor + (detailHeight / 2), Ui.s(Rez.Strings.RegimenLabel),
             Ui.fmt(Rez.Strings.PlanTemplate, [daysIn, daysOut]));
-        drawStat(dc, Ui.px(dc, 318), Ui.s(Rez.Strings.ListBriefOuts),
-            ListUi.briefOutCount(cycle).toString());
+        cursor += detailHeight;
+        drawStat(dc, cursor + (detailHeight / 2), Ui.s(Rez.Strings.ListBriefOuts),
+            ListUi.briefOutText(cycle));
     }
 
     private function drawRecordedEvent(dc as Graphics.Dc, y as Lang.Number,
@@ -259,7 +311,7 @@ class CycleDetailView extends WatchUi.View {
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
         dc.drawText(xRight, y, Graphics.FONT_SYSTEM_XTINY,
-            Ui.shortTimestamp(utc, clock),
+            ListUi.detailTimestamp(utc, clock),
             Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
         ListUi.drawDetailContext(dc, xRight, y + Ui.px(dc, 25), delta, plannedUtc);
     }
