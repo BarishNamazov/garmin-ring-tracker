@@ -70,37 +70,39 @@ class RingServiceDelegate extends System.ServiceDelegate {
                 Rez.Strings.NotifyInsertTomorrow, Rez.Strings.NotifyReplaceTomorrow);
             subtitle = dateTimeFor(referenceUtc, clockFormat);
         } else if (kind == 4 && reminderSlot == 2) {
-            title = actionText(action, Rez.Strings.NotifyStillInRemove,
-                Rez.Strings.NotifyStillOutInsert, Rez.Strings.NotifyStillInReplace);
-            subtitle = format(Rez.Strings.NotifyDueTimeToday,
+            title = actionText(action, Rez.Strings.NotifyRemoveToday,
+                Rez.Strings.NotifyInsertToday, Rez.Strings.NotifyReplaceToday);
+            subtitle = format(Rez.Strings.NotifyDueToday,
                 [timeFor(referenceUtc, clockFormat)]);
-            body = actionText(action, Rez.Strings.NotifyLogOnceOut,
-                Rez.Strings.NotifyLogOnceIn, Rez.Strings.NotifyLogReplacement);
+            body = text(Rez.Strings.NotifyTapToLog);
         } else if (kind == 4) {
             title = actionText(action, Rez.Strings.NotifyRemoveRing,
                 Rez.Strings.NotifyInsertRing, Rez.Strings.NotifyReplaceRing);
             subtitle = format(Rez.Strings.NotifyDueToday,
                 [timeFor(referenceUtc, clockFormat)]);
+            body = text(Rez.Strings.NotifyTapToLog);
         } else if (kind == 3) {
             title = actionText(action, Rez.Strings.NotifyRemoveNow,
-                Rez.Strings.NotifyInsertNow, Rez.Strings.NotifyReplaceRing);
+                Rez.Strings.NotifyInsertNow, Rez.Strings.NotifyReplaceNow);
             subtitle = format(Rez.Strings.NotifyLateDue,
-                [elapsed(nowUtc - referenceUtc), dateFor(referenceUtc)]);
-            body = text(Rez.Strings.NotifyChooseWhatHappened);
+                [lateness(nowUtc - referenceUtc), dateFor(referenceUtc)]);
+            body = text(Rez.Strings.NotifyTapToLog);
         } else if (kind == 1) {
             title = text(Rez.Strings.NotifyPutRingBack);
             subtitle = format(Rez.Strings.NotifyOutFor,
                 [elapsed(nowUtc - referenceUtc)]);
-            body = text(Rez.Strings.NotifyBackupDetail);
+            body = text(Rez.Strings.NotifyBackup);
         } else if (kind == 0) {
-            title = text(Rez.Strings.NotifyInsertRing);
+            title = text(Rez.Strings.NotifyInsertNow);
             subtitle = format(Rez.Strings.NotifyBreakLate,
-                [daysOver(nowUtc - referenceUtc)]);
+                [totalDays(7, nowUtc - referenceUtc),
+                    lateness(nowUtc - referenceUtc)]);
             body = text(Rez.Strings.NotifyBackup);
         } else if (kind == 2) {
-            title = text(Rez.Strings.NotifyReplaceRing);
+            title = text(Rez.Strings.NotifyReplaceNow);
             subtitle = format(Rez.Strings.NotifyFourWeeksOver,
-                [daysOver(nowUtc - referenceUtc)]);
+                [totalDays(28, nowUtc - referenceUtc),
+                    lateness(nowUtc - referenceUtc)]);
             body = text(Rez.Strings.NotifyBackup);
         }
         return [title, subtitle, body];
@@ -152,10 +154,25 @@ class RingServiceDelegate extends System.ServiceDelegate {
                 text(months[info.month - 1])]);
     }
 
-    private function daysOver(seconds as Lang.Number) as Lang.String {
-        var days = (seconds.abs() + 86399) / 86400;
-        if (days < 1) { days = 1; }
-        return days.toString() + "d";
+    private function totalDays(baseDays as Lang.Number, seconds as Lang.Number) as Lang.String {
+        var lateDays = seconds.abs() / 86400;
+        if (lateDays < 1) { lateDays = 1; }
+        return (baseDays + lateDays).toString();
+    }
+
+    // Keep this allocation-light copy of the shared lateness rule local to
+    // the constrained background personality.
+    private function lateness(seconds as Lang.Number) as Lang.String {
+        var absolute = seconds.abs();
+        if (absolute >= 172800) {
+            return (absolute / 86400).toString() + "d";
+        }
+        if (absolute >= 3600) {
+            return (absolute / 3600).toString() + "h";
+        }
+        var minutes = absolute / 60;
+        if (minutes < 1) { minutes = 1; }
+        return minutes.toString() + "m";
     }
 
     private function elapsed(seconds as Lang.Number) as Lang.String {

@@ -159,8 +159,8 @@ and diagnostic overhead. Used and free values are derived from
 | Personality/state | Used | Free | Total | Limit result |
 | --- | ---: | ---: | ---: | --- |
 | Foreground, maximum 24-cycle history with Upcoming open | 170,576 B (166.6 KiB) | 611,312 B (597.0 KiB) | 781,888 B | within foreground budget |
-| Glance, overdue state | 22,152 B (21.6 KiB) | 39,104 B (38.2 KiB) | 61,256 B | used memory below 45 KiB |
-| Background, peak injected-exception path | 18,320 B (17.9 KiB) | 42,936 B (41.9 KiB) | 61,256 B | used memory below 45 KiB |
+| Glance, peak temporary-out over-limit state | 22,296 B (21.8 KiB) | 38,960 B (38.0 KiB) | 61,256 B | used memory below 45 KiB |
+| Background, peak injected-exception path | 18,352 B (17.9 KiB) | 42,904 B (41.9 KiB) | 61,256 B | used memory below 45 KiB |
 
 ## Debug fixtures and screenshots
 
@@ -186,17 +186,18 @@ Native screenshot crops are 390×390 at `+118+260`, 416×416 at `+122+263`, and
 | Four state menus | 47 mm | 4 |
 | Settings and Reminder 2 picker | 47 mm | 7 |
 | First run, regimen, About, migration | 47 mm | 4 |
-| Native notifications | 47 mm | 7 |
+| Notification evidence | 47 mm | 7 |
 | Alert detail | 47 mm | 1 |
 | **Total** |  | **119** |
 
 Every image was regenerated from the integrated debug source and inspected for
 round-edge clearance, clipping, overlap, scroll position, and state accuracy.
-The seven native-notification captures use a debug-only body surface below the
-simulator's native header because the Linux simulator otherwise overlays that
-header on the current app view. Production still passes the same title,
-subtitle, body, icon, launch data, and dismiss policy directly to Garmin's
-Notifications API. The large-number/divider collision is absent.
+The seven notification captures use a debug-only evidence surface that mirrors
+the production title, subtitle, body, and icon because the Linux simulator's
+native popup obscures the app surface during deterministic capture. Production
+passes the same title, subtitle, body, icon, launch data, and dismiss policy
+directly to Garmin's Notifications API. The large-number/divider collision is
+absent.
 
 `docs/store/generate-assets.sh` converts eight selected 47 mm captures to RGB
 sRGB PNGs. All are 416×416 and below the Store's 150 KiB limit. It also renders
@@ -227,12 +228,25 @@ Menu2 does not expose a per-item text-colour override.
 
 Two contract tensions are intentional and documented:
 
-- Garmin supplies the app glyph beside a glance, so it remains the green
-  launcher glyph; the drawable cannot recolour it per glance state. Overdue
-  state is still carried by the orange title, value, bar, and overflow tail.
-- The required Reminder 2 titles `Still in — remove` and
-  `Still out — insert` exceed the nominal 15-character title budget. The
-  required distinguishing phrases take precedence and fit the target card.
+- Garmin supplies the app glyph beside a glance, so it cannot be recoloured by
+  state. Round 2 makes that shared launcher glyph neutral grey; the title,
+  value, and bar carry state colour.
+- Garmin's native notification API controls text colour. The debug evidence
+  surface renders late lines orange, while production supplies the same late
+  copy to the native card without an unsupported colour option. The mandated
+  `Remove ring today` / `Insert ring today` titles exceed 15 characters but
+  fit the target card; all titles whose wording is flexible remain at most 15.
+
+Round-2 constrained-UI polish uses the same local lateness rule in both
+personalities (`29h` below 48 hours, `2d` from 48 hours), keeps the glance icon
+neutral, gives temporary ring-out its own reinsert copy, and standardizes
+notification hints and serious-state facts. The local formatters deliberately
+avoid a foreground dependency and can be replaced by the shared formatter at
+integration.
+
+The round-2 verification rerun regenerated all glance and notification
+evidence, rechecked the eleven background paths, and measured both constrained
+personalities below the 45 KiB limit.
 
 No other item in `docs/ux-review/DECISIONS.md` remains unimplemented. Native
 menus may reveal a deliberately partial adjacent row at the round bezel while

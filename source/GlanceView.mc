@@ -2,6 +2,7 @@ import Toybox.Application;
 import Toybox.Application.Storage;
 import Toybox.Graphics;
 import Toybox.Lang;
+import Toybox.Math;
 import Toybox.WatchUi;
 
 // The glance reads a positional mirror directly. Keeping dictionaries,
@@ -12,6 +13,7 @@ class RingGlanceView extends WatchUi.GlanceView {
     private const GREEN = 0x38D6A0;
     private const PURPLE = 0xA690FF;
     private const ORANGE = 0xFFB020;
+    private const RED = 0xFF5A67;
     private const WHITE = 0xF4F7F8;
     private const NEUTRAL = 0xB2BAC1;
     private const TRACK = 0x252B31;
@@ -26,7 +28,6 @@ class RingGlanceView extends WatchUi.GlanceView {
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_BLACK);
         dc.clear();
         var active = null;
-        var daysIn = 21;
         var daysOut = 7;
         try {
             var raw = Storage.getValue("ringTrackerGlance");
@@ -39,7 +40,6 @@ class RingGlanceView extends WatchUi.GlanceView {
                 && state[0] == 3 && state[9] == raw[1]
                 && validActive(raw[2])) {
                 active = raw[2];
-                daysIn = raw[3];
                 daysOut = raw[4];
             } else {
                 markMirrorError();
@@ -55,17 +55,20 @@ class RingGlanceView extends WatchUi.GlanceView {
         var overdue = false;
         var ringOut = false;
         var ringOutOver = false;
+        var ringFree = false;
         if (active instanceof Lang.Array && active.size() >= 7) {
             var a = active as Lang.Array;
             var nowUtc = currentUtc();
             var deadline = a[2] as Lang.Number;
             var delta = deadline - nowUtc;
             var removed = a[1] != null;
+            ringFree = removed;
             if (a[6] != null) {
                 ringOut = true;
                 var remaining = 10800 - (nowUtc - (a[6] as Lang.Number));
                 ringOutOver = remaining < 0;
-                title = gs(Rez.Strings.GlanceOutTitle);
+                title = gs(ringOutOver ? Rez.Strings.GlanceReinsertNowTitle
+                    : Rez.Strings.GlanceReinsertTitle);
                 value = temporaryText(remaining);
             } else if (delta <= 0) {
                 overdue = true;
@@ -76,7 +79,7 @@ class RingGlanceView extends WatchUi.GlanceView {
                 } else {
                     title = gs(Rez.Strings.GlanceRemoveOverdueTitle);
                 }
-                value = durationText(-delta);
+                value = latenessText(-delta);
             } else {
                 if (removed) {
                     title = gs(Rez.Strings.GlanceInsertTitle);
@@ -106,51 +109,72 @@ class RingGlanceView extends WatchUi.GlanceView {
         var valueHeight = dc.getFontHeight(valueFont);
         var rowGap = -2;
         var barGap = 7;
-        var barWidth = right - left;
         var blockHeight = titleHeight + rowGap + valueHeight + barGap + 5;
         var top = (height - blockHeight) / 2;
         if (top < 1) { top = 1; }
         var valueY = top + titleHeight + rowGap;
         var barY = valueY + valueHeight + barGap;
         if (barY > height - 6) { barY = height - 6; }
+        var barRight = chordRight(width, barY) - 10;
+        if (barRight > right) { barRight = right; }
+        if (barRight < left + 30) { barRight = left + 30; }
+        var barWidth = barRight - left;
 
         title = ellipsis(dc, title, titleFont, maxWidth);
-        dc.setColor(overdue ? ORANGE : NEUTRAL, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(overdue ? ORANGE : (ringOutOver ? RED : NEUTRAL),
+            Graphics.COLOR_TRANSPARENT);
         dc.drawText(left, top, titleFont, title, Graphics.TEXT_JUSTIFY_LEFT);
-        dc.setColor(overdue || ringOutOver ? ORANGE : WHITE, Graphics.COLOR_TRANSPARENT);
+        dc.setColor(ringOutOver ? RED : (overdue ? ORANGE : WHITE),
+            Graphics.COLOR_TRANSPARENT);
         drawValue(dc, left, right, valueY, value, valueFont, titleFont);
 
-        var totalDays = daysIn + daysOut;
-        var split = totalDays <= 0 ? right : left + ((barWidth * daysIn) / totalDays);
-        var green = ringOut ? DIM_GREEN : GREEN;
-        var purple = ringOut ? DIM_PURPLE : PURPLE;
+        // Reserve 40% of the bar for the future phase. A fixed visual split is
+        // more legible in the compact glance than the 21/7 schedule ratio.
+        var split = left + ((barWidth * 60) / 100);
+        var green = ringOut || ringFree ? DIM_GREEN : GREEN;
+        var purple = ringOut || !ringFree ? DIM_PURPLE : PURPLE;
         dc.setPenWidth(5);
-        drawRoundedLine(dc, left, right, barY, TRACK);
+        drawRoundedLine(dc, left, barRight, barY, TRACK);
         if (overdue) {
             // Leave a short orange tail after the pinned marker so lateness
             // reads as overflow rather than an in-range progress position.
-            var pinned = right - 9;
+            var pinned = barRight - 9;
             drawRoundedLine(dc, left, pinned, barY, ORANGE);
             dc.setColor(ORANGE, Graphics.COLOR_TRANSPARENT);
-            dc.drawLine(pinned, barY, right, barY);
+            dc.drawLine(pinned, barY, barRight, barY);
             marker = (pinned - left).toFloat() / barWidth;
         } else {
             drawRoundedLine(dc, left, split, barY, green);
-            if (daysOut > 0) { drawRoundedLine(dc, split, right, barY, purple); }
+            if (daysOut > 0) { drawRoundedLine(dc, split, barRight, barY, purple); }
         }
 
         var markerX = left + (barWidth * marker).toNumber();
         if (markerX < left + 5) { markerX = left + 5; }
-        if (markerX > right - 5) { markerX = right - 5; }
+        if (markerX > barRight - 5) { markerX = barRight - 5; }
+        var outerRadius = width > 280 ? 6 : 5;
+        var innerRadius = outerRadius - 1;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillCircle(markerX, barY, 5);
+        dc.fillCircle(markerX, barY, outerRadius);
         dc.setColor(WHITE, Graphics.COLOR_TRANSPARENT);
         if (ringOut) {
             dc.setPenWidth(2);
-            dc.drawCircle(markerX, barY, 4);
+            dc.drawCircle(markerX, barY, innerRadius);
         } else {
-            dc.fillCircle(markerX, barY, 4);
+            dc.fillCircle(markerX, barY, innerRadius);
         }
+    }
+
+    // Garmin gives this glance a text canvas beginning 110 px from the left
+    // edge on all three target devices. Convert back to full-screen geometry
+    // so the bar can end 10 px inside the circular chord at its actual y.
+    function chordRight(canvasWidth as Lang.Number, y as Lang.Number) as Lang.Number {
+        var fullWidth = canvasWidth + 110;
+        var radius = fullWidth / 2;
+        var centerX = radius - 110;
+        var dy = y - radius;
+        var inside = (radius * radius) - (dy * dy);
+        if (inside <= 0) { return centerX; }
+        return centerX + Math.sqrt(inside).toNumber();
     }
 
     function durationText(seconds as Lang.Number) as Lang.String {
@@ -175,7 +199,22 @@ class RingGlanceView extends WatchUi.GlanceView {
         if (remaining < 0) {
             return durationText(-remaining) + gs(Rez.Strings.GlanceOverSuffix);
         }
-        return durationText(remaining) + gs(Rez.Strings.GlanceLeftSuffix);
+        return durationText(remaining);
+    }
+
+    // Keep this allocation-light copy of the shared lateness rule local to
+    // the constrained glance personality.
+    function latenessText(seconds as Lang.Number) as Lang.String {
+        var absolute = seconds.abs();
+        if (absolute >= 172800) {
+            return (absolute / 86400).toString() + "d";
+        }
+        if (absolute >= 3600) {
+            return (absolute / 3600).toString() + "h";
+        }
+        var minutes = absolute / 60;
+        if (minutes < 1) { minutes = 1; }
+        return minutes.toString() + "m";
     }
 
     private function drawRoundedLine(dc as Graphics.Dc, left as Lang.Number,
