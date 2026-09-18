@@ -109,7 +109,7 @@ class UpcomingView extends WatchUi.View {
             drawRow(dc, _rows[peekIndex] as Lang.Dictionary, peekIndex,
                 rowY, false, xIn, xOut, dateFont);
         }
-        ListUi.drawScrollIndicator(dc, Ui.px(dc, 72), Ui.px(dc, 350),
+        ListUi.drawRoundScrollIndicator(dc, Ui.px(dc, 72), Ui.px(dc, 350),
             _topIndex, 6, 3, Ui.SECONDARY);
     }
 

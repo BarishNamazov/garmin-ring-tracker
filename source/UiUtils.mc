@@ -556,24 +556,35 @@ module Ui {
         return ((bottomY - startY) / lineHeight) + 1;
     }
 
-    function drawScrollIndicator(dc as Graphics.Dc, startY as Lang.Number, bottomY as Lang.Number,
-                                 position as Lang.Number, total as Lang.Number,
-                                 visible as Lang.Number, color as Lang.Number) as Void {
-        if (total <= visible || visible <= 0) { return; }
+    function scrollIndicatorMetrics(startY as Lang.Number, bottomY as Lang.Number,
+                                    position as Lang.Number, total as Lang.Number,
+                                    visible as Lang.Number,
+                                    minimumHeight as Lang.Number) as Lang.Array<Lang.Number>? {
+        if (total <= visible || visible <= 0) { return null; }
         var maxPosition = total - visible;
         if (position < 0) { position = 0; }
         if (position > maxPosition) { position = maxPosition; }
         var trackHeight = bottomY - startY;
         var thumbHeight = (trackHeight * visible) / total;
-        if (thumbHeight < px(dc, 18)) { thumbHeight = px(dc, 18); }
+        if (thumbHeight < minimumHeight) { thumbHeight = minimumHeight; }
         var thumbY = startY;
         if (maxPosition > 0) {
             thumbY += ((trackHeight - thumbHeight) * position) / maxPosition;
         }
+        return [thumbY, thumbHeight];
+    }
+
+    function drawScrollIndicator(dc as Graphics.Dc, startY as Lang.Number, bottomY as Lang.Number,
+                                 position as Lang.Number, total as Lang.Number,
+                                 visible as Lang.Number, color as Lang.Number) as Void {
+        var metrics = scrollIndicatorMetrics(startY, bottomY, position, total,
+            visible, px(dc, 18));
+        if (metrics == null) { return; }
+        var trackHeight = bottomY - startY;
         var x = dc.getWidth() - px(dc, 42);
         dc.setColor(TRACK, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(x, startY, px(dc, 2), trackHeight);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(x - px(dc, 1), thumbY, px(dc, 4), thumbHeight);
+        dc.fillRectangle(x - px(dc, 1), metrics[0], px(dc, 4), metrics[1]);
     }
 }

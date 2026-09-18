@@ -24,7 +24,11 @@ module Lateness {
     }
 
     function format(seconds as Lang.Number) as Lang.String {
+        return compact(seconds) + " late";
+    }
+
+    function compact(seconds as Lang.Number) as Lang.String {
         var value = parts(seconds);
-        return value[0] + value[1] + " late";
+        return value[0] + value[1];
     }
 }

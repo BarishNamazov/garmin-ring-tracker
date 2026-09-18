@@ -99,20 +99,7 @@ module ListUi {
     }
 
     function overdueText(seconds as Lang.Number) as Lang.String {
-        var elapsed = seconds.abs();
-        var amount;
-        if (elapsed >= (2 * CalendarMath.SECONDS_PER_DAY)) {
-            amount = Math.floor(elapsed / CalendarMath.SECONDS_PER_DAY).toNumber().toString()
-                + Ui.s(Rez.Strings.DayUnit);
-        } else if (elapsed >= CalendarMath.SECONDS_PER_HOUR) {
-            amount = Math.floor(elapsed / CalendarMath.SECONDS_PER_HOUR).toNumber().toString()
-                + Ui.s(Rez.Strings.HourUnit);
-        } else {
-            var minutes = Math.floor(elapsed / CalendarMath.SECONDS_PER_MINUTE).toNumber();
-            if (minutes < 1) { minutes = 1; }
-            amount = minutes.toString() + Ui.s(Rez.Strings.MinuteUnit);
-        }
-        return Ui.fmt(Rez.Strings.ListOverdueTemplate, [amount]);
+        return Lateness.format(seconds);
     }
 
     function roundRightEdge(width as Lang.Number, height as Lang.Number,
@@ -146,21 +133,14 @@ module ListUi {
         return circleEdge < fixedInset ? circleEdge : fixedInset;
     }
 
-    function drawScrollIndicator(dc as Graphics.Dc, startY as Lang.Number,
-                                 bottomY as Lang.Number, position as Lang.Number,
-                                 total as Lang.Number, visible as Lang.Number,
-                                 color as Lang.Number) as Void {
-        if (total <= visible || visible <= 0) { return; }
-        var maxPosition = total - visible;
-        if (position < 0) { position = 0; }
-        if (position > maxPosition) { position = maxPosition; }
+    function drawRoundScrollIndicator(dc as Graphics.Dc, startY as Lang.Number,
+                                      bottomY as Lang.Number, position as Lang.Number,
+                                      total as Lang.Number, visible as Lang.Number,
+                                      color as Lang.Number) as Void {
+        var metrics = Ui.scrollIndicatorMetrics(startY, bottomY, position,
+            total, visible, Ui.px(dc, 18));
+        if (metrics == null) { return; }
         var trackHeight = bottomY - startY;
-        var thumbHeight = (trackHeight * visible) / total;
-        if (thumbHeight < Ui.px(dc, 18)) { thumbHeight = Ui.px(dc, 18); }
-        var thumbY = startY;
-        if (maxPosition > 0) {
-            thumbY += ((trackHeight - thumbHeight) * position) / maxPosition;
-        }
         var x = scrollIndicatorX(dc.getWidth(), dc.getHeight(), startY, bottomY,
             Ui.px(dc, 2));
         dc.setColor(Ui.BLACK, Graphics.COLOR_TRANSPARENT);
@@ -168,7 +148,7 @@ module ListUi {
         dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(x, startY, Ui.px(dc, 2), trackHeight);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(x - Ui.px(dc, 1), thumbY, Ui.px(dc, 4), thumbHeight);
+        dc.fillRectangle(x - Ui.px(dc, 1), metrics[0], Ui.px(dc, 4), metrics[1]);
     }
 
     function dueText(utcSeconds as Lang.Number) as Lang.String {

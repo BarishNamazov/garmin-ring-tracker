@@ -180,9 +180,9 @@ Out $1$</string>
     <string id="MainWatchBeforeInsertionLineTwo">insertion</string>
     <string id="MainRingFreeTotal">Ring-free $1$ d · was due $2$</string>
     <string id="MainWornTotal">Worn $1$ d · was due $2$</string>
-    <string id="MainRingFreeElapsed">Ring-free $1$ d ·</string>
-    <string id="MainWornElapsed">Worn $1$ d ·</string>
-    <string id="MainWasDueDate">was due $1$</string>
+    <string id="MainRingFreeElapsed">Ring-free $1$ d</string>
+    <string id="MainWornElapsed">Worn $1$ d</string>
+    <string id="MainWasDueDate">Was due $1$</string>
     <string id="MainToday">Today</string>
     <string id="MainTomorrow">Tomorrow</string>
     <string id="InsertedLabel">Inserted</string>

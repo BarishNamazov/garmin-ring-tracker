@@ -21,11 +21,10 @@ function uxDGlanceTemporaryCopyShowsWindowDirection(logger as Test.Logger) as Bo
 
 (:test)
 function uxDGlanceLatenessMatchesSharedRule(logger as Test.Logger) as Boolean {
-    var glance = new RingGlanceView();
-    Test.assertEqual("29h", glance.latenessText(29 * 3600));
-    Test.assertEqual("47h", glance.latenessText(47 * 3600));
-    Test.assertEqual("2d", glance.latenessText(48 * 3600));
-    Test.assertEqual("2d", glance.latenessText(71 * 3600));
+    Test.assertEqual("29h", Lateness.compact(29 * 3600));
+    Test.assertEqual("47h", Lateness.compact(47 * 3600));
+    Test.assertEqual("2d", Lateness.compact(48 * 3600));
+    Test.assertEqual("2d", Lateness.compact(71 * 3600));
     return true;
 }
 

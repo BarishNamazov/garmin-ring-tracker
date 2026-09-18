@@ -420,17 +420,7 @@ class MainView extends WatchUi.View {
             drawActionDateLine(dc, y, prefix + separator, date, time, font);
             return;
         }
-        if (actionDateLineWidth(dc, prefix + separator, compact, time, font) <= budget) {
-            drawActionDateLine(dc, y, prefix + separator, compact, time, font);
-            return;
-        }
-        var dateOnly = prefix + separator + compact;
-        if (dc.getTextWidthInPixels(dateOnly, font) <= budget) {
-            Ui.centeredRuns(dc, y,
-                [[prefix + separator, Ui.SECONDARY], [compact, Ui.PRIMARY]], font);
-            return;
-        }
-        Ui.centered(dc, y, compact, font, Ui.PRIMARY, budget);
+        drawSplitActionDate(dc, y, prefix + separator, date, compact, time);
     }
 
     private function actionDateLineWidth(dc as Graphics.Dc, prefix as Lang.String,
@@ -455,6 +445,29 @@ class MainView extends WatchUi.View {
         x += dc.getTextWidthInPixels(date, font) + Ui.px(dc, 9);
         dc.drawText(x, y, font, time,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
+    }
+
+    private function drawSplitActionDate(dc as Graphics.Dc, y as Lang.Number,
+                                         prefix as Lang.String, date as Lang.String,
+                                         compact as Lang.String,
+                                         time as Lang.String) as Void {
+        var dateY = y - Ui.px(dc, 13);
+        var timeY = y + Ui.px(dc, 17);
+        var font = Graphics.FONT_SYSTEM_TINY;
+        var shownDate = date;
+        var dateBudget = Ui.mainChordBudget(dc, dateY);
+        if (dc.getTextWidthInPixels(prefix + shownDate, font) > dateBudget) {
+            shownDate = compact;
+        }
+        if (dc.getTextWidthInPixels(prefix + shownDate, font) > dateBudget
+            || dc.getTextWidthInPixels(time, font) > Ui.mainChordBudget(dc, timeY)) {
+            font = Graphics.FONT_SYSTEM_XTINY;
+            dateBudget = Ui.mainChordBudget(dc, dateY);
+        }
+        Ui.centeredRuns(dc, dateY,
+            [[prefix, Ui.SECONDARY], [shownDate, Ui.PRIMARY]], font);
+        Ui.centered(dc, timeY, time, font, Ui.PRIMARY,
+            Ui.mainChordBudget(dc, timeY));
     }
 
     private function drawDueLine(dc as Graphics.Dc, y as Lang.Number, dueUtc as Lang.Number,

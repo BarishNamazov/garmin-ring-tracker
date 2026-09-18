@@ -119,7 +119,7 @@ class HistoryView extends WatchUi.View {
                 drawClear(dc, y, index == _selected);
             }
         }
-        ListUi.drawScrollIndicator(dc, _rowStart, Ui.px(dc, 350),
+        ListUi.drawRoundScrollIndicator(dc, _rowStart, Ui.px(dc, 350),
             _topIndex, itemCount(), HistoryUi.VISIBLE_ROWS, Ui.SECONDARY);
     }
 

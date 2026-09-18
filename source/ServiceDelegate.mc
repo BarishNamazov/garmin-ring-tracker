@@ -85,7 +85,7 @@ class RingServiceDelegate extends System.ServiceDelegate {
             title = actionText(action, Rez.Strings.NotifyRemoveNow,
                 Rez.Strings.NotifyInsertNow, Rez.Strings.NotifyReplaceNow);
             subtitle = format(Rez.Strings.NotifyLateDue,
-                [lateness(nowUtc - referenceUtc), dateFor(referenceUtc)]);
+                [Lateness.compact(nowUtc - referenceUtc), dateFor(referenceUtc)]);
             body = text(Rez.Strings.NotifyTapToLog);
         } else if (kind == 1) {
             title = text(Rez.Strings.NotifyPutRingBack);
@@ -96,13 +96,13 @@ class RingServiceDelegate extends System.ServiceDelegate {
             title = text(Rez.Strings.NotifyInsertNow);
             subtitle = format(Rez.Strings.NotifyBreakLate,
                 [totalDays(7, nowUtc - referenceUtc),
-                    lateness(nowUtc - referenceUtc)]);
+                    Lateness.compact(nowUtc - referenceUtc)]);
             body = text(Rez.Strings.NotifyBackup);
         } else if (kind == 2) {
             title = text(Rez.Strings.NotifyReplaceNow);
             subtitle = format(Rez.Strings.NotifyFourWeeksOver,
                 [totalDays(28, nowUtc - referenceUtc),
-                    lateness(nowUtc - referenceUtc)]);
+                    Lateness.compact(nowUtc - referenceUtc)]);
             body = text(Rez.Strings.NotifyBackup);
         }
         return [title, subtitle, body];
@@ -158,21 +158,6 @@ class RingServiceDelegate extends System.ServiceDelegate {
         var lateDays = seconds.abs() / 86400;
         if (lateDays < 1) { lateDays = 1; }
         return (baseDays + lateDays).toString();
-    }
-
-    // Keep this allocation-light copy of the shared lateness rule local to
-    // the constrained background personality.
-    private function lateness(seconds as Lang.Number) as Lang.String {
-        var absolute = seconds.abs();
-        if (absolute >= 172800) {
-            return (absolute / 86400).toString() + "d";
-        }
-        if (absolute >= 3600) {
-            return (absolute / 3600).toString() + "h";
-        }
-        var minutes = absolute / 60;
-        if (minutes < 1) { minutes = 1; }
-        return minutes.toString() + "m";
     }
 
     private function elapsed(seconds as Lang.Number) as Lang.String {

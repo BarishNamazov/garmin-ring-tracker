@@ -79,7 +79,7 @@ class RingGlanceView extends WatchUi.GlanceView {
                 } else {
                     title = gs(Rez.Strings.GlanceRemoveOverdueTitle);
                 }
-                value = latenessText(-delta);
+                value = Lateness.compact(-delta);
             } else {
                 if (removed) {
                     title = gs(Rez.Strings.GlanceInsertTitle);
@@ -200,21 +200,6 @@ class RingGlanceView extends WatchUi.GlanceView {
             return durationText(-remaining) + gs(Rez.Strings.GlanceOverSuffix);
         }
         return durationText(remaining);
-    }
-
-    // Keep this allocation-light copy of the shared lateness rule local to
-    // the constrained glance personality.
-    function latenessText(seconds as Lang.Number) as Lang.String {
-        var absolute = seconds.abs();
-        if (absolute >= 172800) {
-            return (absolute / 86400).toString() + "d";
-        }
-        if (absolute >= 3600) {
-            return (absolute / 3600).toString() + "h";
-        }
-        var minutes = absolute / 60;
-        if (minutes < 1) { minutes = 1; }
-        return minutes.toString() + "m";
     }
 
     private function drawRoundedLine(dc as Graphics.Dc, left as Lang.Number,

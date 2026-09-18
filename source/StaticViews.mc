@@ -339,7 +339,7 @@ class AlertView extends WatchUi.View {
         if (status[:temporaryOutOpen]) {
             timing = Ui.fmt(Rez.Strings.AlertOutFor, [Ui.mainElapsedText(status[:tempElapsed])]);
         } else if (status[:secondsRemaining] < 0) {
-            timing = Ui.mainLatenessText(status[:secondsRemaining]);
+            timing = Lateness.format(status[:secondsRemaining]);
         } else if (CalendarMath.dateOrdinal(nowUtc) == CalendarMath.dateOrdinal(status[:nextActionUtc])) {
             timing = Ui.fmt(Rez.Strings.AlertDueTodayAt,
                             [Ui.timeForUtc(status[:nextActionUtc], (state[:reminders] as Lang.Dictionary)[:clockFormat])]);
