@@ -65,16 +65,17 @@ START opens detail where available, and BACK returns.
 
 State menus expose only valid actions:
 
-- No cycle: Insert ring now; Ring already in; Settings; About.
-- Ring in: Remove ring; Ring out briefly; Edit insertion time; History;
+- No ring logged: Insert ring now; Log earlier insertion; Settings; About.
+- Ring in: Remove ring; Take out briefly; Edit insertion time; History;
   Settings; About.
 - Ring free: Insert ring; Edit removal time; History; Settings; About.
-- Temporarily out: Put ring back; Keep out and start the ring-free week; Undo
-  ring out; Settings; About.
+- Temporarily out: Put ring back; Start ring-free week; Undo ring out; Settings;
+  About. The title reports time left before three hours, or time over the limit.
 
 Correct dates edits only an actual insertion or removal. A pending removal is
-shown as a due date and is not editable. Early/late actions and corrections use
-two-line confirmations before any write.
+shown as a dimmed due-date sublabel in native Menu2; selecting it shows a brief
+`Not removed yet` toast. Early/late actions and corrections use two-line
+confirmations before any write.
 
 ## Build and verification procedures
 
@@ -109,7 +110,7 @@ env -i HOME=$HOME PATH=/usr/bin:/bin bash -lc \
 ./scripts/ci/check-release.sh bin/release
 ```
 
-All compiler invocations use warnings-as-errors. The v1.3.0 suite contains 160
+All compiler invocations use warnings-as-errors. The v1.3.0 suite contains 162
 tests. It covers schedule boundaries, DST gaps/folds, actual-event anchoring,
 temporary-out identity, reminder priority/deduplication, migrations, storage
 interruption and compaction, settings repair, phone/watch picker conversion,
@@ -212,6 +213,12 @@ flat and the Clock option is gone. Setup/About screens use one bottom action
 slot. Glance has two text rows and a progress bar. Notifications use verb-first
 titles, distinct Reminder 1/2 copy, complete facts/instructions, and the closed
 ring/dot icon.
+
+The round-2 menu pass centres every date/time picker column as one visible
+group on all three target sizes, keeps the value row and arrows symmetric, and
+adds the dimmed time separator. Correct dates now uses Menu2, duration settings
+read `Days worn` / `Days out`, and the setup, About, regimen, migration, and
+Alert detail screens share the revised copy hierarchy and action-slot pattern.
 
 Two contract tensions are intentional and documented:
 

@@ -249,12 +249,14 @@ function storageFullExceptionGetsDistinctSaveClassification(logger as Test.Logge
 
 (:test)
 function copyAndFormattingContractsMatchRegimen(logger as Test.Logger) as Boolean {
-    Test.assertEqual("Reminders for your ring schedule only. Not medical advice, and no measure of contraceptive protection.",
+    Test.assertEqual("Reminders for your ring schedule only. Not medical advice. Does not confirm contraceptive protection.",
         Ui.s(Rez.Strings.TextFirstRunBody));
-    Test.assertEqual("Reminders · Not medical advice",
+    Test.assertEqual("Reminders only · Not medical advice",
         Ui.s(Rez.Strings.TextAboutDisclaimer));
-    Test.assertEqual("Not for generics or Annovera.",
-        Ui.s(Rez.Strings.AnnoveraUnsupported));
+    Test.assertEqual("NuvaRing only. Not generics or Annovera.",
+        Ui.s(Rez.Strings.TextAboutScope));
+    Test.assertEqual("Your schedule now follows the dates you actually inserted and removed the ring. Review them under Correct dates.",
+        Ui.s(Rez.Strings.TextMigrationBody));
     Test.assertEqual("3h reached · Put it back in",
         Ui.s(Rez.Strings.ThreeHourReached));
     Test.assertEqual("Out over 3h · Reinsert now · Backup advised · 7 days",

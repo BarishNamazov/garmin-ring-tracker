@@ -17,9 +17,9 @@ module Menus {
         if (open != null) {
             var elapsed = nowUtc - (open as Lang.Dictionary)[:outUtc];
             if (elapsed < 0) { elapsed = 0; }
-            var totalMinutes = elapsed / 60;
-            return Ui.fmt(Rez.Strings.MenuRingOutTitle,
-                [totalMinutes / 60, (totalMinutes % 60).format("%02d")]);
+            var limitDelta = ScheduleModel.TEMP_LIMIT_SECONDS - elapsed;
+            return Ui.fmt(limitDelta >= 0 ? Rez.Strings.MenuRingOutLeft
+                : Rez.Strings.MenuRingOutOver, [menuDuration(limitDelta.abs())]);
         }
         if ((active as Lang.Dictionary)[:removalUtc] != null) {
             return Ui.fmt(Rez.Strings.MenuRingFreeTitle,
@@ -27,6 +27,15 @@ module Menus {
         }
         return Ui.fmt(Rez.Strings.MenuRingInTitle,
             [CalendarMath.dayOfCycle(nowUtc, (active as Lang.Dictionary)[:insertionUtc])]);
+    }
+
+    function menuDuration(seconds as Lang.Number) as Lang.String {
+        var minutes = (seconds + 59) / 60;
+        if (minutes < 60) { return minutes.toString() + " min"; }
+        var hours = minutes / 60;
+        var remainder = minutes % 60;
+        if (remainder == 0) { return hours.toString() + " h"; }
+        return hours.toString() + " h " + remainder.toString() + " min";
     }
 
     function scheduleFact(deltaSeconds as Lang.Number) as Lang.String {
@@ -54,8 +63,8 @@ module Menus {
 
     function insertionMenu() as WatchUi.Menu2 {
         var menu = new WatchUi.Menu2({:title => Rez.Strings.MenuNoCycleTitle});
-        menu.addItem(item(Rez.Strings.MenuInsertNow, null, :insertNow));
-        menu.addItem(item(Rez.Strings.MenuRingAlreadyIn, Rez.Strings.MenuChooseDateTime, :alreadyIn));
+        menu.addItem(item(Rez.Strings.MenuInsertNow, Rez.Strings.MenuStartsNewCycle, :insertNow));
+        menu.addItem(item(Rez.Strings.MenuLogEarlierInsertion, Rez.Strings.MenuChooseDateTime, :alreadyIn));
         menu.addItem(item(Rez.Strings.Settings, null, :settings));
         menu.addItem(item(Rez.Strings.AboutDisclaimer, null, :about));
         return menu;
@@ -69,23 +78,23 @@ module Menus {
         var menu = new WatchUi.Menu2({:title => mainTitle(state, currentUtc()), :focus => focus});
         var active = state[:active] as Lang.Dictionary?;
         if (active == null) {
-            menu.addItem(item(Rez.Strings.MenuInsertNow, null, :insertNow));
-            menu.addItem(item(Rez.Strings.MenuRingAlreadyIn, Rez.Strings.MenuChooseDateTime, :alreadyIn));
+            menu.addItem(item(Rez.Strings.MenuInsertNow, Rez.Strings.MenuStartsNewCycle, :insertNow));
+            menu.addItem(item(Rez.Strings.MenuLogEarlierInsertion, Rez.Strings.MenuChooseDateTime, :alreadyIn));
         } else {
             if (active[:removalUtc] == null) {
                 var open = ScheduleModel.tempOpen(active);
                 if (open != null) {
-                    menu.addItem(item(Rez.Strings.MenuPutRingBack, Rez.Strings.MenuLogsCurrentTime, :backIn));
-                    menu.addItem(item(Rez.Strings.MenuKeepOut, Rez.Strings.MenuStartRingFree, :keepOut));
+                    menu.addItem(item(Rez.Strings.MenuPutRingBack, Rez.Strings.MenuResumesCycle, :backIn));
+                    menu.addItem(item(Rez.Strings.MenuStartRingFree, Rez.Strings.MenuCountsFromRemoval, :keepOut));
                     menu.addItem(item(Rez.Strings.MenuUndoRingOut, Rez.Strings.MenuRemoveEntry, :undoRingOut));
                 } else {
-                    menu.addItem(item(Rez.Strings.MenuRemoveRing, Rez.Strings.MenuStartRingFree, :removeNow));
-                    menu.addItem(item(Rez.Strings.MenuRingOutBriefly, Rez.Strings.MenuBackWithinThreeHours, :tempOut));
+                    menu.addItem(item(Rez.Strings.MenuRemoveRing, Rez.Strings.MenuStartsRingFree, :removeNow));
+                    menu.addItem(item(Rez.Strings.MenuTakeOutBriefly, Rez.Strings.MenuBackWithinThreeHours, :tempOut));
                     menu.addItem(item(Rez.Strings.MenuEditInsertion, null, :adjust));
                     menu.addItem(item(Rez.Strings.History, null, :history));
                 }
             } else {
-                menu.addItem(item(Rez.Strings.MenuInsertRing, Rez.Strings.MenuLogsCurrentTime, :insertNow));
+                menu.addItem(item(Rez.Strings.MenuInsertRing, Rez.Strings.MenuStartsNewCycle, :insertNow));
                 menu.addItem(item(Rez.Strings.MenuEditRemoval, null, :adjust));
                 menu.addItem(item(Rez.Strings.History, null, :history));
             }
@@ -93,6 +102,21 @@ module Menus {
         menu.addItem(item(Rez.Strings.Settings, null, :settings));
         menu.addItem(item(Rez.Strings.AboutDisclaimer, null, :about));
         addDebugMenuItem(menu);
+        return menu;
+    }
+
+    function correctDatesMenu(state as Lang.Dictionary) as WatchUi.Menu2 {
+        var active = state[:active] as Lang.Dictionary;
+        var removed = active[:removalUtc];
+        var menu = new WatchUi.Menu2({:title=>Rez.Strings.EditCorrectDates,
+            :focus=>removed == null ? 0 : 1});
+        menu.addItem(item(Rez.Strings.EditInserted,
+            Ui.shortTimestamp(active[:insertionUtc], 0), :adjustInsertion));
+        var removalText = removed == null
+            ? Ui.fmt(Rez.Strings.EditNotYetDue, [Ui.shortDate(active[:removeDueUtc])])
+            : Ui.shortTimestamp(removed as Lang.Number, 0);
+        menu.addItem(item(Rez.Strings.EditRemoved, removalText,
+            removed == null ? :pendingRemoval : :adjustRemoval));
         return menu;
     }
 
@@ -246,7 +270,7 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         else if (id == :backIn) { app.confirmAction(:backIn, currentUtc(), null); }
         else if (id == :keepOut) { app.confirmAction(:keepOut, currentUtc(), null); }
         else if (id == :undoRingOut) { app.confirmAction(:undoRingOut, currentUtc(), null); }
-        else if (id == :adjust) { WatchUi.switchToView(new CorrectDatesView(), new CorrectDatesDelegate(), WatchUi.SLIDE_LEFT); }
+        else if (id == :adjust) { app.showCorrectDates(); }
         else if (id == :upcoming) { app.showUpcoming(); }
         else if (id == :settings) { app.showSettingsMenu(); }
         else if (id == :history) { app.showHistory(); }
