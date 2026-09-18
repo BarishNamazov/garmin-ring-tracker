@@ -226,6 +226,17 @@ No other item in `docs/ux-review/DECISIONS.md` remains unimplemented. Native
 menus may reveal a deliberately partial adjacent row at the round bezel while
 scrolling; the selected row and every custom-rendered value remain unclipped.
 
+### Round 2 main-screen polish
+
+Main phase arcs now share one stroke width, use luminance for current/other
+phase hierarchy, and keep the smaller today marker inside the arc. Countdown
+groups are optically centred, with a larger 51 mm hero tier. Under-24-hour
+actions use a one-line Today/Tomorrow label; longer schedule lines degrade by
+dropping detail instead of wrapping. Overdue and serious states share the
+UI-free `Lateness` formatter, while serious-state totals remain in the
+secondary line. Temporary-out states keep a stable fifth row and show an amber
+overrun tail after a black seam.
+
 ## Release bundle
 
 After the clean build, copy the three PRGs and `RingTracker.iq` from

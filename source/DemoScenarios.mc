@@ -2,6 +2,8 @@ import Toybox.Application.Storage;
 import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Notifications;
+import Toybox.System;
+import Toybox.Timer;
 
 import Toybox.WatchUi;
 
@@ -38,6 +40,54 @@ function pickerUses24Hour(reminders as Lang.Dictionary) as Lang.Boolean {
     if (reminders[:clockFormat] == 24) { return true; }
     return Toybox.System.getDeviceSettings().is24Hour;
 }
+
+(:debug)
+function optionalMainCaptureState(state as Lang.Dictionary,
+                                  nowUtc as Lang.Number) as Lang.Dictionary {
+    var scenarios = [:clock12Long, :clock24, :largestCountdown, :overdue29h,
+        :freeDay3, :overdueRemoval, :ringFree, :ringIn14h, :ringIn1d12h,
+        :ringIn45m, :day5, :temp250, :temp310, :freeExceeded, :ringIn29d,
+        :warningWrapLong];
+    var stored = Storage.getValue("debugMainCaptureIndex");
+    var index = stored instanceof Lang.Number ? stored : 0;
+    if (index < 0 || index >= scenarios.size()) { index = 0; }
+    Storage.setValue("debugMainCaptureIndex", index + 1);
+    Toybox.System.println("RING_TRACKER_MAIN_CAPTURE=" + index);
+    var captured = demoState(scenarios[index] as Lang.Symbol, nowUtc);
+    SettingsBridge.mirrorAll(captured);
+    return captured;
+}
+
+(:debug)
+class MainCaptureExitController {
+    var timer as Timer.Timer?;
+
+    function initialize() { timer = null; }
+
+    function schedule() as Void {
+        timer = new Timer.Timer();
+        (timer as Timer.Timer).start(method(:finish), 1500, false);
+    }
+
+    function finish() as Void {
+        if (timer != null) { (timer as Timer.Timer).stop(); }
+        timer = null;
+        System.exit();
+    }
+}
+
+(:debug)
+module MainCaptureExit {
+    var controller as MainCaptureExitController?;
+
+    function schedule() as Void {
+        controller = new MainCaptureExitController();
+        (controller as MainCaptureExitController).schedule();
+    }
+}
+
+(:debug)
+function optionalMainCaptureExit() as Void { MainCaptureExit.schedule(); }
 
 (:debug)
 function previewOptionalNotification(data, state as Lang.Dictionary, nowUtc as Lang.Number) as Void {

@@ -39,3 +39,12 @@ function reportOptionalServiceResult(kind, notificationShown as Lang.Boolean,
 function pickerUses24Hour(reminders as Lang.Dictionary) as Lang.Boolean {
     return Toybox.System.getDeviceSettings().is24Hour;
 }
+
+(:production)
+function optionalMainCaptureState(state as Lang.Dictionary,
+                                  nowUtc as Lang.Number) as Lang.Dictionary {
+    return state;
+}
+
+(:production)
+function optionalMainCaptureExit() as Void { }

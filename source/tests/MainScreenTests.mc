@@ -35,15 +35,17 @@ function mainCountdownNeverShowsAZeroRemainingComponent(logger as Test.Logger) a
 
 (:test)
 function mainLatenessUsesHoursThroughFortySevenHours(logger as Test.Logger) as Lang.Boolean {
-    Test.assertEqual("29h late", Ui.mainLatenessText(-29 * CalendarMath.SECONDS_PER_HOUR));
-    Test.assertEqual("47h late", Ui.mainLatenessText(-47 * CalendarMath.SECONDS_PER_HOUR));
+    Test.assertEqual("29h late", Lateness.format(-29 * CalendarMath.SECONDS_PER_HOUR));
+    Test.assertEqual("47h late", Lateness.format(-47 * CalendarMath.SECONDS_PER_HOUR));
+    Test.assertEqual("47h late", Lateness.format(
+        -((48 * CalendarMath.SECONDS_PER_HOUR) - 1)));
     return true;
 }
 
 (:test)
 function mainLatenessSwitchesToDaysAtFortyEightHours(logger as Test.Logger) as Lang.Boolean {
-    Test.assertEqual("2d late", Ui.mainLatenessText(-2 * CalendarMath.SECONDS_PER_DAY));
-    Test.assertEqual("2d late", Ui.mainLatenessText(
+    Test.assertEqual("2d late", Lateness.format(-2 * CalendarMath.SECONDS_PER_DAY));
+    Test.assertEqual("2d late", Lateness.format(
         -((2 * CalendarMath.SECONDS_PER_DAY) + (23 * CalendarMath.SECONDS_PER_HOUR))));
     return true;
 }
@@ -69,11 +71,12 @@ function mainTemporaryLimitCopyChangesAtThreeHours(logger as Test.Logger) as Lan
 }
 
 (:test)
-function mainSeriousElapsedCopyUsesWholeDays(logger as Test.Logger) as Lang.Boolean {
-    Test.assertEqual("29d in", Ui.mainWholeDaysText(
-        29 * CalendarMath.SECONDS_PER_DAY, Ui.s(Rez.Strings.MainInSuffix)));
-    Test.assertEqual("8d out", Ui.mainWholeDaysText(
-        8 * CalendarMath.SECONDS_PER_DAY, Ui.s(Rez.Strings.MainOutSuffix)));
+function mainSeriousCopyKeepsLatenessAsHero(logger as Test.Logger) as Lang.Boolean {
+    Test.assertEqual("24h late", Lateness.format(CalendarMath.SECONDS_PER_DAY));
+    Test.assertEqual("Ring-free 8 d · was due Wed 16 Sep",
+        Ui.fmt(Rez.Strings.MainRingFreeTotal, ["8", "Wed 16 Sep"]));
+    Test.assertEqual("Worn 29 d · was due Wed 16 Sep",
+        Ui.fmt(Rez.Strings.MainWornTotal, ["29", "Wed 16 Sep"]));
     return true;
 }
 
@@ -124,7 +127,10 @@ function mainDemoFixturesCoverSeriousTemporaryAndLongDateStates(logger as Test.L
     Test.assertEqual((3 * CalendarMath.SECONDS_PER_HOUR) + (10 * CalendarMath.SECONDS_PER_MINUTE),
         ScheduleModel.deriveStatus(now, tempAfter[:active], tempAfter[:regimen])[:tempElapsed]);
     Test.assert(ScheduleModel.deriveStatus(now, warning[:active], warning[:regimen])[:clockBeforeInsertion]);
-    Test.assert(Ui.s(Rez.Strings.MainClockBeforeInsertion).length() > 50);
+    Test.assertEqual("Check insertion date", Ui.s(Rez.Strings.MainCheckInsertionDate));
+    Test.assertEqual("Watch time is before insertion",
+        Ui.s(Rez.Strings.MainWatchBeforeInsertion));
+    Test.assertEqual("Use backup 7 days", Ui.s(Rez.Strings.MainBackupAdvised));
     var longDue = (longDate[:active] as Lang.Dictionary)[:removeDueUtc];
     Test.assertEqual("Wed 30 Sep", Ui.shortDate(longDue));
     Test.assertEqual("12:26 PM", Ui.timeForUtc(longDue, 12));
