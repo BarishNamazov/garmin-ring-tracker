@@ -388,6 +388,10 @@ class AlertDelegate extends WatchUi.BehaviorDelegate {
     function initialize() { BehaviorDelegate.initialize(); }
     function onSelect() as Boolean { getApp().showAlertMenu(); return true; }
     function onBack() as Boolean { getApp().showMain(); return true; }
+    function onTap(event as WatchUi.ClickEvent) as Boolean {
+        var actionTop = (System.getDeviceSettings().screenHeight * 290) / 416;
+        return event.getCoordinates()[1] >= actionTop ? onSelect() : true;
+    }
     function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
         if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
         return false;
