@@ -6,7 +6,7 @@ project_dir="$(cd "${script_dir}/../.." && pwd)"
 cd "${project_dir}"
 
 manifest_version="$(sed -n '/<iq:application/,/>/s/.*version="\([^"]*\)".*/\1/p' manifest.xml | head -n 1)"
-about_version="$(sed -n 's/.*<string id="ProductVersion">Ring Tracker v\([^<]*\)<\/string>.*/\1/p' resources/strings/strings.xml | head -n 1)"
+about_version="$(sed -n 's/.*<string id="ProductVersion">Ring Tracker \([^<]*\)<\/string>.*/\1/p' resources/strings/strings.xml | head -n 1)"
 changelog_version="$(sed -n 's/^## \[\([^]]*\)\].*/\1/p' CHANGELOG.md | head -n 1)"
 
 if [[ -z "${about_version}" || -z "${changelog_version}" ]]; then

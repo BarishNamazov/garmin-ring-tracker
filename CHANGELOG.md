@@ -2,20 +2,46 @@
 
 All notable changes to Ring Tracker are documented in this file.
 
-## [1.2.0] - 2026-09-16
+## [1.3.0] - 2026-09-18
 
 ### Added
 
-- Garmin-style separate hour, per-minute, and AM/PM watch picker columns,
-  live time/date headings, and a day/month/year date picker.
+- See the next action at a glance with a clearer main-screen hierarchy,
+  tiered countdowns, late/overdue states, and a three-hour ring-out timer.
+- Review six upcoming cycles in fixed date columns and browse a cleaner History
+  with per-cycle timing details.
+- Correct recorded insertion and removal dates with alarm-style time pickers and
+  a day/month/year date picker.
+- Set insertion date and time from the phone, with existing watch values kept
+  safe during migration from earlier versions.
 
 ### Changed
 
-- Polished phone App Settings with Schedule, Reminders, and Display sections,
-  native insertion-date input, and AM/PM time lists at 15-minute intervals.
-- Preserved existing reminder and insertion values during the v1.2 settings
-  migration; exact watch minutes remain canonical when the phone mirror rounds
-  to its nearest available quarter-hour.
+- Redesigned Upcoming, History, glance, menus, confirmations, and notifications
+  for faster scanning and shorter wording.
+- Flattened on-watch Settings with direct toggles for Reminder 2, Day before,
+  Vibration, and Sound; time display now always follows the watch setting.
+- Made confirmation wording clearer and renamed date editing to **Correct
+  dates**.
+- Improved phone App Settings with grouped controls, native insertion-date
+  input, and 15-minute time lists while retaining exact watch minutes.
+
+### Fixed
+
+- Kept the action time visible on ring-free screens, separated wrapped clock
+  warnings, and prevented orphaned separators in warning lines.
+- Standardized lateness across Main, Upcoming, glance, alerts, and reminders:
+  hours below 48 hours, then whole days.
+- Centered every picker column on all three watch sizes and made pending
+  removal dates read-only with a clear explanation.
+- Improved round-screen list spacing, year-rollover cues, current-cycle marks,
+  and the temporary-out reinsertion deadline.
+- Restored normal debug startup after screenshot capture and repaired the
+  extended-wear notification preview.
+
+### Removed
+
+- Removed the separate Clock option from watch and phone settings.
 
 ## [1.1.0] - 2026-09-15
 

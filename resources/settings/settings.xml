@@ -106,10 +106,10 @@
                     <listEntry value="1425">@Strings.PhoneTime2345</listEntry>
                 </settingConfig>
             </setting>
-            <setting propertyKey="@Properties.daysIn" title="@Strings.DaysInTitle" prompt="@Strings.DaysInPrompt">
+            <setting propertyKey="@Properties.daysIn" title="@Strings.SettingsRingIn" prompt="@Strings.DaysInPrompt">
                 <settingConfig type="numeric" min="21" max="35" required="true" />
             </setting>
-            <setting propertyKey="@Properties.daysOut" title="@Strings.DaysOutTitle" prompt="@Strings.DaysOutPrompt">
+            <setting propertyKey="@Properties.daysOut" title="@Strings.SettingsRingOut" prompt="@Strings.DaysOutPrompt">
                 <settingConfig type="numeric" min="0" max="7" required="true" />
             </setting>
         </group>
@@ -320,24 +320,16 @@
             <setting propertyKey="@Properties.dayBeforeEnabled" title="@Strings.DayBeforeReminder" prompt="@Strings.DayBeforePrompt">
                 <settingConfig type="boolean" />
             </setting>
-            <setting propertyKey="@Properties.overdueRepeatHours" title="@Strings.OverdueRepeatTitle" prompt="@Strings.OverdueRepeatPrompt">
+            <setting propertyKey="@Properties.overdueRepeatHours" title="@Strings.SettingsRepeatIfMissed" prompt="@Strings.OverdueRepeatPrompt">
                 <settingConfig type="list">
-                    <listEntry value="1">@Strings.Repeat1Hour</listEntry>
-                    <listEntry value="3">@Strings.Repeat3Hours</listEntry>
-                    <listEntry value="6">@Strings.Repeat6Hours</listEntry>
-                    <listEntry value="12">@Strings.Repeat12Hours</listEntry>
-                    <listEntry value="24">@Strings.Repeat24Hours</listEntry>
+                    <listEntry value="1">@Strings.SettingsEveryHour</listEntry>
+                    <listEntry value="3">@Strings.SettingsEveryThreeHours</listEntry>
+                    <listEntry value="6">@Strings.SettingsEverySixHours</listEntry>
+                    <listEntry value="24">@Strings.SettingsRepeatOff</listEntry>
                 </settingConfig>
             </setting>
         </group>
-        <group id="display" title="@Strings.DisplaySettingsGroup" description="@Strings.DisplaySettingsDescription">
-            <setting propertyKey="@Properties.clockFormat" title="@Strings.ClockFormatTitle" prompt="@Strings.ClockFormatPrompt">
-                <settingConfig type="list">
-                    <listEntry value="0">@Strings.ClockSystem</listEntry>
-                    <listEntry value="12">@Strings.Clock12Hour</listEntry>
-                    <listEntry value="24">@Strings.Clock24Hour</listEntry>
-                </settingConfig>
-            </setting>
+        <group id="display" title="@Strings.DisplaySettingsGroup" description="@Strings.SettingsDisplayDescription">
             <setting propertyKey="@Properties.vibrationEnabled" title="@Strings.VibrationTitle" prompt="@Strings.ForegroundAttentionPrompt">
                 <settingConfig type="boolean" />
             </setting>

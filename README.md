@@ -4,6 +4,8 @@
 
 Ring Tracker is a Garmin Connect IQ device app for tracking a NuvaRing schedule on an epix Pro (Gen 2). It records insertion, removal, and temporary-out times; anchors each next action to what actually happened; projects upcoming cycles; keeps cycle history; and posts local reminders.
 
+Current release: **1.3.0**.
+
 > This app is a scheduling aid, not medical advice. It cannot determine whether contraception is effective. Follow the instructions supplied with your ring and contact a qualified clinician or pharmacist if a ring is late, has been out too long, or pregnancy is possible.
 
 ## Supported watches
@@ -23,7 +25,7 @@ Garmin's device definitions also use the 47 mm ID for the quatix 7 Pro and the 5
 - At-a-glance ring-in, ring-free, overdue, and temporary-out status with exact next-action times.
 - A read-only glance, six projected Upcoming cycles, confirmed event recording, editable actual dates, and history for up to 24 cycles.
 - Hourly background checks and native Garmin notifications for the day before, two same-day reminder slots, overdue actions, extended duration, temporary-out, and ring-free-limit events.
-- Watch settings for Reminder 1, optional Reminder 2, the day-before reminder, overdue repeats, clock format, foreground sound/vibration, and clinician-directed schedules from 21–35 days in and 0–7 days out.
+- Watch settings for Reminder 1, optional Reminder 2, the day-before reminder, overdue repeats, foreground sound/vibration, and clinician-directed schedules from 21–35 days in and 0–7 days out. Time display follows the watch's 12/24-hour setting.
 - Garmin-style date and time pickers with separate hour, minute, and AM/PM columns, per-minute time selection, live assembled headings, and 12/24-hour formatting.
 - Button and touch operation, local on-watch storage, and neutral notification wording.
 
@@ -33,9 +35,9 @@ Garmin's device definitions also use the 47 mm ID for the quatix 7 Pro and the 5
 | --- | --- |
 | ![Ring-in main screen](docs/screenshots/epix2pro47mm-main-ring-in.png)<br>**Ring in.** A focused removal countdown and date. | ![Ring-free main screen](docs/screenshots/epix2pro47mm-main-ring-free.png)<br>**Ring free.** The next insertion countdown and date. |
 | ![Overdue removal](docs/screenshots/epix2pro47mm-main-overdue-remove.png)<br>**Overdue.** The required action and elapsed time. | ![Temporary-out timer](docs/screenshots/epix2pro47mm-main-temporary-out-2h50.png)<br>**Ring out.** Live elapsed time and the three-hour boundary. |
-| ![Ring Tracker glance](docs/screenshots/epix2pro47mm-glance-ring-in.png)<br>**Glance.** A private one-line schedule summary. | ![Upcoming cycles](docs/screenshots/epix2pro47mm-upcoming-rows-1-3.png)<br>**Upcoming.** Six projected in/out date pairs with colour bars. |
-| ![Cycle history](docs/screenshots/epix2pro47mm-history.png)<br>**History.** Actual events, variance, and temporary-out details. | ![Reminder settings](docs/screenshots/epix2pro47mm-settings-reminder2-on.png)<br>**Settings.** Two reminder times and a day-before option. |
-| ![Early removal confirmation](docs/screenshots/epix2pro47mm-confirmation-early-removal.png)<br>**Confirmations.** Early or late event variance is shown before saving. | ![Native reminder](docs/screenshots/epix2pro47mm-notification-overdue.png)<br>**Notifications.** Garmin-native local reminder cards. |
+| ![Ring Tracker glance](docs/screenshots/epix2pro47mm-glance-ring-in.png)<br>**Glance.** Two-row status and a compact cycle bar. | ![Upcoming cycles](docs/screenshots/epix2pro47mm-upcoming-rows-1-3.png)<br>**Upcoming.** Fixed in/out columns, current-cycle progress, and six projected cycles. |
+| ![Cycle history](docs/screenshots/epix2pro47mm-history.png)<br>**History.** Actual date ranges and per-cycle early/late variance. | ![Reminder settings](docs/screenshots/epix2pro47mm-settings-reminder2-on.png)<br>**Settings.** Direct toggles, two reminder times, and repeat policy. |
+| ![Early removal confirmation](docs/screenshots/epix2pro47mm-confirmation-early-removal.png)<br>**Confirmations.** Early or late event variance is shown before saving. | ![Native reminder](docs/screenshots/epix2pro47mm-notification-overdue.png)<br>**Notifications.** Verb-first native cards with the fact and next step. |
 | ![12-hour time picker](docs/screenshots/epix2pro47mm-picker-time-12h.png)<br>**Time.** Separate hour, minute, and AM/PM columns with a live heading. | ![Date picker](docs/screenshots/epix2pro47mm-picker-date.png)<br>**Date.** Day, short month, and year columns with a live weekday heading. |
 
 ## Install on your watch
@@ -71,17 +73,16 @@ A beta URL works only for the Garmin account that submitted it; it is not an unl
 | --- | --- |
 | Insertion date | Native date control; interpreted as a calendar date, not as a UTC instant |
 | Insertion time | 15-minute list in 12-hour AM/PM form |
-| Days ring in | `21–35` |
-| Days ring-free | `0–7`; `0` means replace immediately |
+| Days worn | `21–35` |
+| Days out | `0–7`; `0` means replace immediately |
 | Reminder 1 | 15-minute list in 12-hour AM/PM form; always enabled |
 | Reminder 2 | On or off; defaults Off |
 | Reminder 2 time | 15-minute list in 12-hour AM/PM form; retained while Off |
 | Day-before reminder | On or off; uses Reminder 1's time |
-| Repeat overdue | `1`, `3`, `6`, `12`, or `24` hours |
-| Clock format | System, 12-hour, or 24-hour |
+| Repeat if missed | Every hour, every 3 hours, every 6 hours, or Off |
 | Vibration / sound | On or off; these control foreground feedback after Ring Tracker opens |
 
-Phone settings are configuration only: Ring Tracker has no phone dashboard, phone status push, or phone-generated reminder. Watch pickers retain exact minutes. When an exact watch value is mirrored into a 15-minute phone list, only the phone property is rounded to the nearest quarter-hour; the canonical watch value is unchanged. The watch remains the canonical schedule and asks before accepting a changed phone insertion date or time.
+Phone settings are configuration only: Ring Tracker has no phone dashboard, phone status push, or phone-generated reminder. Time display always follows the watch's 12/24-hour setting. Watch pickers retain exact minutes. When an exact watch value is mirrored into a 15-minute phone list, only the phone property is rounded to the nearest quarter-hour; the canonical watch value is unchanged. The watch remains the canonical schedule and asks before accepting a changed phone insertion date or time.
 
 ## How reminders work
 
@@ -93,15 +94,15 @@ The app's vibration and sound switches apply only after an alert opens in the fo
 
 ## Using the app
 
-On first run, read the safety text and choose **Continue**, confirm the default **21 days in / 7 days out** schedule, and record the actual insertion date and time. Choose **Insert now** only when the insertion just happened; otherwise use **Choose date & time**.
+On first run, read the safety text and choose **I understand**, review the default **21 days in / 7 days out** regimen, and record the actual insertion date and time. Choose **Insert now** only when the insertion just happened; otherwise use **Choose date & time**.
 
-Open the main menu to record **Insert ring**, **Remove ring**, or **Ring out**. While a temporary-out timer is open, use **START** or **Ring back in** when the ring is reinserted. Every state-changing action has a confirmation. The confirmed actual removal anchors the next insertion date, and the confirmed actual insertion anchors the next removal date. Use **Edit dates** to correct only actual insertion or removal timestamps instead of recording a false event. **History** shows archived cycles, early/late variance, and retained temporary-out records; deleting history also requires confirmation.
+Open the main menu to choose **Insert ring**, **Remove ring**, or **Take out briefly**. While a temporary-out timer is open, use **START** or **Put ring back** when the ring is reinserted. Every state-changing action has a confirmation. The confirmed actual removal anchors the next insertion date, and the confirmed actual insertion anchors the next removal date. Use **Correct dates** to correct only actual insertion or removal timestamps instead of recording a false event. **History** shows archived cycles, early/late variance, and retained temporary-out records; deleting history also requires confirmation.
 
 All settings can be changed on the watch. Ring Tracker is for NuvaRing only. Non-default schedules support clinician-directed plans of 21–35 days in and 0–7 days out. The app does not recommend an extended plan: it requires an acknowledgement, treats zero ring-free days as immediate replacement, and marks 29–35 days as outside the FDA-labelled duration. Read [the regimen model and source notes](docs/REGIMEN.md) before using a non-default plan.
 
 | Input | Main screen | Menus, pickers, and dialogs |
 | --- | --- | --- |
-| **START/ENTER** or tap | Open the context menu; while temporarily out, open the ring-back-in confirmation | Select or confirm |
+| **START/ENTER** or tap | Open the context menu; while temporarily out, open the Put ring back confirmation | Select or confirm |
 | **BACK/LAP** or swipe right | Exit the app | Go to the preceding picker column, then cancel or go back without saving |
 | **UP** or swipe down | Open Upcoming | Move, scroll, or change a value |
 | **DOWN** or swipe up | Open History | Move, scroll, or change a value |
@@ -121,7 +122,7 @@ After configuring `scripts/env.sh`, run:
 ```
 
 - `release` writes three signed PRGs and the Store package to `bin/release/`.
-- `debug` writes three PRGs to `bin/debug/`; its on-watch **Demo scenarios** menu can open 12-hour, 24-hour, and date pickers and seed first-run, active, overdue, ring-free, temporary-out, extended-duration, early/late, Reminder 2, Upcoming, notification, migration, and maximum-history states. In the simulator object-store editor, set numeric epoch seconds at `debugNowUtc` to override the clock, or remove the key to resume real time.
+- `debug` writes three PRGs to `bin/debug/`; its on-watch **Demo scenarios** menu can open 12-hour, 24-hour, and date pickers and seed first-run, main/list boundaries, temporary-out, warning, menu/settings, notification, migration, maximum-history, Alert-detail, and background-event states. In the simulator object-store editor, set numeric epoch seconds at `debugNowUtc` to override the clock, or remove the key to resume real time.
 - `test` builds `bin/test/RingTracker-tests.prg`, starts a headless simulator when needed, and fails if the test summary reports failures or errors.
 
 Build output under `bin/` is ignored. The checked-in install bundle under `release/` is copied from a verified release build.
@@ -156,7 +157,7 @@ Release history is recorded in [CHANGELOG.md](CHANGELOG.md).
 - [SPEC-1.1.md](docs/SPEC-1.1.md) — v1.1 delta contract for copy, reminders, actual-event anchors, Upcoming, Main, migration, and verification.
 - [REVIEW-2.md](docs/REVIEW-2.md) — second-round findings and the regression cases resolved in v1.1.
 - [TOOLCHAIN.md](docs/TOOLCHAIN.md) — reproducible SDK, Java, device-definition, font, signing, and simulator setup.
-- [UI.md](docs/UI.md) — layouts, visual states, navigation, accessibility, and interaction flows.
+- [UI.md](docs/UI.md) — original design reference, with links to the v1.3.0 layout decisions.
 - [devices/](docs/devices/) — pinned compiler-definition snapshots for the three target IDs.
 - [screenshots/](docs/screenshots/) — native-resolution simulator captures used in the gallery and QA.
 - [toolchain-font-proof.png](docs/toolchain-font-proof.png) — simulator font-rendering proof recorded during toolchain setup.

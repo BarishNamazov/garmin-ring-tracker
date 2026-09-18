@@ -184,13 +184,14 @@ function notificationLaunchRequiresKnownTypedKind(logger as Test.Logger) as Bool
 function replacementReminderUsesReplacementCopy(logger as Test.Logger) as Boolean {
     var service = new RingServiceDelegate();
     var due = testWall(2026, 9, 2, 9, 0);
-    Test.assertEqual(Ui.s(Rez.Strings.NotificationReplaceTomorrow),
-        service.notificationIds(5, 2, due, 24, due - 3600)[0]);
-    Test.assertEqual(Ui.s(Rez.Strings.NotificationReplaceToday),
-        service.notificationIds(4, 2, due, 24, due - 3600)[0]);
-    Test.assertEqual(Lang.format(Ui.s(Rez.Strings.NotificationScheduled), ["09:00"]),
-        service.notificationIds(4, 2, due, 24, due - 3600)[1]);
-    Test.assert(service.notificationIds(4, 2, due, 24, due - 3600)[2] == null);
+    Test.assertEqual("Replace soon",
+        service.notificationIds(5, 2, due, 24, due - 3600, 0)[0]);
+    Test.assertEqual("Replace ring",
+        service.notificationIds(4, 2, due, 24, due - 3600, 1)[0]);
+    Test.assertEqual("Due today · 09:00",
+        service.notificationIds(4, 2, due, 24, due - 3600, 1)[1]);
+    Test.assertEqual("Tap to log",
+        service.notificationIds(4, 2, due, 24, due - 3600, 1)[2]);
     return true;
 }
 
@@ -249,15 +250,22 @@ function storageFullExceptionGetsDistinctSaveClassification(logger as Test.Logge
 
 (:test)
 function copyAndFormattingContractsMatchRegimen(logger as Test.Logger) as Boolean {
-    var disclaimer = Ui.s(Rez.Strings.DisclaimerLine1) + " "
-        + Ui.s(Rez.Strings.DisclaimerLine2) + " "
-        + Ui.s(Rez.Strings.DisclaimerLine3);
-    Test.assertEqual("Schedule aid, not medical advice. Cannot determine contraceptive effectiveness. Follow NuvaRing instructions. Ask a clinician or pharmacist if a ring is late, out too long, or pregnancy is possible.", disclaimer);
-    Test.assertEqual("3h reached. Put it back in.",
+    Test.assertEqual("Reminders for your ring schedule only. Not medical advice. Does not confirm contraceptive protection.",
+        Ui.s(Rez.Strings.TextFirstRunBody));
+    Test.assertEqual("Reminders only · Not medical advice",
+        Ui.s(Rez.Strings.TextAboutDisclaimer));
+    Test.assertEqual("NuvaRing only. Not generics or Annovera.",
+        Ui.s(Rez.Strings.TextAboutScope));
+    Test.assertEqual("Your schedule now follows the dates you actually inserted and removed the ring. Review them under Correct dates.",
+        Ui.s(Rez.Strings.TextMigrationBody));
+    Test.assertEqual("3h reached · Put it back in",
         Ui.s(Rez.Strings.ThreeHourReached));
-    Test.assertEqual("Out over 3h. Reinsert now. Use backup 7 days.", Ui.s(Rez.Strings.TempOverBody12));
-    Test.assertEqual("Insert now. Use backup 7 days.", Ui.s(Rez.Strings.RingFreeExceededBody));
-    Test.assertEqual("Ring in over 4 weeks. Replace now.", Ui.s(Rez.Strings.ExtendedBody));
+    Test.assertEqual("Out over 3h · Reinsert now · Backup advised · 7 days",
+        Ui.s(Rez.Strings.TempOverBody12));
+    Test.assertEqual("Insert now · Backup advised · 7 days",
+        Ui.s(Rez.Strings.RingFreeExceededBody));
+    Test.assertEqual("Ring in over 4 weeks · Replace now",
+        Ui.s(Rez.Strings.ExtendedBody));
     Test.assertEqual("Mon 5 Oct", Ui.shortDate(testWall(2026, 10, 5, 17, 6)));
     Test.assertEqual("5:06 PM", Ui.timeOnly(17, 6, 12));
     Test.assertEqual("17:06", Ui.timeOnly(17, 6, 24));

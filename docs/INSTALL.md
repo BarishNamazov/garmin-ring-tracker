@@ -7,10 +7,10 @@ the first-run setup, add the glance, and troubleshoot reminders.
 > **Health disclaimer:** Ring Tracker records dates and shows reminders. It does
 > not determine whether contraception is effective and is not a substitute for
 > the product label or advice from a qualified clinician. Read the in-app
-> safety text before use. Ring Tracker v1.2.0 is for NuvaRing only. See [the
+> safety text before use. Ring Tracker v1.3.0 is for NuvaRing only. See [the
 > regimen and source notes](REGIMEN.md).
 
-Information and menu names were checked on 14 September 2026. Garmin sometimes
+Information and menu names were checked on 17 September 2026. Garmin sometimes
 renames a menu in firmware updates; the route should remain similar.
 
 ## Choose the right installation method
@@ -251,7 +251,7 @@ Have the actual insertion date and time available before starting. If uncertain,
 do not guess for contraceptive decisions; check the product instructions or ask
 a qualified clinician.
 
-1. **Read the safety text.** Scroll through it, then choose **Continue**. The
+1. **Read the safety text.** Scroll through it, then choose **I understand**. The
    app will not start reminders before that acknowledgement.
 2. **Confirm the schedule.** The default is 21 days in and 7 days out for
    NuvaRing. Change it only to match instructions from a clinician.
@@ -260,11 +260,12 @@ a qualified clinician.
    then select the hour and minute in separate columns. In 12-hour mode, select
    AM or PM as the final column. Review the summary and confirm it.
 4. **Review the main screen.** The outer arc shows the configured cycle. The
-   center identifies **RING IN**, **RING FREE**, or **OVERDUE**, gives the time
-   until removal/insertion, and shows the next-action date.
+   center identifies **RING IN** or **RING FREE** with the next-action countdown
+   and date. Overdue states say **REMOVE NOW** or **INSERT NOW** and show
+   elapsed lateness; extended wear says **REPLACE NOW**.
 5. **Set reminders.** From the main screen, hold **MENU**, open **Settings**, and
-   set **Reminder 1**, optional **Reminder 2**, the **Day-before reminder**,
-   overdue repeat interval, vibration, sound, and clock format. Reminder 1
+   set **Reminder 1**, optional **Reminder 2**, **Day before**,
+   **Repeat if missed**, vibration, and sound. Reminder 1
    defaults to 09:00; Reminder 2 defaults to 20:00 and Off; day-before defaults
    On and uses Reminder 1's time. On a pure sideload, this on-watch screen is
    the authoritative editor.
@@ -274,10 +275,10 @@ a qualified clinician.
 From Main, press **UP** for six projected **Upcoming** cycles, **DOWN** for
 **History**, **START** or tap for the context menu, and hold **MENU** for the
 same menu. Within Upcoming or History, UP/DOWN scrolls and BACK returns. In
-normal use, choose **Remove ring**, **Insert ring**, **Ring out**, or **Ring back
-in** as the event occurs. State-changing actions require confirmation. The
+normal use, choose **Remove ring**, **Insert ring**, **Take out briefly**, or
+**Put ring back** as the event occurs. State-changing actions require confirmation. The
 actual removal anchors the next insertion; the actual insertion anchors the
-next removal. Use **Edit dates** to correct only recorded insertion/removal
+next removal. Use **Correct dates** to correct only recorded insertion/removal
 timestamps rather than recording a false event.
 
 ## What reminders look like—and their limits
@@ -394,14 +395,16 @@ The complete phone settings list is:
 | --- | --- |
 | Insertion date | Native date control |
 | Insertion time | 12-hour AM/PM list at 15-minute intervals |
-| Days ring in / ring-free | `21–35` / `0–7` |
+| Days worn / Days out | `21–35` / `0–7` |
 | Reminder 1 | 12-hour AM/PM list at 15-minute intervals; always enabled |
 | Reminder 2 | On or Off |
 | Reminder 2 time | 12-hour AM/PM list at 15-minute intervals; retained while Off |
 | Day-before reminder | On or Off; uses Reminder 1's time |
-| Overdue repeat | `1`, `3`, `6`, `12`, or `24` hours |
-| Clock | System, 12-hour, or 24-hour |
+| Repeat if missed | Every hour, every 3 hours, every 6 hours, or Off |
 | Vibration / sound | On or Off for foreground feedback |
+
+Ring Tracker always follows the watch's 12/24-hour setting; there is no
+separate Clock control on the watch or phone.
 
 ## Remove Ring Tracker
 

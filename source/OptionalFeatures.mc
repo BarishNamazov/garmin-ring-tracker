@@ -34,3 +34,8 @@ function showOptionalNotification(title as Lang.String, subtitle as Lang.String,
 (:production, :background)
 function reportOptionalServiceResult(kind, notificationShown as Lang.Boolean,
                                      ledgerSaved as Lang.Boolean, caught as Lang.Boolean) as Void { }
+
+(:production)
+function pickerUses24Hour(reminders as Lang.Dictionary) as Lang.Boolean {
+    return Toybox.System.getDeviceSettings().is24Hour;
+}
