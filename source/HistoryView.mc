@@ -32,6 +32,13 @@ module HistoryUi {
         return value;
     }
 
+    function focusBounds(rowTop as Lang.Number, rowStep as Lang.Number,
+                         headerBottom as Lang.Number, gap as Lang.Number) as Lang.Array {
+        var top = rowTop - gap;
+        if (top < headerBottom + gap) { top = headerBottom + gap; }
+        return [top, rowTop + rowStep - gap];
+    }
+
     function topForSelection(selection as Lang.Number, count as Lang.Number) as Lang.Number {
         if (count <= VISIBLE_ROWS) { return 0; }
         var top = selection - VISIBLE_ROWS + 1;
@@ -107,48 +114,41 @@ class HistoryView extends WatchUi.View {
             return;
         }
 
-        _rowStart = Ui.px(dc, 78);
-        _rowStep = Ui.px(dc, 94);
+        _rowStart = Ui.px(dc, 82);
+        _rowStep = Ui.px(dc, 92);
+        // Paint the selection before any rows, and never into the heading or
+        // adjacent row. Content-dependent padding used to erase descenders.
+        var selectedY = _rowStart + ((_selected - _topIndex) * _rowStep);
+        var bounds = HistoryUi.focusBounds(selectedY, _rowStep,
+            Ui.px(dc, 48) + Graphics.getFontHeight(Graphics.FONT_SYSTEM_SMALL) / 2,
+            Ui.px(dc, 4));
+        dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
+        dc.fillRectangle(0, bounds[0], dc.getWidth(), bounds[1] - bounds[0]);
         for (var visible = 0; visible < HistoryUi.VISIBLE_ROWS; visible += 1) {
             var index = _topIndex + visible;
             if (index >= itemCount()) { break; }
             var y = _rowStart + (visible * _rowStep);
             if (index < _entries.size()) {
-                drawCycle(dc, _entries[index] as Lang.Dictionary, y, index == _selected);
+                drawCycle(dc, _entries[index] as Lang.Dictionary, y);
             } else {
-                drawClear(dc, y, index == _selected);
+                drawClear(dc, y);
             }
         }
         ListUi.drawRoundScrollIndicator(dc, _rowStart, Ui.px(dc, 350),
             _topIndex, itemCount(), HistoryUi.VISIBLE_ROWS, Ui.SECONDARY);
     }
 
-    private function drawFocus(dc as Graphics.Dc, selected as Lang.Boolean,
-                               contentTop as Lang.Number, contentBottom as Lang.Number) as Void {
-        if (!selected) { return; }
-        var padding = Ui.px(dc, 10);
-        dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);
-        dc.fillRectangle(0, contentTop - padding, dc.getWidth(),
-            (contentBottom - contentTop) + (2 * padding));
-    }
-
     private function drawCycle(dc as Graphics.Dc, entry as Lang.Dictionary,
-                               y as Lang.Number, selected as Lang.Boolean) as Void {
+                               y as Lang.Number) as Void {
         var cycle = entry[:cycle] as Lang.Dictionary;
         var active = entry[:active] as Lang.Boolean;
         var xLeft = Ui.px(dc, 48);
         var xRight = ListUi.scrollIndicatorX(dc.getWidth(), dc.getHeight(),
             _rowStart, Ui.px(dc, 350), Ui.px(dc, 2)) - Ui.px(dc, 9);
-        var width = xRight - xLeft;
         var rangeY = y + Ui.px(dc, 18);
         var cycleY = y + Ui.px(dc, 47);
         var varianceY = y + Ui.px(dc, 72);
         var variance = HistoryUi.listVariance(cycle, active);
-        var contentTop = rangeY - (Graphics.getFontHeight(Graphics.FONT_SYSTEM_SMALL) / 2);
-        var contentBottom = (variance.equals("") ? cycleY : varianceY)
-            + (Graphics.getFontHeight(Graphics.FONT_SYSTEM_XTINY) / 2);
-        drawFocus(dc, selected, contentTop, contentBottom);
-
         var endUtc = ListUi.historyEndUtc(cycle, active);
         ListUi.drawHistoryRange(dc, xLeft, rangeY,
             cycle[:insertionUtc] as Lang.Number, endUtc,
@@ -168,25 +168,27 @@ class HistoryView extends WatchUi.View {
         }
 
         if (!variance.equals("")) {
+            var edge = ListUi.textRightEdge(dc, varianceY, Graphics.FONT_SYSTEM_XTINY, Ui.px(dc, 4));
+            var left = dc.getWidth() - edge;
+            if (left < xLeft) { left = xLeft; }
+            var right = edge < xRight ? edge : xRight;
             dc.setColor(ListUi.varianceColor(ListUi.varianceLevel(cycle)),
                 Graphics.COLOR_TRANSPARENT);
-            dc.drawText(xLeft, varianceY, Graphics.FONT_SYSTEM_XTINY,
-                Ui.ellipsize(dc, variance, Graphics.FONT_SYSTEM_XTINY, width),
+            dc.drawText(left, varianceY, Graphics.FONT_SYSTEM_XTINY,
+                Ui.ellipsize(dc, variance, Graphics.FONT_SYSTEM_XTINY, right - left),
                 Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
         }
     }
 
-    private function drawClear(dc as Graphics.Dc, y as Lang.Number, selected as Lang.Boolean) as Void {
+    private function drawClear(dc as Graphics.Dc, y as Lang.Number) as Void {
         var textY = y + Ui.px(dc, 47);
-        var halfHeight = Graphics.getFontHeight(Graphics.FONT_SYSTEM_SMALL) / 2;
-        drawFocus(dc, selected, textY - halfHeight, textY + halfHeight);
         Ui.centered(dc, textY, Ui.s(Rez.Strings.ClearHistory),
             Graphics.FONT_SYSTEM_SMALL, Ui.PRIMARY, Ui.px(dc, 280));
     }
 }
 
-class HistoryDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() { BehaviorDelegate.initialize(); }
+class HistoryDelegate extends ScreenInputDelegate {
+    function initialize() { ScreenInputDelegate.initialize(); }
     private function view() as HistoryView { return WatchUi.getCurrentView()[0] as HistoryView; }
     function onSelect() as Boolean { return view().activateSelection(); }
     function onNextPage() as Boolean { view().moveSelection(1); return true; }

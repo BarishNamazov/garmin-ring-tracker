@@ -5,6 +5,32 @@ import Toybox.Math;
 import Toybox.System;
 import Toybox.WatchUi;
 
+module TouchTargets {
+    function inBand(y as Lang.Number, height as Lang.Number,
+                    top as Lang.Number, bottom as Lang.Number) as Lang.Boolean {
+        return y >= Math.round(height * top / 416.0).toNumber()
+            && y <= Math.round(height * bottom / 416.0).toNumber();
+    }
+
+    function action(y as Lang.Number, height as Lang.Number) as Lang.Boolean {
+        return inBand(y, height, 290, 366);
+    }
+
+    function regimenFocus(y as Lang.Number, height as Lang.Number) as Lang.Number {
+        if (inBand(y, height, 148, 207)) { return 0; }
+        if (inBand(y, height, 208, 268)) { return 1; }
+        return action(y, height) ? 2 : -1;
+    }
+
+    function confirmationChoice(x as Lang.Number, y as Lang.Number,
+                                width as Lang.Number, height as Lang.Number) as Lang.Number {
+        if (!inBand(y, height, 190, 258)) { return -1; }
+        if (x >= (width * 8) / 100 && x <= (width * 46) / 100) { return 0; }
+        if (x >= (width * 54) / 100 && x <= (width * 92) / 100) { return 1; }
+        return -1;
+    }
+}
+
 module TextScreenLayout {
     function lines(dc as Graphics.Dc, paragraphs as Lang.Array<Lang.String>,
                    font, maxWidth as Lang.Number, gaps as Lang.Boolean) as Lang.Array<Lang.String> {
@@ -22,7 +48,8 @@ module TextScreenLayout {
                   gaps as Lang.Boolean) as Lang.Number {
         var font = Graphics.FONT_TINY;
         var lineHeight = Graphics.getFontHeight(font) + Ui.px(dc, 4);
-        var all = lines(dc, paragraphs, font, dc.getWidth() - Ui.px(dc, 72), gaps);
+        var all = lines(dc, paragraphs, font,
+            Ui.paragraphWidth(dc, font, lineHeight, startY, bottomY), gaps);
         var y = startY;
         dc.setColor(Ui.PRIMARY, Graphics.COLOR_TRANSPARENT);
         for (var i = scrollLine; i < all.size() && y <= bottomY; i += 1) {
@@ -115,7 +142,8 @@ class DisclaimerDelegate extends ScrollDelegate {
         return true;
     }
     function onTap(event as WatchUi.ClickEvent) as Boolean {
-        return event.getCoordinates()[1] >= 290 ? onSelect() : true;
+        return TouchTargets.action(event.getCoordinates()[1],
+            System.getDeviceSettings().screenHeight) ? onSelect() : true;
     }
 }
 
@@ -170,8 +198,8 @@ class RegimenView extends WatchUi.View {
     }
 }
 
-class RegimenDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() { BehaviorDelegate.initialize(); }
+class RegimenDelegate extends ScreenInputDelegate {
+    function initialize() { ScreenInputDelegate.initialize(); }
     private function view() as RegimenView { return WatchUi.getCurrentView()[0] as RegimenView; }
     function onSelect() as Boolean {
         var focus = view().focus();
@@ -189,10 +217,10 @@ class RegimenDelegate extends WatchUi.BehaviorDelegate {
         return false;
     }
     function onTap(event as WatchUi.ClickEvent) as Boolean {
-        var y = event.getCoordinates()[1];
-        if (y < 210) { view().setFocus(0); }
-        else if (y < 282) { view().setFocus(1); }
-        else { view().setFocus(2); }
+        var focus = TouchTargets.regimenFocus(event.getCoordinates()[1],
+            System.getDeviceSettings().screenHeight);
+        if (focus < 0) { return true; }
+        view().setFocus(focus);
         return onSelect();
     }
 }
@@ -223,8 +251,8 @@ class AboutDelegate extends ScrollDelegate {
     function initialize() { ScrollDelegate.initialize(); }
     function onSelect() as Boolean { return onBack(); }
     function onTap(event as WatchUi.ClickEvent) as Boolean {
-        if (event.getCoordinates()[1] >= 290) { return onSelect(); }
-        return true;
+        return TouchTargets.action(event.getCoordinates()[1],
+            System.getDeviceSettings().screenHeight) ? onSelect() : true;
     }
 }
 
@@ -241,6 +269,8 @@ class MigrationView extends TextActionView {
         var bottomY = Ui.px(dc, 266);
         _lineCount = TextScreenLayout.draw(dc, _paragraphs, startY, bottomY, _scroll, true);
         _visibleLines = TextScreenLayout.visibleLines(dc, startY, bottomY);
+        Ui.drawScrollIndicator(dc, startY, bottomY, _scroll, _lineCount,
+            _visibleLines, Ui.SECONDARY);
         Ui.centered(dc, Ui.px(dc, 332), "[ " + Ui.s(Rez.Strings.TextOK) + " ]",
             Graphics.FONT_SYSTEM_XTINY, Ui.RING_IN, Ui.px(dc, 280));
     }
@@ -251,7 +281,8 @@ class MigrationDelegate extends ScrollDelegate {
     function onSelect() as Boolean { getApp().showMain(); return true; }
     function onBack() as Boolean { getApp().showMain(); return true; }
     function onTap(event as WatchUi.ClickEvent) as Boolean {
-        return event.getCoordinates()[1] >= 290 ? onSelect() : true;
+        return TouchTargets.action(event.getCoordinates()[1],
+            System.getDeviceSettings().screenHeight) ? onSelect() : true;
     }
 }
 
@@ -364,8 +395,8 @@ class AlertView extends WatchUi.View {
     }
 }
 
-class ScrollDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() { BehaviorDelegate.initialize(); }
+class ScrollDelegate extends ScreenInputDelegate {
+    function initialize() { ScreenInputDelegate.initialize(); }
     function onNextPage() as Boolean { (WatchUi.getCurrentView()[0] as InfoView).scroll(1); return true; }
     function onPreviousPage() as Boolean { (WatchUi.getCurrentView()[0] as InfoView).scroll(-1); return true; }
     function onBack() as Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
@@ -377,20 +408,26 @@ class ScrollDelegate extends WatchUi.BehaviorDelegate {
     }
 }
 
-class PopDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() { BehaviorDelegate.initialize(); }
+class PopDelegate extends ScreenInputDelegate {
+    function initialize() { ScreenInputDelegate.initialize(); }
     function onBack() as Boolean { WatchUi.popView(WatchUi.SLIDE_RIGHT); return true; }
     function onNextPage() as Boolean { WatchUi.popView(WatchUi.SLIDE_DOWN); return true; }
     function onPreviousPage() as Boolean { WatchUi.popView(WatchUi.SLIDE_UP); return true; }
+    function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
+        if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        return false;
+    }
 }
 
-class AlertDelegate extends WatchUi.BehaviorDelegate {
-    function initialize() { BehaviorDelegate.initialize(); }
+class AlertDelegate extends ScreenInputDelegate {
+    function initialize() { ScreenInputDelegate.initialize(); }
     function onSelect() as Boolean { getApp().showAlertMenu(); return true; }
     function onBack() as Boolean { getApp().showMain(); return true; }
     function onTap(event as WatchUi.ClickEvent) as Boolean {
-        var actionTop = (System.getDeviceSettings().screenHeight * 290) / 416;
-        return event.getCoordinates()[1] >= actionTop ? onSelect() : true;
+        return TouchTargets.action(event.getCoordinates()[1],
+            System.getDeviceSettings().screenHeight) ? onSelect() : true;
     }
     function onSwipe(event as WatchUi.SwipeEvent) as Boolean {
         if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
@@ -456,13 +493,13 @@ class CompactConfirmationView extends WatchUi.View {
     }
 }
 
-class CompactConfirmationDelegate extends WatchUi.BehaviorDelegate {
+class CompactConfirmationDelegate extends ScreenInputDelegate {
     private var _action as Lang.Symbol;
     private var _atUtc as Lang.Number;
     private var _data;
 
     function initialize(action as Lang.Symbol, atUtc as Lang.Number, data) {
-        BehaviorDelegate.initialize();
+        ScreenInputDelegate.initialize();
         _action = action;
         _atUtc = atUtc;
         _data = data;
@@ -480,8 +517,12 @@ class CompactConfirmationDelegate extends WatchUi.BehaviorDelegate {
     }
 
     function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
-        return event.getCoordinates()[0] < System.getDeviceSettings().screenWidth / 2
-            ? onBack() : onSelect();
+        var point = event.getCoordinates();
+        var device = System.getDeviceSettings();
+        var choice = TouchTargets.confirmationChoice(point[0], point[1],
+            device.screenWidth, device.screenHeight);
+        if (choice == 0) { return onBack(); }
+        return choice == 1 ? onSelect() : true;
     }
 
     function onSwipe(event as WatchUi.SwipeEvent) as Lang.Boolean {

@@ -2,6 +2,32 @@
 
 All notable changes to Ring Tracker are documented in this file.
 
+## [1.3.1] - 2026-09-19
+
+### Fixed
+
+- Prevented History selection backgrounds from clipping the title or nearby
+  rows, and improved Upcoming heading spacing and round-screen date visibility.
+- Corrected UP/DOWN directions in time, date, and number pickers; made arrow
+  taps change values without advancing or saving the selection.
+- Fixed touch routing for history rows, picker columns, and confirmation
+  buttons, with scaled targets that ignore taps on headings and empty space.
+- Kept paragraphs clear of scrollbars and round-screen edges, added the missing
+  migration scroll indicator, and hardened text wrapping for narrow layouts.
+- Preserved the edited setting's position after saving or leaving repeat
+  settings, and corrected custom-schedule labels and immediate-replacement
+  menu actions.
+- Corrected sub-hour confirmation wording, glance minute-to-hour rounding,
+  exact due-time display, and progress bars for long-overdue cycles.
+- Refreshed the main countdown every minute while the app is open so day and
+  due-time boundaries do not leave stale values visible.
+
+### Verification
+
+- Added 13 regression tests; all 180 tests pass on each of the three supported
+  watch sizes.
+- Checked layouts and button/touch behavior in the 42, 47, and 51 mm simulators.
+
 ## [1.3.0] - 2026-09-18
 
 ### Added

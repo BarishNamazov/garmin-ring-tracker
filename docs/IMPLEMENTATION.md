@@ -1,6 +1,6 @@
 # Ring Tracker implementation
 
-This document describes the current Ring Tracker 1.3.0 implementation. The
+This document describes the current Ring Tracker 1.3.1 implementation. The
 shipping targets are the epix Pro (Gen 2) 42, 47, and 51 mm device IDs. The app
 is a Connect IQ watch app with a glance and an hourly background service.
 
@@ -42,7 +42,7 @@ format so both layouts remain visually testable.
 | Persistence | `source/RingStore.mc` | Schema migration, validation, revisioned canonical/history writes, constrained mirrors, preflight, and compaction |
 | Settings | `source/SettingsBridge.mc`, `resources/settings/`, `resources/settings/properties.xml` | Watch and phone settings, native date and 15-minute phone controls, migration, validation, and watch-wins repair |
 | Application shell | `source/RingTrackerApp.mc` | Startup, notification launch, navigation, confirmations, deferred writes, and settings orchestration |
-| Main and common UI | `source/MainView.mc`, `source/UiUtils.mc`, `source/Lateness.mc` | Main states, cycle/lateness arcs, measured countdown typography, date/time degradation, and warnings |
+| Main and common UI | `source/MainView.mc`, `source/UiUtils.mc`, `source/ScreenInput.mc`, `source/Lateness.mc` | Main states, cycle/lateness arcs, measured countdown typography, date/time degradation, coordinate-aware touch/key dispatch, and warnings |
 | Lists | `source/UpcomingView.mc`, `source/HistoryView.mc`, `source/ListUi.mc` | Six-cycle projection, history, cycle detail helpers, scrolling, dates, variance, and round-screen geometry |
 | Menus and supporting views | `source/Menus.mc`, `source/StaticViews.mc`, `source/Pickers.mc` | State menus, settings, confirmations, Correct dates, setup/About/migration screens, and date/time/number pickers |
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Glance rendering, compact background decoding, notifications, ledger updates, and single-exit handling |
@@ -61,16 +61,20 @@ Main displays ring-in, ring-free, overdue, serious-duration, clock-review, and
 temporary-out states. START/tap opens the state menu; while temporarily out it
 opens the Put ring back confirmation. Holding MENU always opens the state menu.
 UP opens Upcoming, DOWN opens History, and BACK exits. In lists, UP/DOWN scroll,
-START opens detail where available, and BACK returns.
+START opens detail where available, and BACK returns. Custom touch-sensitive
+screens use `ScreenInputDelegate`: Garmin's `BehaviorDelegate` otherwise consumes
+mapped taps before coordinate handlers run. In pickers, UP/the upper arrow/swipe
+up increases the value; DOWN/the lower arrow/swipe down decreases it.
 
 State menus expose only valid actions:
 
 - No ring logged: Insert ring now; Log earlier insertion; Settings; About.
-- Ring in: Remove ring; Take out briefly; Edit insertion time; History;
-  Settings; About.
+- Ring in: Remove ring (Replace ring when days out is zero); Take out briefly;
+  Edit insertion time; History; Settings; About.
 - Ring free: Insert ring; Edit removal time; History; Settings; About.
-- Temporarily out: Put ring back; Start ring-free week; Undo ring out; Settings;
-  About. The title reports time left before three hours, or time over the limit.
+- Temporarily out: Put ring back; Start ring-free week (ring-free time for a
+  non-seven-day schedule); Undo ring out; Settings; About. The title reports
+  time left before three hours, or time over the limit.
 
 Correct dates edits only an actual insertion or removal. A pending removal is
 shown as a dimmed due-date sublabel in native Menu2; selecting it shows a brief
@@ -106,17 +110,21 @@ env -i HOME=$HOME PATH=/usr/bin:/bin bash -lc \
   'cd /path/to/garmin-bc && ./scripts/build.sh release && \
    ./scripts/build.sh debug && ./scripts/build.sh test'
 ./scripts/check-background-scope.sh
-./scripts/ci/check-version.sh v1.3.0
+./scripts/ci/check-version.sh v1.3.1
 ./scripts/ci/check-release.sh bin/release
 ```
 
 All compiler invocations enable warnings (`-w`); the final release, debug,
-and test builds produced no compiler warnings. The v1.3.0 suite passes 167
-tests. It covers schedule boundaries, DST gaps/folds, actual-event anchoring,
+and test builds produced no compiler warnings. The v1.3.1 suite passes 180
+tests on each of the three supported device IDs. It covers schedule boundaries,
+DST gaps/folds, actual-event anchoring,
 temporary-out identity, reminder priority/deduplication, migrations, storage
 interruption and compaction, settings repair, phone/watch picker conversion,
 copy contracts, navigation helpers, all main countdown tiers, lists, glance
-copy, and all notification kinds.
+copy, and all notification kinds. The 13 UI-polish regressions cover input
+routing, picker directions and touch targets, History heading clearance,
+paragraph/scrollbar spacing, wrapping, custom-schedule menus, long-overdue
+progress, and time formatting.
 
 ## Background-event verification
 
@@ -153,9 +161,9 @@ ledger changed.
 
 ## Memory verification
 
-Measurements use the final 47 mm source in debug fixture harnesses, so they
-include fixture navigation and diagnostic overhead. Used and free values are derived from
-`System.getSystemStats()` at the rendered state.
+The v1.3.0 measurements use the final 47 mm source in debug fixture harnesses,
+so they include fixture navigation and diagnostic overhead. Used and free
+values are derived from `System.getSystemStats()` at the rendered state.
 
 | Personality/state | Used | Free | Total | Limit result |
 | --- | ---: | ---: | ---: | --- |
@@ -174,7 +182,7 @@ maximum history, all seven notification kinds, all background faults, and Alert
 detail.
 
 Native screenshot crops are 390×390 at `+118+260`, 416×416 at `+122+263`, and
-454×454 at `+146+281`. The checked-in inventory contains 119 PNGs:
+454×454 at `+146+281`. The v1.3.0 checked-in inventory contains 119 PNGs:
 
 | Family | Sizes | Count |
 | --- | --- | ---: |
@@ -191,9 +199,9 @@ Native screenshot crops are 390×390 at `+118+260`, 416×416 at `+122+263`, and
 | Alert detail | 47 mm | 1 |
 | **Total** |  | **119** |
 
-Every image was regenerated from the final integrated source using temporary
-fixture/navigation harnesses and inspected for
-round-edge clearance, clipping, overlap, scroll position, and state accuracy.
+Every image was regenerated from the final v1.3.0 integrated source using
+temporary fixture/navigation harnesses and inspected for round-edge clearance,
+clipping, overlap, scroll position, and state accuracy.
 The seven notification captures use a debug-only evidence surface that mirrors
 the production title, subtitle, body, and icon because the Linux simulator's
 native popup obscures the app surface during deterministic capture. Production

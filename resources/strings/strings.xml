@@ -30,6 +30,10 @@
     <string id="MenuRingFreeTitle">Ring-free · day $1$</string>
     <string id="MenuRingOutLeft">Ring out · $1$ left</string>
     <string id="MenuRingOutOver">Ring out · $1$ over</string>
+    <string id="MenuReplaceRing">Replace ring</string>
+    <string id="MenuStartsCustomCycle">Starts new cycle</string>
+    <string id="MenuStartsCustomRingFree">Starts ring-free time</string>
+    <string id="MenuStartCustomRingFree">Start ring-free time</string>
     <string id="MenuRemoveRing">Remove ring</string>
     <string id="MenuStartsRingFree">Starts ring-free week</string>
     <string id="MenuTakeOutBriefly">Take out briefly</string>
@@ -79,6 +83,10 @@ $1$ · $2$</string>
     <string id="SetRemovalQuestion">Set removal?
 $1$ · $2$</string>
     <string id="ConfirmDueNow">Due now</string>
+    <string id="ConfirmDueInOneMinute">Due in 1 minute</string>
+    <string id="ConfirmDueInMinutes">Due in $1$ minutes</string>
+    <string id="ConfirmDueOneMinuteAgo">Due 1 minute ago</string>
+    <string id="ConfirmDueMinutesAgo">Due $1$ minutes ago</string>
     <string id="ConfirmDueInOneHour">Due in 1 hour</string>
     <string id="ConfirmDueInHours">Due in $1$ hours</string>
     <string id="ConfirmDueOneHourAgo">Due 1 hour ago</string>
@@ -110,6 +118,8 @@ Back in within 3 hours</string>
     <string id="ConfirmPutRingBack">Put ring back now?
 Out $1$</string>
     <string id="ConfirmKeepOut">Start ring-free week?
+Removed $1$</string>
+    <string id="ConfirmKeepOutCustom">Start ring-free time?
 Removed $1$</string>
     <string id="ConfirmUndoRingOut">Undo ring out?
 Remove this entry</string>
@@ -291,7 +301,7 @@ Clinician advice only</string>
     <string id="TextRegimenIn">Ring in</string>
     <string id="TextRegimenOut">Ring out</string>
     <string id="TextAboutTitle">About</string>
-    <string id="TextProductVersion">Ring Tracker 1.3.0</string>
+    <string id="TextProductVersion">Ring Tracker 1.3.1</string>
     <string id="TextAboutDisclaimer">Reminders only · Not medical advice</string>
     <string id="TextAboutScope">NuvaRing only. Not generics or Annovera.</string>
     <string id="TextDone">Done</string>
@@ -301,7 +311,7 @@ Clinician advice only</string>
     <string id="TextWhatHappened">What happened?</string>
     <string id="TextDueDate">Due $1$</string>
     <string id="TextBackupDirective">Use backup 7 days</string>
-    <string id="ProductVersion">Ring Tracker 1.3.0</string>
+    <string id="ProductVersion">Ring Tracker 1.3.1</string>
     <string id="SupportedScope">NuvaRing only</string>
     <string id="ReminderLimit">Reminders can be delayed · Keep another reminder</string>
     <string id="Privacy">Data stays on your watch · Garmin App Settings syncs configuration</string>
@@ -354,7 +364,8 @@ Phone $2$</string>
     <string id="GlanceEllipsis" scope="glance">…</string>
     <string id="GlanceOneDaySuffix" scope="glance"> day</string>
     <string id="GlanceDaysSuffix" scope="glance"> days</string>
-    <string id="GlanceHourSuffix" scope="glance"> h </string>
+    <string id="GlanceHourSuffix" scope="glance"> h</string>
+    <string id="GlanceNow" scope="glance">Now</string>
     <string id="GlanceMinuteSuffix" scope="glance"> min</string>
     <string id="GlanceOverSuffix" scope="glance"> over</string>
     <string id="NotifyRemoveTomorrow" scope="background">Remove tomorrow</string>

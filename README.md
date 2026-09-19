@@ -4,7 +4,7 @@
 
 Ring Tracker is a Garmin Connect IQ device app for tracking a NuvaRing schedule on an epix Pro (Gen 2). It records insertion, removal, and temporary-out times; anchors each next action to what actually happened; projects upcoming cycles; keeps cycle history; and posts local reminders.
 
-Current release: **1.3.0**.
+Current release: **1.3.1**.
 
 > This app is a scheduling aid, not medical advice. It cannot determine whether contraception is effective. Follow the instructions supplied with your ring and contact a qualified clinician or pharmacist if a ring is late, has been out too long, or pregnancy is possible.
 
@@ -104,10 +104,12 @@ All settings can be changed on the watch. Ring Tracker is for NuvaRing only. Non
 | --- | --- | --- |
 | **START/ENTER** or tap | Open the context menu; while temporarily out, open the Put ring back confirmation | Select or confirm |
 | **BACK/LAP** or swipe right | Exit the app | Go to the preceding picker column, then cancel or go back without saving |
-| **UP** or swipe down | Open Upcoming | Move, scroll, or change a value |
-| **DOWN** or swipe up | Open History | Move, scroll, or change a value |
+| **UP** or swipe down | Open Upcoming | Previous menu/list item; see picker controls below |
+| **DOWN** or swipe up | Open History | Next menu/list item; see picker controls below |
 | Hold **UP/MENU** | Open the context menu | Open a context menu when available |
 | **LIGHT** | Garmin system behavior | Garmin system behavior |
+
+In pickers, **UP**, the upper arrow, or a swipe up increases the focused value; **DOWN**, the lower arrow, or a swipe down decreases it. Tap another column to focus it. **START** or a tap on the focused value advances to the next column or confirmation; tapping the heading does nothing.
 
 ## Build from source
 

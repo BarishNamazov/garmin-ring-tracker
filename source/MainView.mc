@@ -25,19 +25,11 @@ class MainView extends WatchUi.View {
     }
 
     function onShow() as Void {
-        var state = getApp().getState();
-        var active = state[:active] as Lang.Dictionary?;
-        var interval = 3600000;
-        if (active != null) {
-            var status = ScheduleModel.deriveStatus(currentUtc(), active,
-                state[:regimen] as Lang.Dictionary);
-            if (status[:temporaryOutOpen]
-                || status[:secondsRemaining].abs() < CalendarMath.SECONDS_PER_DAY) {
-                interval = 60000;
-            }
-        }
+        // Re-evaluate minute/day and due boundaries while the app stays open.
+        // An hourly timer chosen on entry could leave an expired countdown
+        // visible for almost an hour after crossing into the final day.
         _timer = new Timer.Timer();
-        (_timer as Timer.Timer).start(method(:tick), interval, true);
+        (_timer as Timer.Timer).start(method(:tick), 60000, true);
     }
 
     function onHide() as Void {
