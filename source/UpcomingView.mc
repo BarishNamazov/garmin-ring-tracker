@@ -3,6 +3,15 @@ import Toybox.Lang;
 import Toybox.WatchUi;
 
 module UpcomingUi {
+    function timePosition(startUtc as Lang.Number, endUtc as Lang.Number,
+                          atUtc as Lang.Number, width as Lang.Number) as Lang.Number {
+        if (atUtc <= startUtc) { return 0; }
+        if (endUtc <= startUtc || atUtc >= endUtc) { return width; }
+        // Multiply only after converting to float: long-overdue cycles can
+        // overflow a 32-bit seconds * pixels product.
+        return (((atUtc - startUtc).toFloat() / (endUtc - startUtc)) * width).toNumber();
+    }
+
     function boundedTopIndex(value as Lang.Number) as Lang.Number {
         if (value < 0) { return 0; }
         if (value > 3) { return 3; }
@@ -76,17 +85,23 @@ class UpcomingView extends WatchUi.View {
                 outHeader = ListUi.yearHeader(outHeader, _januaryUtc as Lang.Number);
             }
         }
+        // Leave room for the full title, including the descending 'g'.
+        var headerY = Ui.px(dc, 40)
+            + ((Graphics.getFontHeight(Graphics.FONT_SYSTEM_SMALL)
+                + Graphics.getFontHeight(Graphics.FONT_SYSTEM_XTINY)) / 2) + Ui.px(dc, 4);
         dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
-        dc.drawText(xIn, Ui.px(dc, 70), Graphics.FONT_SYSTEM_XTINY,
+        dc.drawText(xIn, headerY, Graphics.FONT_SYSTEM_XTINY,
             inHeader,
             Graphics.TEXT_JUSTIFY_RIGHT | Graphics.TEXT_JUSTIFY_VCENTER);
-        dc.drawText(xOut, Ui.px(dc, 70), Graphics.FONT_SYSTEM_XTINY,
+        dc.drawText(xOut, headerY, Graphics.FONT_SYSTEM_XTINY,
             outHeader,
             Graphics.TEXT_JUSTIFY_LEFT | Graphics.TEXT_JUSTIFY_VCENTER);
 
         var firstPageWithDivider = _topIndex == 0 && _rows.size() > 1
             && (_rows[1] as Lang.Dictionary)[:ifDoneToday] == true;
-        var rowY = Ui.px(dc, 104);
+        var firstRowY = headerY + ((Graphics.getFontHeight(Graphics.FONT_SYSTEM_XTINY)
+            + Graphics.getFontHeight(dateFont)) / 2) + Ui.px(dc, 4);
+        var rowY = firstRowY;
         var rowPitch = Ui.px(dc, 78);
         var currentExtra = Ui.px(dc, 29);
         for (var visible = 0; visible < 3; visible += 1) {
@@ -99,16 +114,12 @@ class UpcomingView extends WatchUi.View {
         }
         if (firstPageWithDivider) {
             dc.setColor(Ui.SECONDARY, Graphics.COLOR_TRANSPARENT);
-            dc.drawText((dc.getWidth() / 2) - Ui.px(dc, 8), Ui.px(dc, 182),
+            dc.drawText((dc.getWidth() / 2) - Ui.px(dc, 8), firstRowY + rowPitch,
                 Graphics.FONT_SYSTEM_XTINY, Ui.s(Rez.Strings.ListIfRemovedToday),
                 Graphics.TEXT_JUSTIFY_CENTER | Graphics.TEXT_JUSTIFY_VCENTER);
         }
 
-        var peekIndex = _topIndex + 3;
-        if (peekIndex < _rows.size()) {
-            drawRow(dc, _rows[peekIndex] as Lang.Dictionary, peekIndex,
-                rowY, false, xIn, xOut, dateFont);
-        }
+        // Three complete rows; a fourth date pair is cut by the bottom chord.
         ListUi.drawRoundScrollIndicator(dc, Ui.px(dc, 72), Ui.px(dc, 350),
             _topIndex, 6, 3, Ui.SECONDARY);
     }
@@ -208,19 +219,10 @@ class UpcomingView extends WatchUi.View {
             boundaryUtc, regimen[:daysOut] as Lang.Number)[:utc] as Lang.Number;
         var nowUtc = currentUtc();
         var endUtc = nowUtc > scheduledEndUtc ? nowUtc : scheduledEndUtc;
-        var total = endUtc - startUtc;
-        if (total <= 0) { total = scheduledEndUtc - startUtc; }
-        if (total <= 0) { total = 1; }
-        var boundaryX = xLeft + (((boundaryUtc - startUtc) * width) / total);
-        if (boundaryX < xLeft) { boundaryX = xLeft; }
-        if (boundaryX > xRight) { boundaryX = xRight; }
+        var boundaryX = xLeft + UpcomingUi.timePosition(startUtc, endUtc, boundaryUtc, width);
         var dueUtc = row[:outActual] == true ? scheduledEndUtc : boundaryUtc;
-        var dueX = xLeft + (((dueUtc - startUtc) * width) / total);
-        if (dueX < xLeft) { dueX = xLeft; }
-        if (dueX > xRight) { dueX = xRight; }
-        var nowX = xLeft + (((nowUtc - startUtc) * width) / total);
-        if (nowX < xLeft) { nowX = xLeft; }
-        if (nowX > xRight) { nowX = xRight; }
+        var dueX = xLeft + UpcomingUi.timePosition(startUtc, endUtc, dueUtc, width);
+        var nowX = xLeft + UpcomingUi.timePosition(startUtc, endUtc, nowUtc, width);
 
         dc.setPenWidth(Ui.px(dc, 5));
         dc.setColor(Ui.TRACK, Graphics.COLOR_TRANSPARENT);

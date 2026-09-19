@@ -71,10 +71,29 @@ module PickerScreen {
 
     function focusForX(width as Lang.Number, columns as Lang.Number,
                        x as Lang.Number) as Lang.Number {
+        if (columns == 1) { return 0; }
         if (columns == 2) { return x < width / 2 ? 0 : 1; }
         if (x < (width * 3) / 8) { return 0; }
         if (x < (width * 5) / 8) { return 1; }
         return 2;
+    }
+
+    // Page behaviors map to DOWN/UP buttons, not numeric order.
+    function buttonDelta(nextPage as Lang.Boolean) as Lang.Number {
+        return nextPage ? -1 : 1;
+    }
+
+    // Only the value and arrow bands are interactive. A title/background tap
+    // must never advance a column or finish editing.
+    function tapTarget(width as Lang.Number, height as Lang.Number,
+                       columns as Lang.Number, x as Lang.Number, y as Lang.Number) as Lang.Array? {
+        if (y < (height * 22) / 100 || y > (height * 78) / 100) { return null; }
+        var column = focusForX(width, columns, x);
+        if ((x - xForColumn(width, columns, column)).abs()
+            > PickerValues.columnWidth(width, columns) / 2) { return null; }
+        var delta = y < (height * 42) / 100 ? 1
+            : (y > (height * 58) / 100 ? -1 : 0);
+        return [column, delta];
     }
 
     function drawArrow(dc as Graphics.Dc, x as Lang.Number, centerY as Lang.Number,
@@ -161,9 +180,9 @@ class RingNumberPicker extends WatchUi.View {
     }
 }
 
-class RingNumberDelegate extends WatchUi.BehaviorDelegate {
+class RingNumberDelegate extends ScreenInputDelegate {
     private var _action as Lang.Symbol;
-    function initialize(action as Lang.Symbol) { BehaviorDelegate.initialize(); _action = action; }
+    function initialize(action as Lang.Symbol) { ScreenInputDelegate.initialize(); _action = action; }
     private function view() as RingNumberPicker {
         return WatchUi.getCurrentView()[0] as RingNumberPicker;
     }
@@ -174,14 +193,22 @@ class RingNumberDelegate extends WatchUi.BehaviorDelegate {
         getApp().confirmAction(_action, currentUtc(), value);
         return true;
     }
-    function onNextPage() as Lang.Boolean { view().move(1); return true; }
-    function onPreviousPage() as Lang.Boolean { view().move(-1); return true; }
+    function onNextPage() as Lang.Boolean { view().move(PickerScreen.buttonDelta(true)); return true; }
+    function onPreviousPage() as Lang.Boolean { view().move(PickerScreen.buttonDelta(false)); return true; }
     function onSwipe(event as WatchUi.SwipeEvent) as Lang.Boolean {
-        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
-        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
         return false;
     }
-    function onTap(event as WatchUi.ClickEvent) as Lang.Boolean { return onSelect(); }
+    function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
+        var device = System.getDeviceSettings();
+        var point = event.getCoordinates();
+        var target = PickerScreen.tapTarget(device.screenWidth, device.screenHeight, 1, point[0], point[1]);
+        if (target == null) { return true; }
+        if (target[1] != 0) { view().move(target[1]); return true; }
+        return onSelect();
+    }
 }
 
 class RingTimeSelection {
@@ -310,13 +337,13 @@ class RingTimePicker extends WatchUi.View {
     }
 }
 
-class RingTimeDelegate extends WatchUi.BehaviorDelegate {
+class RingTimeDelegate extends ScreenInputDelegate {
     private var _action as Lang.Symbol;
     private var _initialUtc as Lang.Number;
     private var _dateFields as Lang.Dictionary?;
     function initialize(action as Lang.Symbol, initialUtc as Lang.Number,
                         dateFields as Lang.Dictionary?) {
-        BehaviorDelegate.initialize();
+        ScreenInputDelegate.initialize();
         _action = action;
         _initialUtc = initialUtc;
         _dateFields = dateFields;
@@ -368,18 +395,24 @@ class RingTimeDelegate extends WatchUi.BehaviorDelegate {
         getApp().confirmAction(_action, atUtc, resolved[:adjusted]);
         return true;
     }
-    function onNextPage() as Lang.Boolean { view().move(1); return true; }
-    function onPreviousPage() as Lang.Boolean { view().move(-1); return true; }
+    function onNextPage() as Lang.Boolean { view().move(PickerScreen.buttonDelta(true)); return true; }
+    function onPreviousPage() as Lang.Boolean { view().move(PickerScreen.buttonDelta(false)); return true; }
     function onSwipe(event as WatchUi.SwipeEvent) as Lang.Boolean {
-        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
-        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
         return false;
     }
     function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
         var current = view();
-        var focus = PickerScreen.focusForX(System.getDeviceSettings().screenWidth,
-            current.columnCount(), event.getCoordinates()[0]);
-        return current.setFocus(focus) ? true : onSelect();
+        var device = System.getDeviceSettings();
+        var point = event.getCoordinates();
+        var target = PickerScreen.tapTarget(device.screenWidth, device.screenHeight,
+            current.columnCount(), point[0], point[1]);
+        if (target == null) { return true; }
+        if (current.setFocus(target[0])) { return true; }
+        if (target[1] != 0) { current.move(target[1]); return true; }
+        return onSelect();
     }
 }
 
@@ -490,11 +523,11 @@ class RingDatePicker extends WatchUi.View {
     }
 }
 
-class RingDateDelegate extends WatchUi.BehaviorDelegate {
+class RingDateDelegate extends ScreenInputDelegate {
     private var _action as Lang.Symbol;
     private var _initialUtc as Lang.Number;
     function initialize(action as Lang.Symbol, initialUtc as Lang.Number) {
-        BehaviorDelegate.initialize();
+        ScreenInputDelegate.initialize();
         _action = action;
         _initialUtc = initialUtc;
     }
@@ -518,16 +551,21 @@ class RingDateDelegate extends WatchUi.BehaviorDelegate {
             new RingTimeDelegate(_action, _initialUtc, fields), WatchUi.SLIDE_LEFT);
         return true;
     }
-    function onNextPage() as Lang.Boolean { view().move(1); return true; }
-    function onPreviousPage() as Lang.Boolean { view().move(-1); return true; }
+    function onNextPage() as Lang.Boolean { view().move(PickerScreen.buttonDelta(true)); return true; }
+    function onPreviousPage() as Lang.Boolean { view().move(PickerScreen.buttonDelta(false)); return true; }
     function onSwipe(event as WatchUi.SwipeEvent) as Lang.Boolean {
-        if (event.getDirection() == WatchUi.SWIPE_UP) { return onNextPage(); }
-        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_UP) { return onPreviousPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_DOWN) { return onNextPage(); }
+        if (event.getDirection() == WatchUi.SWIPE_RIGHT) { return onBack(); }
         return false;
     }
     function onTap(event as WatchUi.ClickEvent) as Lang.Boolean {
-        var focus = PickerScreen.focusForX(System.getDeviceSettings().screenWidth,
-            3, event.getCoordinates()[0]);
-        return view().setFocus(focus) ? true : onSelect();
+        var device = System.getDeviceSettings();
+        var point = event.getCoordinates();
+        var target = PickerScreen.tapTarget(device.screenWidth, device.screenHeight, 3, point[0], point[1]);
+        if (target == null) { return true; }
+        if (view().setFocus(target[0])) { return true; }
+        if (target[1] != 0) { view().move(target[1]); return true; }
+        return onSelect();
     }
 }

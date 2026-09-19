@@ -44,6 +44,7 @@ module Ui {
     function ellipsize(dc as Graphics.Dc, text as Lang.String, font, maxWidth as Lang.Number) as Lang.String {
         if (dc.getTextWidthInPixels(text, font) <= maxWidth) { return text; }
         var suffix = s(Rez.Strings.Ellipsis);
+        if (dc.getTextWidthInPixels(suffix, font) > maxWidth) { return ""; }
         var end = text.length();
         while (end > 0) {
             var shortened = text.substring(0, end) + suffix;
@@ -482,19 +483,25 @@ module Ui {
         while (start < text.length()) {
             var end = start + 1;
             var lastSpace = -1;
+            var hardBreak = false;
             while (end <= text.length()) {
+                var character = text.substring(end - 1, end);
+                if (character.equals("\n")) { hardBreak = true; break; }
                 var part = text.substring(start, end);
                 if (dc.getTextWidthInPixels(part, font) > maxWidth) { break; }
-                if (text.substring(end - 1, end).equals(" ")) { lastSpace = end - 1; }
+                if (character.equals(" ")) { lastSpace = end - 1; }
                 end += 1;
             }
             if (end > text.length()) {
                 lines.add(text.substring(start, text.length()));
                 break;
             }
-            var cut = lastSpace >= start ? lastSpace : end - 1;
+            var cut = hardBreak ? end - 1 : (lastSpace >= start ? lastSpace : end - 1);
+            // Always consume a character, even when a single glyph is wider
+            // than the available space; otherwise wrapping never terminates.
+            if (!hardBreak && cut <= start) { cut = start + 1; }
             lines.add(text.substring(start, cut));
-            start = cut;
+            start = hardBreak ? cut + 1 : cut;
             while (start < text.length() && text.substring(start, start + 1).equals(" ")) { start += 1; }
         }
         return lines;
@@ -532,15 +539,28 @@ module Ui {
         return result;
     }
 
+    function paragraphWidth(dc as Graphics.Dc, font, lineHeight as Lang.Number,
+                            startY as Lang.Number, bottomY as Lang.Number) as Lang.Number {
+        var lastY = startY + (((bottomY - startY) / lineHeight) * lineHeight);
+        var topEdge = ListUi.textRightEdge(dc, startY, font, px(dc, 8));
+        var bottomEdge = ListUi.textRightEdge(dc, lastY, font, px(dc, 8));
+        var right = topEdge < bottomEdge ? topEdge : bottomEdge;
+        var scrollbarEdge = ListUi.scrollIndicatorX(dc.getWidth(), dc.getHeight(),
+            startY, bottomY, px(dc, 2)) - px(dc, 10);
+        if (right > scrollbarEdge) { right = scrollbarEdge; }
+        return 2 * (right - dc.getWidth() / 2);
+    }
+
     function drawParagraphs(dc as Graphics.Dc, paragraphs as Lang.Array<Lang.String>, startY as Lang.Number,
                             bottomY as Lang.Number, scrollLine as Lang.Number) as Lang.Number {
         var font = Graphics.FONT_SYSTEM_XTINY;
         var lineHeight = Graphics.getFontHeight(font) + px(dc, 5);
         var all = [] as Lang.Array<Lang.String>;
+        var width = paragraphWidth(dc, font, lineHeight, startY, bottomY);
         for (var i = 0; i < paragraphs.size(); i += 1) {
-            var wrapped = wrap(dc, paragraphs[i], font, dc.getWidth() - px(dc, 124));
+            var wrapped = wrap(dc, paragraphs[i], font, width);
             for (var j = 0; j < wrapped.size(); j += 1) { all.add(wrapped[j]); }
-            all.add("");
+            if (i + 1 < paragraphs.size()) { all.add(""); }
         }
         var y = startY;
         dc.setColor(PRIMARY, Graphics.COLOR_TRANSPARENT);
@@ -560,13 +580,14 @@ module Ui {
                                     position as Lang.Number, total as Lang.Number,
                                     visible as Lang.Number,
                                     minimumHeight as Lang.Number) as Lang.Array<Lang.Number>? {
-        if (total <= visible || visible <= 0) { return null; }
+        if (total <= visible || visible <= 0 || bottomY <= startY) { return null; }
         var maxPosition = total - visible;
         if (position < 0) { position = 0; }
         if (position > maxPosition) { position = maxPosition; }
         var trackHeight = bottomY - startY;
         var thumbHeight = (trackHeight * visible) / total;
         if (thumbHeight < minimumHeight) { thumbHeight = minimumHeight; }
+        if (thumbHeight > trackHeight) { thumbHeight = trackHeight; }
         var thumbY = startY;
         if (maxPosition > 0) {
             thumbY += ((trackHeight - thumbHeight) * position) / maxPosition;
@@ -581,7 +602,8 @@ module Ui {
             visible, px(dc, 18));
         if (metrics == null) { return; }
         var trackHeight = bottomY - startY;
-        var x = dc.getWidth() - px(dc, 42);
+        var x = ListUi.scrollIndicatorX(dc.getWidth(), dc.getHeight(),
+            startY, bottomY, px(dc, 2));
         dc.setColor(TRACK, Graphics.COLOR_TRANSPARENT);
         dc.fillRectangle(x, startY, px(dc, 2), trackHeight);
         dc.setColor(color, Graphics.COLOR_TRANSPARENT);

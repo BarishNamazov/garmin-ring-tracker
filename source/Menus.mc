@@ -51,8 +51,16 @@ module Menus {
             return Ui.fmt(days == 1 ? Rez.Strings.ConfirmDueOneDayAgo
                 : Rez.Strings.ConfirmDueDaysAgo, days == 1 ? [] : [days]);
         }
+        if (absolute < CalendarMath.SECONDS_PER_HOUR) {
+            var minutes = absolute / CalendarMath.SECONDS_PER_MINUTE;
+            if (future) {
+                return Ui.fmt(minutes == 1 ? Rez.Strings.ConfirmDueInOneMinute
+                    : Rez.Strings.ConfirmDueInMinutes, minutes == 1 ? [] : [minutes]);
+            }
+            return Ui.fmt(minutes == 1 ? Rez.Strings.ConfirmDueOneMinuteAgo
+                : Rez.Strings.ConfirmDueMinutesAgo, minutes == 1 ? [] : [minutes]);
+        }
         var hours = absolute / CalendarMath.SECONDS_PER_HOUR;
-        if (hours < 1) { hours = 1; }
         if (future) {
             return Ui.fmt(hours == 1 ? Rez.Strings.ConfirmDueInOneHour
                 : Rez.Strings.ConfirmDueInHours, hours == 1 ? [] : [hours]);
@@ -61,9 +69,19 @@ module Menus {
             : Rez.Strings.ConfirmDueHoursAgo, hours == 1 ? [] : [hours]);
     }
 
+    function cycleStartLabel(state as Lang.Dictionary) as Lang.String {
+        return Ui.s((state[:regimen] as Lang.Dictionary)[:daysIn] == 21
+            ? Rez.Strings.MenuStartsNewCycle : Rez.Strings.MenuStartsCustomCycle);
+    }
+
+    function ringFreeStartLabel(state as Lang.Dictionary) as Lang.String {
+        return Ui.s((state[:regimen] as Lang.Dictionary)[:daysOut] == 7
+            ? Rez.Strings.MenuStartsRingFree : Rez.Strings.MenuStartsCustomRingFree);
+    }
+
     function insertionMenu() as WatchUi.Menu2 {
         var menu = new WatchUi.Menu2({:title => Rez.Strings.MenuNoCycleTitle});
-        menu.addItem(item(Rez.Strings.MenuInsertNow, Rez.Strings.MenuStartsNewCycle, :insertNow));
+        menu.addItem(item(Rez.Strings.MenuInsertNow, cycleStartLabel(getApp().getState()), :insertNow));
         menu.addItem(item(Rez.Strings.MenuLogEarlierInsertion, Rez.Strings.MenuChooseDateTime, :alreadyIn));
         menu.addItem(item(Rez.Strings.Settings, null, :settings));
         menu.addItem(item(Rez.Strings.AboutDisclaimer, null, :about));
@@ -78,23 +96,28 @@ module Menus {
         var menu = new WatchUi.Menu2({:title => mainTitle(state, currentUtc()), :focus => focus});
         var active = state[:active] as Lang.Dictionary?;
         if (active == null) {
-            menu.addItem(item(Rez.Strings.MenuInsertNow, Rez.Strings.MenuStartsNewCycle, :insertNow));
+            menu.addItem(item(Rez.Strings.MenuInsertNow, cycleStartLabel(state), :insertNow));
             menu.addItem(item(Rez.Strings.MenuLogEarlierInsertion, Rez.Strings.MenuChooseDateTime, :alreadyIn));
         } else {
             if (active[:removalUtc] == null) {
                 var open = ScheduleModel.tempOpen(active);
                 if (open != null) {
                     menu.addItem(item(Rez.Strings.MenuPutRingBack, Rez.Strings.MenuResumesCycle, :backIn));
-                    menu.addItem(item(Rez.Strings.MenuStartRingFree, Rez.Strings.MenuCountsFromRemoval, :keepOut));
+                    menu.addItem(item((state[:regimen] as Lang.Dictionary)[:daysOut] == 7
+                        ? Rez.Strings.MenuStartRingFree : Rez.Strings.MenuStartCustomRingFree,
+                        Rez.Strings.MenuCountsFromRemoval, :keepOut));
                     menu.addItem(item(Rez.Strings.MenuUndoRingOut, Rez.Strings.MenuRemoveEntry, :undoRingOut));
                 } else {
-                    menu.addItem(item(Rez.Strings.MenuRemoveRing, Rez.Strings.MenuStartsRingFree, :removeNow));
+                    var replaceImmediately = (state[:regimen] as Lang.Dictionary)[:daysOut] == 0;
+                    menu.addItem(item(replaceImmediately ? Rez.Strings.MenuReplaceRing : Rez.Strings.MenuRemoveRing,
+                        replaceImmediately ? cycleStartLabel(state) : ringFreeStartLabel(state),
+                        replaceImmediately ? :replaceNow : :removeNow));
                     menu.addItem(item(Rez.Strings.MenuTakeOutBriefly, Rez.Strings.MenuBackWithinThreeHours, :tempOut));
                     menu.addItem(item(Rez.Strings.MenuEditInsertion, null, :adjust));
                     menu.addItem(item(Rez.Strings.History, null, :history));
                 }
             } else {
-                menu.addItem(item(Rez.Strings.MenuInsertRing, Rez.Strings.MenuStartsNewCycle, :insertNow));
+                menu.addItem(item(Rez.Strings.MenuInsertRing, cycleStartLabel(state), :insertNow));
                 menu.addItem(item(Rez.Strings.MenuEditRemoval, null, :adjust));
                 menu.addItem(item(Rez.Strings.History, null, :history));
             }
@@ -143,7 +166,8 @@ module Menus {
         menu.addItem(item(Rez.Strings.SettingsRingIn,
             Ui.fmt(Rez.Strings.SettingsDaysValue, [regimen[:daysIn]]), :daysIn));
         menu.addItem(item(Rez.Strings.SettingsRingOut,
-            Ui.fmt(Rez.Strings.SettingsDaysValue, [regimen[:daysOut]]), :daysOut));
+            Ui.fmt(regimen[:daysOut] == 1 ? Rez.Strings.OneDayTemplate
+                : Rez.Strings.SettingsDaysValue, [regimen[:daysOut]]), :daysOut));
         menu.addItem(toggle(Rez.Strings.SettingsVibration, :toggleVibration,
             reminders[:vibrationEnabled]));
         menu.addItem(toggle(Rez.Strings.SettingsSound, :toggleSound,
@@ -264,7 +288,7 @@ class MainMenuDelegate extends WatchUi.Menu2InputDelegate {
         var app = getApp();
         if (id == :insertNow && app.getState()[:active] == null) { app.confirmAction(:insert, currentUtc(), null); }
         else if (id == :alreadyIn) { PickerFlow.openDate(:insert, currentUtc()); }
-        else if (id == :insertNow) { app.confirmAction(:replace, currentUtc(), null); }
+        else if (id == :insertNow || id == :replaceNow) { app.confirmAction(:replace, currentUtc(), null); }
         else if (id == :removeNow) { app.confirmAction(:remove, currentUtc(), null); }
         else if (id == :tempOut) { app.confirmAction(:tempOut, currentUtc(), null); }
         else if (id == :backIn) { app.confirmAction(:backIn, currentUtc(), null); }
@@ -306,7 +330,7 @@ class ValueMenuDelegate extends WatchUi.Menu2InputDelegate {
     private var _action as Lang.Symbol;
     function initialize(action as Lang.Symbol) { Menu2InputDelegate.initialize(); _action = action; }
     function onSelect(item as WatchUi.MenuItem) as Void { getApp().confirmAction(_action, currentUtc(), item.getId()); }
-    function onBack() as Void { getApp().showSettingsMenu(); }
+    function onBack() as Void { getApp().showSettingsMenuFor(:repeat); }
 }
 
 (:debug)

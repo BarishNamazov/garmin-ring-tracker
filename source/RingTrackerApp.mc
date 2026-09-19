@@ -260,8 +260,11 @@ class ForegroundController {
         WatchUi.pushView(new AboutView(), new AboutDelegate(), WatchUi.SLIDE_UP);
     }
 
-    function showSettingsMenu() as Void {
-        WatchUi.switchToView(Menus.settingsMenu(_state), new SettingsMenuDelegate(), WatchUi.SLIDE_RIGHT);
+    function showSettingsMenu() as Void { showSettingsMenuFor(:reminder1); }
+
+    function showSettingsMenuFor(id as Lang.Symbol) as Void {
+        WatchUi.switchToView(Menus.settingsMenuWithFocus(_state,
+            Menus.settingsFocusForId(_state, id)), new SettingsMenuDelegate(), WatchUi.SLIDE_RIGHT);
     }
 
     function showCorrectDates() as Void {
@@ -435,7 +438,8 @@ class ForegroundController {
             var keepingOut = _state[:active] as Lang.Dictionary;
             var keepOpen = ScheduleModel.tempOpen(keepingOut);
             var removedAt = keepOpen == null ? atUtc : (keepOpen as Lang.Dictionary)[:outUtc];
-            message = Ui.fmt(Rez.Strings.ConfirmKeepOut,
+            message = Ui.fmt((_state[:regimen] as Lang.Dictionary)[:daysOut] == 7
+                ? Rez.Strings.ConfirmKeepOut : Rez.Strings.ConfirmKeepOutCustom,
                 [Ui.compactTimestamp(removedAt, clock)]);
         }
         else if (action == :undoRingOut) {
@@ -511,7 +515,7 @@ class ForegroundController {
             if (saveOrRecover()) {
                 if (_state[:setupStep] == 1) {
                     WatchUi.switchToView(new RegimenView(), new RegimenDelegate(), WatchUi.SLIDE_RIGHT);
-                } else { showSettingsMenu(); }
+                } else { showSettingsMenuFor(action == :setDaysIn ? :daysIn : :daysOut); }
                 if (durationDstNotice) { showDstAdjustment(); }
             }
             return;
@@ -530,7 +534,10 @@ class ForegroundController {
             } else if (action == :setRepeat) {
                 settingReminders[:overdueRepeatHours] = data;
             }
-            if (saveOrRecover()) { showSettingsMenu(); }
+            if (saveOrRecover()) {
+                showSettingsMenuFor(action == :setReminder ? :reminder1
+                    : (action == :setReminder2 ? :reminder2Time : :repeat));
+            }
             return;
         }
 

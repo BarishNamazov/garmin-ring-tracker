@@ -2,9 +2,9 @@ import Toybox.Graphics;
 import Toybox.Lang;
 import Toybox.Math;
 
-// Formatting and drawing helpers shared only by the list and cycle-detail
-// screens. Keeping these separate avoids coupling the UX-round layout to the
-// app-wide UI helpers.
+// List/cycle-detail formatting and shared round-screen geometry. Text screens
+// also use the chord-aware edges to keep paragraphs clear of the bezel and
+// scrollbar.
 module ListUi {
     const VARIANCE_NONE = 0;
     const VARIANCE_AMBER = 1;

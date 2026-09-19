@@ -66,7 +66,7 @@ class RingGlanceView extends WatchUi.GlanceView {
             if (a[6] != null) {
                 ringOut = true;
                 var remaining = 10800 - (nowUtc - (a[6] as Lang.Number));
-                ringOutOver = remaining < 0;
+                ringOutOver = remaining <= 0;
                 title = gs(ringOutOver ? Rez.Strings.GlanceReinsertNowTitle
                     : Rez.Strings.GlanceReinsertTitle);
                 value = temporaryText(remaining);
@@ -79,7 +79,7 @@ class RingGlanceView extends WatchUi.GlanceView {
                 } else {
                     title = gs(Rez.Strings.GlanceRemoveOverdueTitle);
                 }
-                value = Lateness.compact(-delta);
+                value = delta == 0 ? gs(Rez.Strings.GlanceNow) : Lateness.compact(-delta);
             } else {
                 if (removed) {
                     title = gs(Rez.Strings.GlanceInsertTitle);
@@ -184,11 +184,13 @@ class RingGlanceView extends WatchUi.GlanceView {
             return days.toString() + gs(days == 1
                 ? Rez.Strings.GlanceOneDaySuffix : Rez.Strings.GlanceDaysSuffix);
         }
-        var hours = seconds / 3600;
-        var minutes = ((seconds % 3600) + 59) / 60;
+        // Round once before splitting so 1:59:59 cannot render as 1 h 60 min.
+        var totalMinutes = (seconds + 59) / 60;
+        var hours = totalMinutes / 60;
+        var minutes = totalMinutes % 60;
         if (hours > 0) {
             var result = hours.toString() + gs(Rez.Strings.GlanceHourSuffix);
-            return minutes > 0 ? result + minutes.toString()
+            return minutes > 0 ? result + " " + minutes.toString()
                 + gs(Rez.Strings.GlanceMinuteSuffix) : result;
         }
         if (minutes < 1) { minutes = 1; }
@@ -196,6 +198,7 @@ class RingGlanceView extends WatchUi.GlanceView {
     }
 
     function temporaryText(remaining as Lang.Number) as Lang.String {
+        if (remaining == 0) { return gs(Rez.Strings.GlanceNow); }
         if (remaining < 0) {
             return durationText(-remaining) + gs(Rez.Strings.GlanceOverSuffix);
         }

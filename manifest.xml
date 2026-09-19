@@ -5,7 +5,7 @@
                     name="@Strings.AppName"
                     entry="RingTrackerApp"
                     launcherIcon="@Drawables.LauncherIcon"
-                    version="1.3.0"
+                    version="1.3.1"
                     minApiLevel="5.1.0">
         <iq:products>
             <iq:product id="epix2pro42mm" />
