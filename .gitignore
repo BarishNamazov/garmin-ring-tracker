@@ -10,4 +10,3 @@ sdk/
 
 # Release packages are published as GitHub Release assets.
 release/
-scripts/remote-browser/

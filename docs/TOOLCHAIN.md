@@ -89,12 +89,6 @@ Every non-placeholder font filename referenced by the selected `simulator.json` 
 
 These are third-party-redistributed Garmin assets, not an official anonymous Garmin download. Review Garmin's licensing terms before redistributing them further; an authenticated SDK Manager download should replace them when official provenance is required.
 
-Exact `compiler.json` snapshots are checked in for reference:
-
-- [`epix2pro42mm.compiler.json`](devices/epix2pro42mm.compiler.json)
-- [`epix2pro47mm.compiler.json`](devices/epix2pro47mm.compiler.json)
-- [`epix2pro51mm.compiler.json`](devices/epix2pro51mm.compiler.json)
-
 ## Device display and memory limits
 
 The shape comes from each `simulator.json`. Resolution, API level, program file limit, and app memory limits come from each `compiler.json`. The table below is the original epix Pro reference set; the build now includes all IDs in `supported-devices.txt`.
