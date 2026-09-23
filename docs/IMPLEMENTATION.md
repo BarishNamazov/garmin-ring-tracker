@@ -1,6 +1,6 @@
 # Ring Tracker implementation
 
-This document describes the current Ring Tracker 1.3.1 implementation. The
+This document describes the current Ring Tracker 1.3.2 implementation. The
 shipping targets are the epix Pro (Gen 2) 42, 47, and 51 mm device IDs. The app
 is a Connect IQ watch app with a glance and an hourly background service.
 
@@ -20,8 +20,10 @@ history before it would split a cycle.
 
 The glance and background service read separate positional mirrors. They do not
 load the foreground controller, full history, or view graph. Both mirrors carry
-the canonical revision and are accepted only when their shape, types, ranges,
-and matching canonical revision validate.
+the canonical revision. The background service also compares every scheduling
+field in its mirror to canonical storage before evaluating a reminder. The
+foreground repairs a drifting background mirror while retaining legitimate
+background reminder-ledger updates.
 
 The background service evaluates one reminder candidate per temporal event,
 shows at most one native notification, updates the reminder ledger only after a
@@ -110,13 +112,14 @@ env -i HOME=$HOME PATH=/usr/bin:/bin bash -lc \
   'cd /path/to/garmin-bc && ./scripts/build.sh release && \
    ./scripts/build.sh debug && ./scripts/build.sh test'
 ./scripts/check-background-scope.sh
-./scripts/ci/check-version.sh v1.3.1
+./scripts/ci/check-version.sh v1.3.2
 ./scripts/ci/check-release.sh bin/release
 ```
 
 All compiler invocations enable warnings (`-w`); the final release, debug,
-and test builds produced no compiler warnings. The v1.3.1 suite passes 180
-tests on each of the three supported device IDs. It covers schedule boundaries,
+and test builds produced no compiler warnings. The v1.3.2 suite passes 182
+tests on the 47 mm simulator; release builds cover all three supported device
+IDs. The suite covers schedule boundaries,
 DST gaps/folds, actual-event anchoring,
 temporary-out identity, reminder priority/deduplication, migrations, storage
 interruption and compaction, settings repair, phone/watch picker conversion,

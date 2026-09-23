@@ -1,6 +1,6 @@
 # Ring Tracker — Connect IQ Store listing
 
-This is the English (`en`) listing copy for version 1.3.0. Character counts include spaces and punctuation. Limits were checked against Garmin's current submission form on 2026-09-16.
+This is the English (`en`) listing copy for version 1.3.2. Character counts include spaces and punctuation. Limits were checked against Garmin's submission form on 2026-09-16.
 
 ## Store fields
 
@@ -43,12 +43,10 @@ Support: https://github.com/BarishNamazov/garmin-ring-tracker/issues
 Ring Tracker is an independent project and is not affiliated with or endorsed by Garmin or the manufacturer of NuvaRing.
 ```
 
-### What's New — 683/4,000 characters
+### What's New
 
 ```text
-Version 1.3.0 makes Ring Tracker easier to read on round screens. Main keeps action dates and times visible, uses consistent late counts, and shows a reinsertion deadline during brief ring-outs. Upcoming and History have clearer columns, current-cycle markers, and year cues. Glance and reminders use shorter, consistent wording.
-
-Time and date pickers show every column together. Correct dates distinguishes recorded events from pending removal. Settings use Days worn and Days out, direct reminder toggles, and the watch's time format. Phone App Settings include a native insertion-date control and quarter-hour AM/PM time lists. Existing dates and reminders migrate automatically.
+Version 1.3.2 makes the glance's remaining day count agree with the main countdown. Background reminders now check their saved schedule before sending, and the app repairs mismatched reminder data when opened. Your recorded schedule and history are preserved.
 ```
 
 ### Category — required
@@ -68,7 +66,7 @@ The `.iq` manifest is authoritative for Store compatibility and contains `epix2p
 ### App version — 5/20 characters
 
 ```text
-1.3.0
+1.3.2
 ```
 
 ### Support URL — no current dedicated field or confirmed limit

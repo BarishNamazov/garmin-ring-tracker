@@ -442,6 +442,30 @@ module RingStore {
         return null;
     }
 
+    // The background service may advance only the ledger. Every other mirror
+    // field must still describe the committed canonical state.
+    function backgroundMatchesState(raw as Lang.Array, state as Lang.Dictionary) as Lang.Boolean {
+        var expected = encodeBackground(state, state[:revision]);
+        for (var i = 0; i < 6; i += 1) {
+            if (!sameMirrorValue(raw[i], expected[i])) { return false; }
+        }
+        return true;
+    }
+
+    function sameMirrorValue(actual, expected) as Lang.Boolean {
+        if (actual instanceof Lang.Array) {
+            if (!(expected instanceof Lang.Array)) { return false; }
+            var left = actual as Lang.Array;
+            var right = expected as Lang.Array;
+            if (left.size() != right.size()) { return false; }
+            for (var i = 0; i < left.size(); i += 1) {
+                if (!sameMirrorValue(left[i], right[i])) { return false; }
+            }
+            return true;
+        }
+        return !(expected instanceof Lang.Array) && actual == expected;
+    }
+
     function repairMirrors(state as Lang.Dictionary) as Void {
         var revision = state[:revision] as Lang.Number;
         try {
@@ -452,7 +476,7 @@ module RingStore {
             }
             var background = Storage.getValue(BACKGROUND_KEY);
             if (!(background instanceof Lang.Array) || !validBackgroundRaw(background as Lang.Array)
-                || (background as Lang.Array)[1] != revision) {
+                || !backgroundMatchesState(background as Lang.Array, state)) {
                 Storage.setValue(BACKGROUND_KEY, encodeBackground(state, revision));
             }
             Storage.deleteValue(MIRROR_ERROR_KEY);
@@ -464,7 +488,7 @@ module RingStore {
             var raw = Storage.getValue(BACKGROUND_KEY);
             if (!(raw instanceof Lang.Array) || !validBackgroundRaw(raw as Lang.Array)) { return; }
             var a = raw as Lang.Array;
-            if (a[1] != state[:revision]) { return; }
+            if (!backgroundMatchesState(a, state)) { return; }
             var stored = decodeLedger(a[6] as Lang.Array);
             var active = state[:active] as Lang.Dictionary?;
             if (active != null && stored[:cycleId] == active[:cycleId]) {
