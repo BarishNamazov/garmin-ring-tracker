@@ -26,7 +26,7 @@ The defaults are therefore `daysIn = 21` and `daysOut = 7`. A standard cycle anc
 - scheduled removal at local-calendar `T + 21 days`;
 - scheduled next insertion at local-calendar `T + 28 days`.
 
-“Calendar days” means preserving the intended local wall-clock time across daylight-saving changes; it does not always mean adding exactly 86,400 seconds per day. The technical conversion is specified in [SPEC.md](SPEC.md#time-and-calendar-rules).
+“Calendar days” means preserving the intended local wall-clock time across daylight-saving changes; it does not always mean adding exactly 86,400 seconds per day. The conversion is implemented in [CalendarMath.mc](../source/CalendarMath.mc).
 
 These rules come from the current [NuvaRing prescribing information on DailyMed](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=e14bc197-dd22-4e6e-8aa1-d6cf2242fe0f), section 2.1. The [FDA-approved NuvaRing label PDF](https://www.accessdata.fda.gov/drugsatfda_docs/label/2019/021187s037lbl.pdf) and the [EluRyng prescribing information](https://dailymed.nlm.nih.gov/dailymed/drugInfo.cfm?setid=c6c8512d-b258-4be5-8c2f-0f1893f198b9) describe the same 3-weeks-in/1-week-out regimen; the [NHS patient guide](https://www.nhs.uk/contraception/methods-of-contraception/vaginal-ring/how-to-use-it/) likewise summarizes 21 days in followed by 7 days out.
 
