@@ -2,6 +2,27 @@
 
 All notable changes to Ring Tracker are documented in this file.
 
+## [1.4.0] - 2026-09-23
+
+### Added
+
+- Added build and Store targets for 55 round Connect IQ 5.1+ watches across
+  Approach, D2, Descent, Enduro, epix, fēnix, Forerunner, Instinct AMOLED,
+  MARQ, Venu, and vívoactive families.
+- Added a shared device matrix for the manifest, build, toolchain, and release
+  checks, plus simulator tests on the small 218 px Forerunner 255S.
+
+### Changed
+
+- Made the glance use the device's own content area and tighter spacing on
+  small MIP displays.
+
+### Verification
+
+- Exported the Store package for all 68 Garmin part-number variants represented
+  by the 55 device IDs and verified the signed PRG bundle and checksums.
+- All 182 simulator tests pass on both epix Pro 47 mm and Forerunner 255S.
+
 ## [1.3.2] - 2026-09-23
 
 ### Fixed

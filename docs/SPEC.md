@@ -33,7 +33,9 @@ The app does not assess contraceptive effectiveness, diagnose pregnancy, recomme
 
 ## 2. Platform and device contract
 
-The supported product IDs and screens are:
+The original reference product IDs and screens are below. The current build
+matrix is in [`supported-devices.txt`](../supported-devices.txt); it also
+includes smaller round MIP and AMOLED watches.
 
 | Product ID | Native display | Shape/input | Connect IQ | Watch-app memory | Background memory | Glance memory |
 |---|---:|---|---:|---:|---:|---:|

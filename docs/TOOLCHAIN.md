@@ -1,6 +1,9 @@
 # Build an Epix Pro (Gen 2) device app from the command line
 
-The project can compile signed Garmin Connect IQ device apps for `epix2pro42mm`, `epix2pro47mm`, and `epix2pro51mm` with Connect IQ SDK 9.2.0. The setup is headless and stores the SDK and device definitions outside this repository.
+The project can compile signed Garmin Connect IQ device apps for the 55 round
+watches in [`supported-devices.txt`](../supported-devices.txt) with Connect IQ
+SDK 9.2.0. The setup is headless and stores the SDK and device definitions
+outside this repository.
 
 ## Installed toolchain
 
@@ -10,7 +13,7 @@ The project can compile signed Garmin Connect IQ device apps for `epix2pro42mm`,
 | Active SDK pointer | SDK path above | `~/.Garmin/ConnectIQ/current-sdk.cfg` |
 | Java | OpenJDK 17 | System package, or `~/.Garmin/ConnectIQ/Jdks/temurin-17` without root access |
 | Device definitions | Snapshot from 2026-08-08 | `~/.Garmin/ConnectIQ/Devices` |
-| Required simulator fonts | 125 CFT/TTF files | `~/.Garmin/ConnectIQ/Fonts` |
+| Required simulator fonts | 515 CFT/TTF files | `~/.Garmin/ConnectIQ/Fonts` |
 | RSA signing key | 4096-bit PKCS#8 DER | `~/.Garmin/developer_key.der` by default |
 
 The SDK was selected from Garmin's [`sdks.json`](https://developer.garmin.com/downloads/connect-iq/sdks/sdks.json). Its Linux archive is `connectiq-sdk-lin-9.2.0-2026-06-09-92a1605b2.zip`, SHA-256 `4907d8455b651c5a00a865e364cc4f1921c055b9279c7c8634c7a7a6773b5593`.
@@ -23,7 +26,7 @@ Install the complete toolchain without a Garmin login:
 ./scripts/ci/install-toolchain.sh
 ```
 
-The installer verifies the pinned SDK and device-archive SHA-256 values, verifies the pinned OCI font-layer digest, extracts only the three device directories and 125 referenced fonts, installs the simulator runtime, and writes `~/.Garmin/ConnectIQ/current-sdk.cfg`. Repeating the command against a complete installation performs validation without downloading those artifacts again. The complete `~/.Garmin` tree is suitable for a CI cache.
+The installer verifies the pinned SDK and device-archive SHA-256 values, verifies the pinned OCI font-layer digest, extracts the selected device directories and referenced fonts, installs the simulator runtime, and writes `~/.Garmin/ConnectIQ/current-sdk.cfg`. Repeating the command against a complete installation performs validation without downloading those artifacts again. The complete `~/.Garmin` tree is suitable for a CI cache.
 
 ## Shell environment
 
@@ -71,7 +74,7 @@ The device archive does not contain the separately downloaded system fonts. Devi
 
 This matches the SDK Manager layout and the implementation of the community [`connect-iq-sdk-manager-cli`](https://github.com/lindell/connect-iq-sdk-manager-cli), which extracts Garmin's per-font downloads into the shared `Fonts` directory. Garmin's font API requires an authenticated session, so the files were instead recovered from the public [`ghcr.io/matco/connectiq-tester:v2.10.0`](https://github.com/matco/connectiq-tester) image. That project documents that its tester image includes device bits, fonts, and the simulator; its resource Dockerfile copies `Fonts/*.cft` and `Fonts/*.ttf` from an SDK Manager installation.
 
-The installer fetches the one OCI layer containing `/root/.Garmin/ConnectIQ/Fonts` directly through the GHCR Registry API. It extracts only the filenames referenced by the three pinned `simulator.json` files into `~/.Garmin/ConnectIQ/Fonts`. Provenance for the payload:
+The installer fetches the one OCI layer containing `/root/.Garmin/ConnectIQ/Fonts` directly through the GHCR Registry API. It extracts only the filenames referenced by the selected `simulator.json` files into `~/.Garmin/ConnectIQ/Fonts`. Provenance for the payload:
 
 ```text
 Image:        ghcr.io/matco/connectiq-tester:v2.10.0
@@ -79,10 +82,10 @@ Source commit: 5508cf707cbd7435f7f1e9226d2303f4349bfc3b
 Resource set: 2026-08-31
 Layer digest: sha256:5ab73d22aa6d18bc1f0c8d6743bf0dafa1010e6a7b70a6619359a2889fac29d0
 Layer size:   942,680,574 compressed bytes
-Installed:    125 referenced .cft/.ttf files (107,134,607 bytes)
+Installed:    515 referenced .cft/.ttf files (535,047,097 bytes)
 ```
 
-Every non-placeholder font filename referenced by the three installed `simulator.json` files exists in the shared directory: 49 unique references for `epix2pro42mm`, 52 for `epix2pro47mm`, and 46 for `epix2pro51mm`. Names such as `bitstreamVeraSans 16` are logical built-in font names rather than downloadable filenames; the SDK Manager CLI likewise skips references containing spaces.
+Every non-placeholder font filename referenced by the selected `simulator.json` files exists in the shared directory. Names such as `bitstreamVeraSans 16` are logical built-in font names rather than downloadable filenames; the SDK Manager CLI likewise skips references containing spaces.
 
 These are third-party-redistributed Garmin assets, not an official anonymous Garmin download. Review Garmin's licensing terms before redistributing them further; an authenticated SDK Manager download should replace them when official provenance is required.
 
@@ -94,7 +97,7 @@ Exact `compiler.json` snapshots are checked in for reference:
 
 ## Device display and memory limits
 
-The shape comes from each `simulator.json`. Resolution, API level, program file limit, and app memory limits come from each `compiler.json`.
+The shape comes from each `simulator.json`. Resolution, API level, program file limit, and app memory limits come from each `compiler.json`. The table below is the original epix Pro reference set; the build now includes all IDs in `supported-devices.txt`.
 
 | Device ID | Display name | Shape | Resolution | API level | Maximum PRG size |
 | --- | --- | --- | --- | --- | --- |
@@ -102,7 +105,7 @@ The shape comes from each `simulator.json`. Resolution, API level, program file 
 | `epix2pro47mm` | epix Pro (Gen 2) 47mm / quatix 7 Pro | Round AMOLED | 416 × 416 | 5.2 / Connect IQ 5.2.0 | 67,108,864 bytes (64 MiB) |
 | `epix2pro51mm` | epix Pro (Gen 2) 51mm / D2 Mach 1 Pro / tactix 7 AMOLED Edition | Round AMOLED | 454 × 454 | 5.2 / Connect IQ 5.2.0 | 67,108,864 bytes (64 MiB) |
 
-All three compiler definitions specify the same app-type memory limits:
+The three epix Pro compiler definitions specify the following app-type memory limits. Other watches can have smaller limits and must be evaluated separately:
 
 | App type | Bytes | KiB |
 | --- | ---: | ---: |

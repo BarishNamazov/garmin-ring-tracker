@@ -103,21 +103,23 @@ class RingGlanceView extends WatchUi.GlanceView {
         var left = pad;
         var right = width - pad;
         var maxWidth = right - left;
+        var compact = height < 85;
         var titleFont = Graphics.FONT_GLANCE;
         var valueFont = Graphics.FONT_GLANCE_NUMBER;
         var titleHeight = dc.getFontHeight(titleFont);
         var valueHeight = dc.getFontHeight(valueFont);
         var rowGap = -2;
-        var barGap = 7;
-        var blockHeight = titleHeight + rowGap + valueHeight + barGap + 5;
+        var barGap = compact ? 3 : 7;
+        var barStroke = compact ? 3 : 5;
+        var blockHeight = titleHeight + rowGap + valueHeight + barGap + barStroke;
         var top = (height - blockHeight) / 2;
         if (top < 1) { top = 1; }
         var valueY = top + titleHeight + rowGap;
         var barY = valueY + valueHeight + barGap;
-        if (barY > height - 6) { barY = height - 6; }
-        var barRight = chordRight(width, barY) - 10;
-        if (barRight > right) { barRight = right; }
-        if (barRight < left + 30) { barRight = left + 30; }
+        if (barY > height - barStroke - 1) { barY = height - barStroke - 1; }
+        // The glance DC is already clipped to Garmin's device-specific
+        // content area; its width is the safe horizontal drawing region.
+        var barRight = right;
         var barWidth = barRight - left;
 
         title = ellipsis(dc, title, titleFont, maxWidth);
@@ -133,7 +135,7 @@ class RingGlanceView extends WatchUi.GlanceView {
         var split = left + ((barWidth * 60) / 100);
         var green = ringOut || ringFree ? DIM_GREEN : GREEN;
         var purple = ringOut || !ringFree ? DIM_PURPLE : PURPLE;
-        dc.setPenWidth(5);
+        dc.setPenWidth(barStroke);
         drawRoundedLine(dc, left, barRight, barY, TRACK);
         if (overdue) {
             // Leave a short orange tail after the pinned marker so lateness
@@ -151,7 +153,7 @@ class RingGlanceView extends WatchUi.GlanceView {
         var markerX = left + (barWidth * marker).toNumber();
         if (markerX < left + 5) { markerX = left + 5; }
         if (markerX > barRight - 5) { markerX = barRight - 5; }
-        var outerRadius = width > 280 ? 6 : 5;
+        var outerRadius = compact ? 4 : (width > 280 ? 6 : 5);
         var innerRadius = outerRadius - 1;
         dc.setColor(Graphics.COLOR_BLACK, Graphics.COLOR_TRANSPARENT);
         dc.fillCircle(markerX, barY, outerRadius);
@@ -162,19 +164,6 @@ class RingGlanceView extends WatchUi.GlanceView {
         } else {
             dc.fillCircle(markerX, barY, innerRadius);
         }
-    }
-
-    // Garmin gives this glance a text canvas beginning 110 px from the left
-    // edge on all three target devices. Convert back to full-screen geometry
-    // so the bar can end 10 px inside the circular chord at its actual y.
-    function chordRight(canvasWidth as Lang.Number, y as Lang.Number) as Lang.Number {
-        var fullWidth = canvasWidth + 110;
-        var radius = fullWidth / 2;
-        var centerX = radius - 110;
-        var dy = y - radius;
-        var inside = (radius * radius) - (dy * dy);
-        if (inside <= 0) { return centerX; }
-        return centerX + Math.sqrt(inside).toNumber();
     }
 
     function durationText(seconds as Lang.Number) as Lang.String {

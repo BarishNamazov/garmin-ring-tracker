@@ -6,8 +6,9 @@ project_dir="$(cd "${script_dir}/.." && pwd)"
 source "${script_dir}/env.sh"
 cd "${project_dir}"
 "${script_dir}/check-background-scope.sh"
+python3 "${script_dir}/ci/check-devices.py"
 
-devices=(epix2pro42mm epix2pro47mm epix2pro51mm)
+mapfile -t devices < <(sed '/^#/d; /^$/d' supported-devices.txt)
 simulator_pid=""
 simulator_log=""
 
@@ -44,22 +45,33 @@ print_iq_prg_hashes() {
         "${script_dir}/IqPrgHashes.java" "$1"
 }
 
-build_release() {
+build_release_iq() {
     local output_dir="bin/release"
-    local outputs=()
-    local device output
     mkdir -p "${output_dir}"
-    for device in "${devices[@]}"; do
-        output="${output_dir}/RingTracker-${device}.prg"
-        monkeyc -d "${device}" -f monkey.jungle -o "${output}" \
-            -y "${CIQ_DEVELOPER_KEY}" -w -r
-        outputs+=("${output}")
-    done
     monkeyc -e -f monkey.jungle -o "${output_dir}/RingTracker.iq" \
         -y "${CIQ_DEVELOPER_KEY}" -w -r
-    outputs+=("${output_dir}/RingTracker.iq")
-    print_hashes "${outputs[@]}"
     print_iq_prg_hashes "${output_dir}/RingTracker.iq"
+}
+
+build_release() {
+    local outputs=()
+    local device parts_file
+    build_release_iq
+    parts_file="$(mktemp)"
+    for device in "${devices[@]}"; do
+        printf '%s\t%s\n' "${device}" \
+            "$(jq -r '.partNumbers[0].number' "${CIQ_DEVICE_HOME}/${device}/compiler.json")" \
+            >>"${parts_file}"
+    done
+    java --class-path "${CIQ_SDK_HOME}/bin/monkeybrains.jar" \
+        "${script_dir}/ExtractIqPrgs.java" "bin/release/RingTracker.iq" \
+        "${parts_file}" "bin/release"
+    rm -f -- "${parts_file}"
+    for device in "${devices[@]}"; do
+        outputs+=("bin/release/RingTracker-${device}.prg")
+    done
+    outputs+=("bin/release/RingTracker.iq")
+    print_hashes "${outputs[@]}"
 }
 
 build_debug() {
@@ -78,11 +90,12 @@ build_debug() {
 
 run_tests() {
     local output_dir="bin/test"
-    local test_prg="${output_dir}/RingTracker-tests.prg"
+    local test_device="${2:-epix2pro47mm}"
+    local test_prg="${output_dir}/RingTracker-tests-${test_device}.prg"
     local test_output runner_status summary passed failed errors
     local attempt max_attempts=30
     mkdir -p "${output_dir}"
-    monkeyc -d epix2pro47mm -f monkey.tests.jungle -o "${test_prg}" \
+    monkeyc -d "${test_device}" -f monkey.tests.jungle -o "${test_prg}" \
         -y "${CIQ_DEVELOPER_KEY}" -w --unit-test
     print_hashes "${test_prg}"
 
@@ -105,7 +118,7 @@ run_tests() {
 
     for ((attempt = 1; attempt <= max_attempts; attempt++)); do
         set +e
-        test_output="$(TZ=America/New_York monkeydo "${test_prg}" epix2pro47mm -t 2>&1)"
+        test_output="$(TZ=America/New_York monkeydo "${test_prg}" "${test_device}" -t 2>&1)"
         runner_status=$?
         set -e
         if [[ "${test_output}" != *"Unable to connect to simulator."* ]]; then
@@ -144,10 +157,11 @@ run_tests() {
 
 case "${1:-}" in
     release) build_release ;;
+    release-iq) build_release_iq ;;
     debug) build_debug ;;
-    test) run_tests ;;
+    test) run_tests "$@" ;;
     *)
-        printf 'Usage: %s {release|debug|test}\n' "$0" >&2
+        printf 'Usage: %s {release|release-iq|debug|test [device-id]}\n' "$0" >&2
         exit 2
         ;;
 esac

@@ -18,7 +18,7 @@ sdk_url="https://developer.garmin.com/downloads/connect-iq/sdks/${sdk_archive}"
 device_commit="cd073d7fc4083edf75eb3e1068d7ee4087c19423"
 device_sha256="329ebb68bf55a07d86cda993a1381b20f7fc786eba059737abbf1d72778d2feb"
 device_url="https://raw.githubusercontent.com/blackshadev/garmin-connectiq-tools/${device_commit}/devices.tar.gz"
-devices=(epix2pro42mm epix2pro47mm epix2pro51mm)
+mapfile -t devices < <(sed '/^#/d; /^$/d' "$(dirname "$0")/../../supported-devices.txt")
 
 font_image="ghcr.io/matco/connectiq-tester:v2.10.0"
 font_layer="sha256:5ab73d22aa6d18bc1f0c8d6743bf0dafa1010e6a7b70a6619359a2889fac29d0"
@@ -128,8 +128,9 @@ if [[ "${devices_ready}" != true || ! -f "${device_dir}/.ring-tracker-${device_c
     device_stage="${work_dir}/devices"
     download_verified "pinned device archive" "${device_url}" "${device_sha256}" "${device_download}"
     mkdir -p "${device_stage}"
-    tar -xzf "${device_download}" -C "${device_stage}" \
-        ./epix2pro42mm ./epix2pro47mm ./epix2pro51mm
+    device_paths=()
+    for device in "${devices[@]}"; do device_paths+=("./${device}"); done
+    tar -xzf "${device_download}" -C "${device_stage}" "${device_paths[@]}"
     for device in "${devices[@]}"; do
         mkdir -p "${device_dir}/${device}"
         cp -a "${device_stage}/${device}/." "${device_dir}/${device}/"
@@ -140,7 +141,9 @@ fi
 font_list="${work_dir}/fonts.txt"
 for device in "${devices[@]}"; do
     jq -r '.fonts[].fonts[] | select(.filename | contains(" ") | not) |
-        .filename + (if .type == "system_ttf" then ".ttf" else ".cft" end)' \
+        .filename + (if .type == "system_ttf" or .type == "ttf" or
+            (.type == null and (.filename | startswith("FNT_") | not))
+            then ".ttf" else ".cft" end)' \
         "${device_dir}/${device}/simulator.json"
 done | sort -u >"${font_list}"
 

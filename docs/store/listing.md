@@ -1,6 +1,6 @@
 # Ring Tracker — Connect IQ Store listing
 
-This is the English (`en`) listing copy for version 1.3.2. Character counts include spaces and punctuation. Limits were checked against Garmin's submission form on 2026-09-16.
+This is draft English (`en`) listing copy. Review it against the [latest GitHub release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest) before submission, especially What's New, supported devices, and the app version. Check character counts and field limits again; the limits below were checked against Garmin's submission form on 2026-09-16.
 
 ## Store fields
 
@@ -10,18 +10,18 @@ This is the English (`en`) listing copy for version 1.3.2. Character counts incl
 Ring Tracker
 ```
 
-### One-line tagline — 63 characters
+### One-line tagline
 
 The current dashboard has no separate tagline field or published tagline limit. Use this as the first line of the description or in promotion outside the Store.
 
 ```text
-Track your NuvaRing schedule and local reminders on your watch.
+Track your birth control ring schedule and reminders on your watch.
 ```
 
-### Description — 1,881/4,000 characters
+### Description — 4,000-character limit when last checked
 
 ```text
-Ring Tracker is a private, on-watch schedule tracker for NuvaRing.
+Ring Tracker is a private, on-watch birth control ring schedule tracker. It supports NuvaRing and equivalent monthly rings, including EluRyng. Annovera has different timing rules and is not supported.
 
 See ring-in, ring-free, temporary-out, and overdue states at a glance. Record actual insertion, removal, and temporary-out times; view six upcoming cycles and up to 24 cycles of history; and correct actual dates when needed.
 
@@ -31,22 +31,20 @@ Reminders are generated locally on the watch and do not require a phone or netwo
 
 All schedule and history data stays on the watch. Ring Tracker has no network permission and does not collect, transmit, sell, or share user data.
 
-Designed and tested for epix Pro (Gen 2) watches in 42 mm, 47 mm, and 51 mm sizes. No other watch models are claimed as tested.
-
-This app is for NuvaRing only. Not for generics or Annovera.
+Supports 55 round Garmin watches with Connect IQ 5.1 or later. See the compatible device list for your model. Tested on epix Pro (Gen 2) and Forerunner 255S simulators.
 
 This app is a scheduling aid, not medical advice. It cannot determine whether contraception is effective. Follow the instructions supplied with your ring and contact a qualified clinician or pharmacist if a ring is late, has been out too long, or pregnancy is possible.
 
 Open source: https://github.com/BarishNamazov/garmin-ring-tracker
 Support: https://github.com/BarishNamazov/garmin-ring-tracker/issues
 
-Ring Tracker is an independent project and is not affiliated with or endorsed by Garmin or the manufacturer of NuvaRing.
+Ring Tracker is an independent project and is not affiliated with or endorsed by Garmin or any birth control ring manufacturer.
 ```
 
 ### What's New
 
 ```text
-Version 1.3.2 makes the glance's remaining day count agree with the main countdown. Background reminders now check their saved schedule before sending, and the app repairs mismatched reminder data when opened. Your recorded schedule and history are preserved.
+Adds support for more round Garmin watches and updates the app wording for NuvaRing and equivalent monthly rings. Annovera is not supported. Your recorded schedule and history are preserved.
 ```
 
 ### Category — required
@@ -58,16 +56,14 @@ The current top-level Device App categories are: Beliefs, Business, Celestial, C
 ### Supported devices statement — no separate text-field limit
 
 ```text
-Designed and tested for epix Pro (Gen 2) watches in 42 mm, 47 mm, and 51 mm sizes. No other watch models are claimed as tested.
+Supports 55 round Garmin watches with Connect IQ 5.1 or later. The epix Pro (Gen 2) 47 mm and Forerunner 255S simulators were used for testing.
 ```
 
-The `.iq` manifest is authoritative for Store compatibility and contains `epix2pro42mm`, `epix2pro47mm`, and `epix2pro51mm`.
+The `.iq` manifest is authoritative for Store compatibility. The exact product IDs are in [`supported-devices.txt`](../../supported-devices.txt).
 
-### App version — 5/20 characters
+### App version
 
-```text
-1.3.2
-```
+Enter the version shown on the [latest GitHub release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest), without the leading `v`. It must match the package being uploaded.
 
 ### Support URL — no current dedicated field or confirmed limit
 
@@ -101,7 +97,7 @@ Enter a monitored project-support address. Garmin states that this address is di
 The current form has no separate keyword field. These are the relevant search terms already represented naturally in the description:
 
 ```text
-NuvaRing, vaginal ring, contraception, reminder, schedule, cycle tracker
+birth control ring, vaginal ring, NuvaRing, EluRyng, contraception, reminder, schedule, cycle tracker
 ```
 
 ## Store images
