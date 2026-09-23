@@ -1,6 +1,6 @@
 # Original UI and interaction specification
 
-This is the original design reference. For the shipped v1.3.0 interface, use
+This is the original design reference. For the current interface, use
 [IMPLEMENTATION.md](IMPLEMENTATION.md), the [round-1 decisions](ux-review/DECISIONS.md),
 and the overriding [round-2 decisions](ux-review/round2/DECISIONS.md). The current
 [screen gallery](screenshots/) records the final layouts; geometry and navigation

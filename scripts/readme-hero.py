@@ -62,12 +62,9 @@ svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewB
   <rect width="{W}" height="{H}" fill="url(#glowP)"/>
 
   <g font-family="Inter">
-    <text x="90" y="336" font-size="98" font-weight="700" letter-spacing="-2.5" fill="#F4F7F8">Ring Tracker</text>
-    <text x="94" y="400" font-size="33" font-weight="400" fill="#9AA6AD">Your NuvaRing schedule, on your wrist.</text>
-    <g font-size="22" font-weight="500" fill="#B2BAC1">
-      <circle cx="103" cy="472" r="8" fill="#38D6A0"/><text x="122" y="480">Ring in · 3 weeks</text>
-      <circle cx="341" cy="472" r="8" fill="#A690FF"/><text x="360" y="480">Ring-free · 1 week</text>
-    </g>
+    <text x="90" y="318" font-size="70" font-weight="700" letter-spacing="-2" fill="#F4F7F8">Birth Control</text>
+    <text x="90" y="399" font-size="70" font-weight="700" letter-spacing="-2" fill="#F4F7F8">Ring Tracker</text>
+    <text x="94" y="463" font-size="30" font-weight="400" fill="#9AA6AD">Your ring schedule, on your wrist.</text>
   </g>
 
   <g filter="url(#shadow)">

@@ -1,14 +1,20 @@
-# Ring Tracker
+# Birth Control Ring Tracker
 
 [![CI](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml)
 
 ![Ring Tracker on a Garmin watch face showing a 17-day ring-in countdown](docs/readme-hero.png)
 
-Track your NuvaRing schedule on your Garmin watch. See when to insert or remove your ring, record what happened, and get reminders.
+Track your birth control ring schedule on your Garmin watch. See when to insert or remove your ring, record what happened, and get reminders.
 
-**Currently supported watches:** epix Pro (Gen 2) in 42, 47, and 51 mm.
+Works with NuvaRing and equivalent monthly rings, including EluRyng. Annovera has different timing rules and is not supported.
 
-[Install from the Connect IQ Store](https://apps.garmin.com/apps/5347b9a1-5dd1-4e0a-93bd-b5dcf2a1ef4f) · [Latest GitHub release: 1.3.2](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest)
+**Device support in this source:** 55 round Connect IQ 5.1+ watches, including
+recent Approach, D2, Descent, Enduro, epix, fēnix, Forerunner, Instinct AMOLED,
+MARQ, Venu, and vívoactive models. See the exact IDs in
+[supported-devices.txt](supported-devices.txt). The published Store version may
+still list only the three epix Pro sizes until the new package is submitted.
+
+[Install from the Connect IQ Store](https://apps.garmin.com/apps/5347b9a1-5dd1-4e0a-93bd-b5dcf2a1ef4f) · [Latest GitHub release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest)
 
 > Ring Tracker is a scheduling aid, not medical advice. It cannot determine whether contraception is effective. Follow your ring’s instructions and contact a clinician or pharmacist if it is late, has been out too long, or pregnancy is possible.
 
@@ -36,7 +42,10 @@ To add the glance, hold **MENU** on the watch face, then choose **Appearance > G
 
 ### Install a GitHub release
 
-For a version not yet on the Store, download the `.prg` matching your watch’s case size from [GitHub Releases](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest). Follow the [USB installation guide](docs/INSTALL.md) to copy it to `GARMIN/APPS`. The `.iq` file is for Store submission.
+For a version not yet on the Store, download the `.prg` matching your watch's
+exact device ID from [GitHub Releases](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest).
+Follow the [USB installation guide](docs/INSTALL.md) to copy it to
+`GARMIN/APPS`. The `.iq` file is for Store submission.
 
 With a USB install, change settings on the watch; phone App Settings need the Store version.
 

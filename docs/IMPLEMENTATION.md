@@ -1,8 +1,10 @@
 # Ring Tracker implementation
 
-This document describes the current Ring Tracker 1.3.2 implementation. The
-shipping targets are the epix Pro (Gen 2) 42, 47, and 51 mm device IDs. The app
-is a Connect IQ watch app with a glance and an hourly background service.
+This document describes the Ring Tracker implementation. See the
+[latest GitHub release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest)
+for the published version and [`supported-devices.txt`](../supported-devices.txt)
+for the current source's device IDs. The app is a Connect IQ watch app with a
+glance and an hourly background service.
 
 ## Runtime design
 
@@ -50,7 +52,7 @@ format so both layouts remain visually testable.
 | Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Glance rendering, compact background decoding, notifications, ledger updates, and single-exit handling |
 | Build variants | `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `source/Clock.mc`, `resources-debug/` | Production seams and debug-only fixtures, notification previews, fixed clock, diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Visible copy, launcher artwork, and the background-scoped notification icon |
-| Tests and checks | `source/tests/`, `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/ci/` | Simulator tests, three-device builds, constrained-scope checks, version checks, and release freshness |
+| Tests and checks | `source/tests/`, `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/ci/` | Simulator tests, device builds, constrained-scope checks, version checks, and release freshness |
 
 ## Foreground flow and controls
 
@@ -100,9 +102,10 @@ The supported entry points are:
 ./scripts/build.sh test
 ```
 
-`release` produces three signed PRGs and `RingTracker.iq` in `bin/release/`.
-`debug` produces three PRGs with Demo scenarios and diagnostics. `test` builds a
-47 mm unit-test PRG, starts a headless simulator when needed, and fails unless
+`release` produces a signed PRG for each supported device and `RingTracker.iq`
+in `bin/release/`. `debug` produces a PRG for each device with Demo scenarios
+and diagnostics. `test` builds a 47 mm unit-test PRG, starts a headless
+simulator when needed, and fails unless
 the parsed summary has at least one pass and zero failures/errors.
 
 The release gate is run from a clean environment:
@@ -112,15 +115,12 @@ env -i HOME=$HOME PATH=/usr/bin:/bin bash -lc \
   'cd /path/to/garmin-bc && ./scripts/build.sh release && \
    ./scripts/build.sh debug && ./scripts/build.sh test'
 ./scripts/check-background-scope.sh
-./scripts/ci/check-version.sh v1.3.2
-./scripts/ci/check-release.sh bin/release
+./scripts/ci/check-version.sh
+(cd bin/release && sha256sum RingTracker-*.prg RingTracker.iq >SHA256SUMS && sha256sum --check SHA256SUMS)
 ```
 
-All compiler invocations enable warnings (`-w`); the final release, debug,
-and test builds produced no compiler warnings. The v1.3.2 suite passes 182
-tests on the 47 mm simulator; release builds cover all three supported device
-IDs. The suite covers schedule boundaries,
-DST gaps/folds, actual-event anchoring,
+All compiler invocations enable warnings (`-w`). The simulator suite covers
+schedule boundaries, DST gaps/folds, actual-event anchoring,
 temporary-out identity, reminder priority/deduplication, migrations, storage
 interruption and compaction, settings repair, phone/watch picker conversion,
 copy contracts, navigation helpers, all main countdown tiers, lists, glance
@@ -272,7 +272,8 @@ rollover year in the column header. History uses full-width selection bands and
 
 ## Release bundle
 
-After the clean build, copy the three PRGs and `RingTracker.iq` from
-`bin/release/` into `release/`, regenerate `release/SHA256SUMS`, and run
-`scripts/ci/check-release.sh bin/release`. `RingTracker.iq` is the Store package;
-users sideload only the PRG matching their device ID.
+After a release build, the signed PRGs and `RingTracker.iq` are in
+`bin/release/`. Generate `SHA256SUMS` there to verify downloads. CI publishes
+these files as build artifacts, and tagged releases attach them to GitHub
+Releases. `RingTracker.iq` is the Store package; users sideload only the PRG
+matching their device ID.

@@ -16,7 +16,7 @@ jobs:
   build-test:
     name: Build and test
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     steps:
       - name: Check out source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -60,7 +60,9 @@ jobs:
 
       - name: Run simulator tests
         id: tests
-        run: ./scripts/build.sh test
+        run: |
+          ./scripts/build.sh test epix2pro47mm
+          ./scripts/build.sh test fr255s
 
       - name: Upload simulator log
         if: failure() && steps.tests.outcome == 'failure'
@@ -84,36 +86,3 @@ jobs:
             bin/release/SHA256SUMS
           if-no-files-found: error
           retention-days: 30
-
-  release-bundle-current:
-    name: Tracked release is current
-    needs: build-test
-    runs-on: ubuntu-24.04
-    timeout-minutes: 20
-    steps:
-      - name: Check out source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-
-      - name: Restore Connect IQ toolchain
-        uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ~/.Garmin
-          key: ${{ runner.os }}-ciq-9.2.0-cd073d7-${{ hashFiles('scripts/ci/install-toolchain.sh') }}
-
-      - name: Install Connect IQ toolchain
-        run: ./scripts/ci/install-toolchain.sh
-
-      - name: Create disposable signing key
-        run: |
-          set -euo pipefail
-          umask 077
-          openssl genrsa -out "${RUNNER_TEMP}/developer_key.pem" 4096
-          openssl pkcs8 -topk8 -inform PEM -outform DER \
-            -in "${RUNNER_TEMP}/developer_key.pem" \
-            -out "${RUNNER_TEMP}/developer_key.der" -nocrypt
-          echo "CIQ_DEVELOPER_KEY=${RUNNER_TEMP}/developer_key.der" >>"${GITHUB_ENV}"
-
-      - name: Rebuild and compare tracked release
-        run: |
-          ./scripts/build.sh release
-          ./scripts/ci/check-release.sh bin/release

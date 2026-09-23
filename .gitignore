@@ -8,7 +8,6 @@ developer_key*.b64
 .vscode/
 sdk/
 
-# Keep generated build output private, but ship the curated release bundle.
-!release/
-!release/*.prg
+# Release packages are published as GitHub Release assets.
+release/
 scripts/remote-browser/

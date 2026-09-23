@@ -21,7 +21,7 @@ jobs:
   build:
     name: Build signed release
     runs-on: ubuntu-24.04
-    timeout-minutes: 35
+    timeout-minutes: 50
     permissions:
       contents: read
     env:
@@ -81,12 +81,11 @@ jobs:
           cd bin/release
           sha256sum RingTracker-*.prg RingTracker.iq >SHA256SUMS
 
-      - name: Check tracked release freshness
-        run: ./scripts/ci/check-release.sh bin/release
-
       - name: Run simulator tests
         id: tests
-        run: ./scripts/build.sh test
+        run: |
+          ./scripts/build.sh test epix2pro47mm
+          ./scripts/build.sh test fr255s
 
       - name: Upload simulator log
         if: failure() && steps.tests.outcome == 'failure'
@@ -148,8 +147,6 @@ jobs:
           body_path: release-assets/RELEASE_NOTES.md
           fail_on_unmatched_files: true
           files: |
-            release-assets/RingTracker-epix2pro42mm.prg
-            release-assets/RingTracker-epix2pro47mm.prg
-            release-assets/RingTracker-epix2pro51mm.prg
+            release-assets/RingTracker-*.prg
             release-assets/RingTracker.iq
             release-assets/SHA256SUMS

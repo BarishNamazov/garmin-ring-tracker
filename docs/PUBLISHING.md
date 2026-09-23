@@ -60,32 +60,34 @@ Delete the unencrypted `developer_key.der.b64` file after setting the secret. Ke
    ./scripts/ci/check-version.sh
    ```
 
-3. Rebuild the tracked convenience bundle with the permanent key. This keeps `release/` current for source checkouts and satisfies the CI freshness job:
+3. Build the release package with the permanent key:
+
+   The build exports one Store package and extracts the matching signed PRG for
+   each ID in `supported-devices.txt` from that package.
 
    ```bash
    CIQ_DEVELOPER_KEY="${HOME}/.Garmin/developer_key.der" ./scripts/build.sh release
-   cp bin/release/RingTracker-*.prg bin/release/RingTracker.iq release/
-   (cd release && sha256sum RingTracker-*.prg RingTracker.iq >SHA256SUMS)
-   ./scripts/ci/check-release.sh bin/release
+   (cd bin/release && sha256sum RingTracker-*.prg RingTracker.iq >SHA256SUMS)
    ```
 
-4. Commit the version, CHANGELOG, and refreshed `release/` files. Wait for CI to pass on that commit.
+4. Commit the version, CHANGELOG, and source changes. Wait for CI to pass on that commit.
 
-5. Tag that exact commit and push the tag. For version 1.3.2:
+5. Tag that exact commit with the version from `manifest.xml` and push the tag:
 
    ```bash
-   git tag v1.3.2
+   release_version="$(sed -n '/<iq:application/,/>/s/.*version="\([^"]*\)".*/\1/p' manifest.xml | head -n 1)"
+   git tag "v${release_version}"
    git push origin main
-   git push origin v1.3.2
+   git push origin "v${release_version}"
    ```
 
-The release workflow checks that the tag, manifest, About text, and top CHANGELOG entry all have the same version. It rebuilds and tests with the permanent key, then creates [a GitHub Release](https://github.com/BarishNamazov/garmin-ring-tracker/releases) containing three device-specific PRGs, `RingTracker.iq`, and `SHA256SUMS`. The matching CHANGELOG section becomes the release body. The workflow fails before publishing if the repository secret is missing or invalid.
+The release workflow checks that the tag, manifest, About text, and top CHANGELOG entry all have the same version. It rebuilds and tests with the permanent key, then creates [a GitHub Release](https://github.com/BarishNamazov/garmin-ring-tracker/releases) containing the device-specific PRGs, `RingTracker.iq`, and `SHA256SUMS`. The matching CHANGELOG section becomes the release body. The workflow fails before publishing if the repository secret is missing or invalid.
 
-The checked-in `release/RingTracker.iq` embeds paths from the computer that produced it in its debug maps. The `RingTracker.iq` attached to the GitHub Release is rebuilt on the GitHub runner and is the canonical Store-upload package. The tracked copy remains a convenience artifact and should not be submitted when the corresponding GitHub Release asset is available.
+Generated packages are kept out of Git. Use the `RingTracker.iq` attached to the GitHub Release for Store upload; it is rebuilt on the GitHub runner with the permanent signing key.
 
 ## Install a GitHub release
 
-Users download the `.prg` matching their 42, 47, or 51 mm epix Pro and verify it against `SHA256SUMS`. Link them to [INSTALL.md](INSTALL.md) for device identification, MTP transfer instructions, first-run setup, and troubleshooting. `RingTracker.iq` is not installed over USB.
+Users download the `.prg` matching their exact device ID and verify it against `SHA256SUMS`. Link them to [INSTALL.md](INSTALL.md) for device identification, MTP transfer instructions, first-run setup, and troubleshooting. `RingTracker.iq` is not installed over USB.
 
 ## Publish manually to the Connect IQ Store
 
@@ -106,7 +108,7 @@ Garmin beta links are account-bound; they are suitable for the submitting owner'
 
 For a public listing, complete the dashboard metadata and submit it for review. Garmin's [submission guide](https://developer.garmin.com/connect-iq/submit-an-app/) says the package is validated first, after which the owner supplies the description and screenshots; the app stays hidden while approval is pending. Before submission:
 
-- Confirm that the manifest lists exactly the three supported products and that each build was tested.
+- Confirm that the manifest matches `supported-devices.txt` and that representative displays, inputs, glances, and reminders were tested.
 - Provide an accurate description, support contact, category, compatible-device statement, and the health disclaimer. Do not imply Garmin endorsement.
 - Upload clear screenshots for the supported round displays. The native-resolution images under `docs/screenshots/` are the starting set.
 - Supply a 500 × 500 sRGB Store icon with 10 px of padding, a solid non-black/non-transparent background, no descriptive text, and no Garmin branding. These are Garmin's current [Connect IQ brand and Store-asset rules](https://developer.garmin.com/brand-guidelines/connect-iq/).
@@ -128,7 +130,7 @@ To update a pin:
 
 1. For the SDK, select the Linux filename from Garmin's public [`sdks.json`](https://developer.garmin.com/downloads/connect-iq/sdks/sdks.json), download it, calculate `sha256sum`, and update `sdk_version`, `sdk_archive`, and `sdk_sha256` in `scripts/ci/install-toolchain.sh`.
 2. For device definitions, inspect a fixed `blackshadev/garmin-connectiq-tools` commit, download its `devices.tar.gz`, calculate `sha256sum`, and update `device_commit` and `device_sha256`.
-3. If the device definitions reference different fonts, update the pinned tester image and `font_layer` digest. The installer derives the exact CFT/TTF allow-list from the three `simulator.json` files.
+3. If the device definitions reference different fonts, update the pinned tester image and `font_layer` digest. The installer derives the exact CFT/TTF allow-list from every selected `simulator.json` file.
 4. Update the readable SDK and commit components in both workflow cache keys.
 5. Run the installer in a new temporary home, then run release and simulator tests before pushing:
 

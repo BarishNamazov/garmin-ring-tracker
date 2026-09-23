@@ -1,13 +1,15 @@
-# Install and set up Ring Tracker on an epix Pro (Gen 2)
+# Install and set up Ring Tracker
 
-This guide is for the 42, 47, and 51 mm Garmin epix Pro (Gen 2). It explains how
-to install a device-specific `.prg` file without the Connect IQ Store, complete
-the first-run setup, add the glance, and troubleshoot reminders.
+This guide explains how to install a device-specific `.prg` file without the
+Connect IQ Store, complete the first-run setup, add the glance, and troubleshoot
+reminders. The USB examples and identification table use epix Pro (Gen 2);
+menus and USB access can differ on other supported watches.
 
 > **Health disclaimer:** Ring Tracker records dates and shows reminders. It does
 > not determine whether contraception is effective and is not a substitute for
 > the product label or advice from a qualified clinician. Read the in-app
-> safety text before use. Ring Tracker is for NuvaRing only. See [the
+> safety text before use. Ring Tracker supports NuvaRing and equivalent monthly
+> rings, including EluRyng. Annovera is not supported. See [the
 > regimen and source notes](REGIMEN.md).
 
 Information and menu names were checked on 17 September 2026. Garmin sometimes
@@ -38,7 +40,9 @@ not need mobile App Settings.
 ## Before installing: choose the exact build
 
 A `.prg` is compiled for one Connect IQ product. Renaming it does not make it
-compatible with another model or size. Use this table:
+compatible with another model or size. Match the device ID in the release
+filename to [the supported device list](../supported-devices.txt). For epix Pro,
+use this table:
 
 | Watch | Connect IQ device ID | Display | Internal part number |
 | --- | --- | ---: | --- |
@@ -50,7 +54,8 @@ Garmin publishes separate product definitions for the
 [42 mm](https://developer.garmin.com/connect-iq/device-reference/epix2pro42mm/),
 [47 mm](https://developer.garmin.com/connect-iq/device-reference/epix2pro47mm/),
 and [51 mm](https://developer.garmin.com/connect-iq/device-reference/epix2pro51mm/)
-models. The non-Pro epix (Gen 2), fēnix, and other watches are different targets.
+models. The non-Pro epix (Gen 2), fēnix, and other watches require their own
+matching build.
 
 To identify the size, check the product name on the original order or box, or
 measure the case across its body, excluding the buttons. Garmin sold the Pro in
@@ -254,7 +259,7 @@ a qualified clinician.
 1. **Read the safety text.** Scroll through it, then choose **I understand**. The
    app will not start reminders before that acknowledgement.
 2. **Confirm the schedule.** The default is 21 days in and 7 days out for
-   NuvaRing. Change it only to match instructions from a clinician.
+   supported monthly rings. Change it only to match instructions from a clinician.
 3. **Set the insertion time.** Choose **Insert now** only if it just happened.
    Otherwise choose **Choose date & time**. Select day, short month, and year,
    then select the hour and minute in separate columns. In 12-hour mode, select
@@ -442,7 +447,7 @@ removal, even though it cannot edit a sideload's settings. See the
    into the existing internal-storage `GARMIN/APPS` directory.
 2. Wait for verification to finish, then press **START** and inspect the full
    Activities & Apps list. A glance is not added automatically.
-3. Confirm that the PRG was built for the exact 42, 47, or 51 mm device ID.
+3. Confirm that the PRG was built for the watch's exact device ID.
 4. Update the watch firmware and ask the developer for a rebuild using a current
    SDK. Developers report that newer firmware can reject PRGs made with obsolete
    SDK/device definitions; see this
@@ -458,8 +463,8 @@ FAQ](https://forums.garmin.com/developer/connect-iq/w/wiki/4/new-developer-faq).
 
 ### The watch reports that the app is not compatible
 
-- Verify that the watch is **epix Pro (Gen 2)**, not epix (Gen 2), and match its
-  case size to the device-ID table above.
+- Verify that the watch's exact device ID is in
+  [`supported-devices.txt`](../supported-devices.txt) and matches the PRG filename.
 - Request the correct build. A 47 mm PRG cannot be repaired for a 42 or 51 mm
   watch by changing its filename.
 - Update watch firmware and retry a PRG built with current device definitions.
@@ -515,6 +520,7 @@ best-effort and is not suitable as the sole safeguard for a medical schedule.
 ## Developer: build it yourself
 
 Developers can build a signed PRG for each exact target with the repository's
-documented Connect IQ SDK setup. Follow [TOOLCHAIN.md](TOOLCHAIN.md), select one
-of `epix2pro42mm`, `epix2pro47mm`, or `epix2pro51mm`, and give the owner only the
-matching `.prg`. Keep the developer private key private, and do not commit it.
+documented Connect IQ SDK setup. Follow [TOOLCHAIN.md](TOOLCHAIN.md), select an
+exact ID from [`supported-devices.txt`](../supported-devices.txt), and give the
+owner only the matching `.prg`. Keep the developer private key private, and do
+not commit it.
