@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Generate docs/readme-hero.svg. Render with:
-    rsvg-convert -w 1600 -h 640 docs/readme-hero.svg -o docs/readme-hero.png
+    rsvg-convert -w 1440 -h 720 docs/readme-hero.svg -o docs/readme-hero.png
 Requires the Inter font."""
 import math
-W, H = 1600, 640
-cx, cy = 1170, 320
+W, H = 1440, 720
+cx, cy = 1030, 360
 R_CASE, R_BEZEL_IN, R_SCREEN, R_ARC, ARC_W = 272, 244, 236, 222, 15
 
 def pt(r, deg):
@@ -62,11 +62,11 @@ svg = f'''<svg xmlns="http://www.w3.org/2000/svg" width="{W}" height="{H}" viewB
   <rect width="{W}" height="{H}" fill="url(#glowP)"/>
 
   <g font-family="Inter">
-    <text x="100" y="296" font-size="98" font-weight="700" letter-spacing="-2.5" fill="#F4F7F8">Ring Tracker</text>
-    <text x="104" y="360" font-size="33" font-weight="400" fill="#9AA6AD">Your NuvaRing schedule, on your wrist.</text>
+    <text x="90" y="336" font-size="98" font-weight="700" letter-spacing="-2.5" fill="#F4F7F8">Ring Tracker</text>
+    <text x="94" y="400" font-size="33" font-weight="400" fill="#9AA6AD">Your NuvaRing schedule, on your wrist.</text>
     <g font-size="22" font-weight="500" fill="#B2BAC1">
-      <circle cx="113" cy="432" r="8" fill="#38D6A0"/><text x="132" y="440">Ring in · 3 weeks</text>
-      <circle cx="351" cy="432" r="8" fill="#A690FF"/><text x="370" y="440">Ring-free · 1 week</text>
+      <circle cx="103" cy="472" r="8" fill="#38D6A0"/><text x="122" y="480">Ring in · 3 weeks</text>
+      <circle cx="341" cy="472" r="8" fill="#A690FF"/><text x="360" y="480">Ring-free · 1 week</text>
     </g>
   </g>
 
