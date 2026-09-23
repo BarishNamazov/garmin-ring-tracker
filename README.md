@@ -2,6 +2,8 @@
 
 [![CI](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml)
 
+![Abstract ring schedule in teal and violet](docs/readme-hero.png)
+
 Track your NuvaRing schedule on your Garmin watch. See when to insert or remove your ring, record what happened, and get reminders.
 
 **Currently supported watches:** epix Pro (Gen 2) in 42, 47, and 51 mm.
