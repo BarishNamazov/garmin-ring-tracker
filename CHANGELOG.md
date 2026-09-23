@@ -16,6 +16,8 @@ All notable changes to Ring Tracker are documented in this file.
 
 - Made the glance use the device's own content area and tighter spacing on
   small MIP displays.
+- Updated the README, Store listing draft, and watch text to describe birth
+  control rings while clarifying support for equivalent monthly rings.
 
 ### Verification
 
