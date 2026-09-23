@@ -1,0 +1,68 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="640" viewBox="0 0 1600 640">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0B1119"/><stop offset="1" stop-color="#05070B"/>
+    </linearGradient>
+    <radialGradient id="glowG" cx="1110" cy="360" r="420" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#38D6A0" stop-opacity="0.22"/><stop offset="1" stop-color="#38D6A0" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="glowP" cx="1030" cy="150" r="300" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#A690FF" stop-opacity="0.20"/><stop offset="1" stop-color="#A690FF" stop-opacity="0"/>
+    </radialGradient>
+    <linearGradient id="case" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#5A6168"/><stop offset="0.45" stop-color="#2A2F34"/><stop offset="1" stop-color="#121518"/>
+    </linearGradient>
+    <linearGradient id="bezel" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#23272B"/><stop offset="1" stop-color="#15181B"/>
+    </linearGradient>
+    <linearGradient id="strap" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#15191D"/><stop offset="0.5" stop-color="#262B30"/><stop offset="1" stop-color="#15191D"/>
+    </linearGradient>
+    <linearGradient id="btn" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#6A727A"/><stop offset="1" stop-color="#2A2F34"/>
+    </linearGradient>
+    <filter id="shadow" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="22" flood-color="#000" flood-opacity="0.65"/>
+    </filter>
+  </defs>
+
+  <rect width="1600" height="640" fill="url(#bg)"/>
+  <rect width="1600" height="640" fill="url(#glowG)"/>
+  <rect width="1600" height="640" fill="url(#glowP)"/>
+
+  <g font-family="Inter">
+    <text x="100" y="296" font-size="98" font-weight="700" letter-spacing="-2.5" fill="#F4F7F8">Ring Tracker</text>
+    <text x="104" y="360" font-size="33" font-weight="400" fill="#9AA6AD">Your NuvaRing schedule, on your wrist.</text>
+    <g font-size="22" font-weight="500" fill="#B2BAC1">
+      <circle cx="113" cy="432" r="8" fill="#38D6A0"/><text x="132" y="440">Ring in · 3 weeks</text>
+      <circle cx="351" cy="432" r="8" fill="#A690FF"/><text x="370" y="440">Ring-free · 1 week</text>
+    </g>
+  </g>
+
+  <g filter="url(#shadow)">
+    <path d="M1050,-20 L1290,-20 L1305,120 L1035,120 Z" fill="url(#strap)"/>
+    <path d="M1035,520 L1305,520 L1290,660 L1050,660 Z" fill="url(#strap)"/>
+    <rect x="1401.0" y="160.0" width="16" height="44" rx="5" fill="url(#btn)" transform="rotate(-30.0 1409.0 182.0)"/><rect x="1401.0" y="436.0" width="16" height="44" rx="5" fill="url(#btn)" transform="rotate(30.0 1409.0 458.0)"/><rect x="923.0" y="160.0" width="16" height="44" rx="5" fill="url(#btn)" transform="rotate(30.0 931.0 182.0)"/><rect x="886.0" y="298.0" width="16" height="44" rx="5" fill="url(#btn)" transform="rotate(0.0 894.0 320.0)"/><rect x="923.0" y="436.0" width="16" height="44" rx="5" fill="url(#btn)" transform="rotate(-30.0 931.0 458.0)"/>
+    <circle cx="1170" cy="320" r="278" fill="url(#case)"/>
+    <circle cx="1170" cy="320" r="272" fill="url(#bezel)"/>
+  </g>
+  <line x1="1170.0" y1="54.0" x2="1170.0" y2="68.0" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1197.8" y1="55.5" x2="1197.2" y2="61.4" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1225.3" y1="59.8" x2="1224.1" y2="65.7" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1252.2" y1="67.0" x2="1250.3" y2="72.7" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1278.2" y1="77.0" x2="1275.8" y2="82.5" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1303.0" y1="89.6" x2="1296.0" y2="101.8" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1326.4" y1="104.8" x2="1322.8" y2="109.7" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1348.0" y1="122.3" x2="1344.0" y2="126.8" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1367.7" y1="142.0" x2="1363.2" y2="146.0" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1385.2" y1="163.6" x2="1380.3" y2="167.2" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1400.4" y1="187.0" x2="1388.2" y2="194.0" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1413.0" y1="211.8" x2="1407.5" y2="214.2" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1423.0" y1="237.8" x2="1417.3" y2="239.7" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1430.2" y1="264.7" x2="1424.3" y2="265.9" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1434.5" y1="292.2" x2="1428.6" y2="292.8" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1436.0" y1="320.0" x2="1422.0" y2="320.0" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1434.5" y1="347.8" x2="1428.6" y2="347.2" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1430.2" y1="375.3" x2="1424.3" y2="374.1" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1423.0" y1="402.2" x2="1417.3" y2="400.3" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1413.0" y1="428.2" x2="1407.5" y2="425.8" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1400.4" y1="453.0" x2="1388.2" y2="446.0" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1385.2" y1="476.4" x2="1380.3" y2="472.8" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1367.7" y1="498.0" x2="1363.2" y2="494.0" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1348.0" y1="517.7" x2="1344.0" y2="513.2" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1326.4" y1="535.2" x2="1322.8" y2="530.3" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1303.0" y1="550.4" x2="1296.0" y2="538.2" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1278.2" y1="563.0" x2="1275.8" y2="557.5" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1252.2" y1="573.0" x2="1250.3" y2="567.3" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1225.3" y1="580.2" x2="1224.1" y2="574.3" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1197.8" y1="584.5" x2="1197.2" y2="578.6" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1170.0" y1="586.0" x2="1170.0" y2="572.0" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1142.2" y1="584.5" x2="1142.8" y2="578.6" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1114.7" y1="580.2" x2="1115.9" y2="574.3" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1087.8" y1="573.0" x2="1089.7" y2="567.3" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1061.8" y1="563.0" x2="1064.2" y2="557.5" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1037.0" y1="550.4" x2="1044.0" y2="538.2" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1013.6" y1="535.2" x2="1017.2" y2="530.3" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="992.0" y1="517.7" x2="996.0" y2="513.2" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="972.3" y1="498.0" x2="976.8" y2="494.0" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="954.8" y1="476.4" x2="959.7" y2="472.8" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="939.6" y1="453.0" x2="951.8" y2="446.0" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="927.0" y1="428.2" x2="932.5" y2="425.8" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="917.0" y1="402.2" x2="922.7" y2="400.3" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="909.8" y1="375.3" x2="915.7" y2="374.1" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="905.5" y1="347.8" x2="911.4" y2="347.2" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="904.0" y1="320.0" x2="918.0" y2="320.0" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="905.5" y1="292.2" x2="911.4" y2="292.8" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="909.8" y1="264.7" x2="915.7" y2="265.9" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="917.0" y1="237.8" x2="922.7" y2="239.7" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="927.0" y1="211.8" x2="932.5" y2="214.2" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="939.6" y1="187.0" x2="951.8" y2="194.0" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="954.8" y1="163.6" x2="959.7" y2="167.2" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="972.3" y1="142.0" x2="976.8" y2="146.0" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="992.0" y1="122.3" x2="996.0" y2="126.8" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1013.6" y1="104.8" x2="1017.2" y2="109.7" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1037.0" y1="89.6" x2="1044.0" y2="101.8" stroke="#8a939b" stroke-width="3" stroke-linecap="round"/><line x1="1061.8" y1="77.0" x2="1064.2" y2="82.5" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1087.8" y1="67.0" x2="1089.7" y2="72.7" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1114.7" y1="59.8" x2="1115.9" y2="65.7" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/><line x1="1142.2" y1="55.5" x2="1142.8" y2="61.4" stroke="#4a5157" stroke-width="1.5" stroke-linecap="round"/>
+  <circle cx="1170" cy="320" r="244" fill="#07090B"/>
+  <circle cx="1170" cy="320" r="236" fill="#000"/>
+
+  <g fill="none" stroke-width="15">
+    <path d="M1170.00,98.00 A222,222 0 0 1 1343.57,181.59" stroke="#196047"/>
+    <path d="M1343.57,181.59 A222,222 0 1 1 948.00,320.00" stroke="#38D6A0"/>
+    <path d="M948.00,320.00 A222,222 0 0 1 1170.00,98.00" stroke="#645699"/>
+  </g>
+  <circle cx="1343.57" cy="181.59" r="10" fill="#F4F7F8" stroke="#000" stroke-width="3"/>
+
+  <g font-family="Inter" text-anchor="middle">
+    <text x="1170" y="228" font-size="37" font-weight="700" letter-spacing="1.5" fill="#38D6A0">RING IN</text>
+    <text x="1162" y="362" font-size="150" font-weight="600" letter-spacing="-4" fill="#F4F7F8">17<tspan dx="10" font-size="48" font-weight="700">d</tspan></text>
+    <text x="1170" y="420" font-size="34" font-weight="600" fill="#9AA6AD">Remove · <tspan fill="#F4F7F8">4 Oct</tspan></text>
+    <text x="1170" y="460" font-size="34" font-weight="600" fill="#F4F7F8">12:26 PM</text>
+  </g>
+
+  <circle cx="1170" cy="320" r="236" fill="none" stroke="#fff" stroke-opacity="0.05" stroke-width="2"/>
+</svg>

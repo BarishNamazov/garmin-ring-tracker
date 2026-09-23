@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml/badge.svg)](https://github.com/BarishNamazov/garmin-ring-tracker/actions/workflows/ci.yml)
 
-![Abstract ring schedule in teal and violet](docs/readme-hero.png)
+![Ring Tracker on a Garmin watch face showing a 17-day ring-in countdown](docs/readme-hero.png)
 
 Track your NuvaRing schedule on your Garmin watch. See when to insert or remove your ring, record what happened, and get reminders.
 
