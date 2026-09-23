@@ -6,8 +6,6 @@ ciq_root="${HOME}/.Garmin/ConnectIQ"
 if [[ -z "${JAVA_HOME:-}" ]]; then
     if [[ -x "${ciq_root}/Jdks/temurin-17/bin/java" ]]; then
         JAVA_HOME="${ciq_root}/Jdks/temurin-17"
-    elif [[ -x "${HOME}/.local/jdks/temurin-17/bin/java" ]]; then
-        JAVA_HOME="${HOME}/.local/jdks/temurin-17"
     elif command -v java >/dev/null 2>&1; then
         java_binary="$(readlink -f "$(command -v java)")"
         JAVA_HOME="$(cd "$(dirname "${java_binary}")/.." && pwd)"
@@ -22,19 +20,8 @@ export CIQ_SDK_HOME="${CIQ_SDK_HOME:-$(< "${ciq_root}/current-sdk.cfg")}"
 export CIQ_DEVICE_HOME="${CIQ_DEVICE_HOME:-${ciq_root}/Devices}"
 export CIQ_DEVELOPER_KEY="${CIQ_DEVELOPER_KEY:-${HOME}/.Garmin/developer_key.der}"
 
-# The installer keeps legacy simulator libraries under the cacheable Connect IQ
-# tree. Fall back to the older user-local layout for existing developer setups.
-if [[ -z "${CIQ_SIM_RUNTIME:-}" ]]; then
-    if [[ -d "${ciq_root}/Runtime" ]]; then
-        CIQ_SIM_RUNTIME="${ciq_root}/Runtime"
-        ciq_patched_bin="${ciq_root}/Runtime-patched-bin"
-    else
-        CIQ_SIM_RUNTIME="${HOME}/.local/opt/ciq-runtime"
-        ciq_patched_bin="${HOME}/.local/opt/ciq-runtime-patched-bin"
-    fi
-else
-    ciq_patched_bin="${CIQ_SIM_RUNTIME}-patched-bin"
-fi
+CIQ_SIM_RUNTIME="${CIQ_SIM_RUNTIME:-${ciq_root}/Runtime}"
+ciq_patched_bin="${CIQ_SIM_RUNTIME}-patched-bin"
 export CIQ_SIM_RUNTIME
 export PATH="${ciq_patched_bin}:${CIQ_SIM_RUNTIME}/usr/bin:${JAVA_HOME}/bin:${CIQ_SDK_HOME}/bin:${PATH}"
 export LD_LIBRARY_PATH="${CIQ_SIM_RUNTIME}/usr/lib/x86_64-linux-gnu${LD_LIBRARY_PATH:+:${LD_LIBRARY_PATH}}"
