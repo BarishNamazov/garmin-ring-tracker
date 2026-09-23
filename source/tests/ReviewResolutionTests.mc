@@ -104,6 +104,43 @@ function revisionedRecordsShareCanonicalCommit(logger as Test.Logger) as Boolean
 }
 
 (:test)
+function backgroundMirrorDriftCannotChangeReminderSchedule(logger as Test.Logger) as Boolean {
+    clearReviewStorage();
+    var state = ScheduleModel.defaultState();
+    ScheduleModel.insertOrReplace(state, testWall(2026, 9, 1, 9, 0));
+    Test.assert(RingStore.save(state));
+    var canonical = Storage.getValue(RingStore.STATE_KEY) as Lang.Array;
+    var mirror = Storage.getValue(RingStore.BACKGROUND_KEY) as Lang.Array;
+    Test.assert(BackgroundRuntime.matchesCanonical(mirror, canonical));
+
+    // Keep the revision and shape valid while moving the due time earlier.
+    var compact = mirror[2] as Lang.Array;
+    compact[3] = compact[1] + 3600;
+    compact[9] = compact[3];
+    var driftedLedger = mirror[6] as Lang.Array;
+    driftedLedger[3] = true;
+    Test.assert(BackgroundRuntime.valid(mirror));
+    Storage.setValue(RingStore.BACKGROUND_KEY, mirror);
+    Test.assert(BackgroundRuntime.load() == null);
+
+    var loaded = RingStore.load();
+    var repaired = Storage.getValue(RingStore.BACKGROUND_KEY) as Lang.Array;
+    Test.assert(BackgroundRuntime.matchesCanonical(repaired, canonical));
+    Test.assertEqual((loaded[:active] as Lang.Dictionary)[:removeDueUtc],
+        (repaired[2] as Lang.Array)[3]);
+    Test.assert(!(loaded[:reminderLedger] as Lang.Dictionary)[:dayOf1Sent]);
+
+    // A legitimate background ledger update survives foreground repair.
+    var updatedLedger = repaired[6] as Lang.Array;
+    updatedLedger[3] = true;
+    Storage.setValue(RingStore.BACKGROUND_KEY, repaired);
+    var merged = RingStore.load();
+    Test.assert((merged[:reminderLedger] as Lang.Dictionary)[:dayOf1Sent]);
+    clearReviewStorage();
+    return true;
+}
+
+(:test)
 function settingsConfigurationMirrorIsDurablyPending(logger as Test.Logger) as Boolean {
     clearReviewStorage();
     var state = ScheduleModel.defaultState();

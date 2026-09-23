@@ -2,6 +2,26 @@
 
 All notable changes to Ring Tracker are documented in this file.
 
+## [1.3.2] - 2026-09-23
+
+### Fixed
+
+- Made the glance's remaining day count agree with the main countdown when a
+  partial day remains.
+- Prevented an altered background reminder mirror from changing the schedule
+  used for notifications. The app now repairs a mismatched mirror from saved
+  schedule data while preserving legitimate reminder history.
+
+### Changed
+
+- Simplified the README's installation and everyday-use guidance.
+
+### Verification
+
+- All 182 simulator tests pass on the epix Pro 47 mm target, including new
+  coverage for glance day counts and background mirror repair.
+- Release builds complete for the 42, 47, and 51 mm targets.
+
 ## [1.3.1] - 2026-09-19
 
 ### Fixed

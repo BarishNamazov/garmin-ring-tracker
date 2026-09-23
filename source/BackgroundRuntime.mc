@@ -21,9 +21,9 @@ module BackgroundRuntime {
                 return null;
             }
             var state = Storage.getValue("ringTrackerState");
-            if (!(state instanceof Lang.Array) || (state as Lang.Array).size() < 10
-                || (state as Lang.Array)[0] != 3 || (state as Lang.Array)[9] != (raw as Lang.Array)[1]) {
-                markMirrorError("background revision mismatch");
+            if (!(state instanceof Lang.Array)
+                || !matchesCanonical(raw as Lang.Array, state as Lang.Array)) {
+                markMirrorError("background canonical mismatch");
                 return null;
             }
             return raw as Lang.Array;
@@ -93,6 +93,43 @@ module BackgroundRuntime {
 
     function nullableNonnegative(value) as Lang.Boolean {
         return value == null || nonnegative(value);
+    }
+
+    // Compare the compact scheduling fields to canonical storage. Ledger [6]
+    // is intentionally excluded because this service updates it between
+    // foreground saves without changing the canonical revision.
+    function matchesCanonical(mirror as Lang.Array, canonical as Lang.Array) as Lang.Boolean {
+        if (canonical.size() < 10 || canonical[0] != 3 || canonical[9] != mirror[1]
+            || !(canonical[4] instanceof Lang.Array) || !(canonical[5] instanceof Lang.Array)
+            || (canonical[4] as Lang.Array).size() != 2
+            || (canonical[5] as Lang.Array).size() != 10) { return false; }
+        var regimen = canonical[4] as Lang.Array;
+        var reminders = canonical[5] as Lang.Array;
+        if (mirror[3] != regimen[0] || mirror[4] != regimen[1]) { return false; }
+        for (var i = 0; i < reminders.size(); i += 1) {
+            if ((mirror[5] as Lang.Array)[i] != reminders[i]) { return false; }
+        }
+        if (canonical[3] == null) { return mirror[2] == null; }
+        if (!(canonical[3] instanceof Lang.Array) || !(mirror[2] instanceof Lang.Array)
+            || (canonical[3] as Lang.Array).size() != 15) { return false; }
+        var active = canonical[3] as Lang.Array;
+        var compact = mirror[2] as Lang.Array;
+        if (!(active[13] instanceof Lang.Array)) { return false; }
+        var intervals = active[13] as Lang.Array;
+        var openOut = null;
+        if (intervals.size() > 0) {
+            var last = intervals[intervals.size() - 1];
+            if (!(last instanceof Lang.Array) || (last as Lang.Array).size() != 5) { return false; }
+            if ((last as Lang.Array)[1] == null) { openOut = (last as Lang.Array)[0]; }
+        }
+        var removed = active[5] != null;
+        var action = removed ? 1 : (regimen[1] == 0 ? 2 : 0);
+        var deadline = removed ? active[9] : active[7];
+        return compact[0] == active[0] && compact[1] == active[1]
+            && compact[2] == active[5] && compact[3] == active[7]
+            && compact[4] == active[9] && compact[5] == active[10]
+            && compact[6] == active[11] && compact[7] == openOut
+            && compact[8] == action && compact[9] == deadline;
     }
 
     function evaluate(nowUtc as Lang.Number, state as Lang.Array) as Lang.Array? {

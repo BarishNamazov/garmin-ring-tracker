@@ -180,7 +180,8 @@ class RingGlanceView extends WatchUi.GlanceView {
     function durationText(seconds as Lang.Number) as Lang.String {
         if (seconds < 0) { seconds = -seconds; }
         if (seconds >= 86400) {
-            var days = (seconds + 86399) / 86400;
+            // Show full days remaining, matching the main countdown.
+            var days = seconds / 86400;
             return days.toString() + gs(days == 1
                 ? Rez.Strings.GlanceOneDaySuffix : Rez.Strings.GlanceDaysSuffix);
         }

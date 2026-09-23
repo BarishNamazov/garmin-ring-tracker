@@ -12,6 +12,24 @@ function uxDGlanceUsesLongReadableUnits(logger as Test.Logger) as Boolean {
 }
 
 (:test)
+function uxDGlanceDaysMatchMainCountdown(logger as Test.Logger) as Boolean {
+    var glance = new RingGlanceView();
+    var remaining = [86400, 86401, (2 * 86400) - 1, 2 * 86400,
+        12 * 86400, (12 * 86400) + (6 * 3600), (13 * 86400) - 1,
+        13 * 86400];
+    var expectedDays = [1, 1, 1, 2, 12, 12, 12, 13];
+    for (var i = 0; i < remaining.size(); i += 1) {
+        var days = expectedDays[i];
+        var expected = days.toString() + (days == 1 ? " day" : " days");
+        Test.assertEqual(expected, glance.durationText(remaining[i]));
+        var mainGroups = Ui.mainCountdownGroups(remaining[i]);
+        var mainDays = mainGroups[0] as Lang.Array;
+        Test.assertEqual(days.toString(), mainDays[0]);
+    }
+    return true;
+}
+
+(:test)
 function uxDGlanceTemporaryCopyShowsWindowDirection(logger as Test.Logger) as Boolean {
     var glance = new RingGlanceView();
     Test.assertEqual("2 h 50 min", glance.temporaryText((2 * 3600) + (50 * 60)));

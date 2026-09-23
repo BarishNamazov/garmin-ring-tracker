@@ -1,6 +1,6 @@
-# Upload Ring Tracker 1.3.0 to Garmin
+# Upload Ring Tracker 1.3.2 to Garmin
 
-Use the signed package from the [v1.3.0 GitHub Release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/tag/v1.3.0) to update the existing Ring Tracker listing. This page covers the production update; Garmin submission and physical-watch verification remain manual.
+Use the signed package from the [v1.3.2 GitHub Release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/tag/v1.3.2) to update the existing Ring Tracker listing. Garmin submission and physical-watch verification remain manual.
 
 ## Files to prepare
 
@@ -8,7 +8,7 @@ Use the signed package from the [v1.3.0 GitHub Release](https://github.com/Baris
 | --- | --- |
 | `RingTracker.iq` | Upload this package to Garmin; it contains all supported device builds |
 | `SHA256SUMS` | Verify the downloaded package before upload |
-| `StoreAssets-v1.3.0.zip` | Updated icon, screenshots, description, and What's New text |
+| [listing.md](listing.md) | Description and 1.3.2 What's New text |
 
 Download the files attached to the release. The repository's `release/` directory is a local convenience build; use the GitHub release package for submission. The device-specific `.prg` files are for USB sideloading, not Store upload.
 
@@ -24,9 +24,9 @@ Compare the result with the `RingTracker.iq` line in the downloaded `SHA256SUMS`
 
 1. Sign in to the [Connect IQ developer dashboard](https://apps-developer.garmin.com/en-US/developer/dashboard) with the account that owns Ring Tracker.
 2. Open the existing listing, Store app ID `5347b9a1-5dd1-4e0a-93bd-b5dcf2a1ef4f`, and select its update/upload-version action. Keep the existing production listing and application identity.
-3. Upload `RingTracker.iq` and enter version **1.3.0**. Wait for package validation.
-4. Paste `whats-new.txt` from the asset archive into What's New. The same copy is in [listing.md](listing.md). Refresh the description from `description.txt` if needed.
-5. Replace the screenshots with `01-main-ring-in.png` through `05-ring-out.png`, in that order. Screenshots `06`–`08` are alternatives. `icon-500.png` is the updated cover/app icon.
+3. Upload `RingTracker.iq` and enter version **1.3.2**. Wait for package validation.
+4. Paste the What's New text from [listing.md](listing.md). Refresh the description from the same file if needed.
+5. Keep the existing screenshots and icon. Their source files are in [screenshots/](screenshots/) and [icon-500.png](icon-500.png) if a refresh is needed.
 6. Keep the existing support details and category. The app still uses local storage and declares Background and Notifications permissions, with no network permission; its data-collection answer remains **No**.
 7. Preview the version, copy, image order, and compatibility list, then submit the update.
 8. Install the pending version on a supported watch. Check existing schedule/history preservation, Main, Upcoming, History, glance, on-watch and phone settings, and notification delivery. Local and CI simulator checks do not replace this hardware check.
