@@ -303,7 +303,7 @@ Clinician advice only</string>
     <string id="TextAboutTitle">About</string>
     <string id="TextProductVersion">Ring Tracker 1.4.0</string>
     <string id="TextAboutDisclaimer">Reminders only · Not medical advice</string>
-    <string id="TextAboutScope">NuvaRing and equivalent monthly rings. Not Annovera.</string>
+    <string id="TextAboutScope">For monthly rings with these timing rules. Not Annovera.</string>
     <string id="TextDone">Done</string>
     <string id="TextMigrationTitle">Dates updated</string>
     <string id="TextMigrationBody">Your schedule now follows the dates you actually inserted and removed the ring. Review them under Correct dates.</string>
@@ -312,7 +312,7 @@ Clinician advice only</string>
     <string id="TextDueDate">Due $1$</string>
     <string id="TextBackupDirective">Use backup 7 days</string>
     <string id="ProductVersion">Ring Tracker 1.4.0</string>
-    <string id="SupportedScope">NuvaRing and equivalent monthly rings</string>
+    <string id="SupportedScope">Monthly rings with these timing rules</string>
     <string id="ReminderLimit">Reminders can be delayed · Keep another reminder</string>
     <string id="Privacy">Data stays on your watch · Garmin App Settings syncs configuration</string>
     <string id="SourcesTitle">Sources</string>

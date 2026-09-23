@@ -291,7 +291,7 @@ function copyAndFormattingContractsMatchRegimen(logger as Test.Logger) as Boolea
         Ui.s(Rez.Strings.TextFirstRunBody));
     Test.assertEqual("Reminders only · Not medical advice",
         Ui.s(Rez.Strings.TextAboutDisclaimer));
-    Test.assertEqual("NuvaRing and equivalent monthly rings. Not Annovera.",
+    Test.assertEqual("For monthly rings with these timing rules. Not Annovera.",
         Ui.s(Rez.Strings.TextAboutScope));
     Test.assertEqual("Your schedule now follows the dates you actually inserted and removed the ring. Review them under Correct dates.",
         Ui.s(Rez.Strings.TextMigrationBody));
