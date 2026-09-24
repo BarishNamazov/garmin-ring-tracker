@@ -11,8 +11,7 @@ Works with NuvaRing and equivalent monthly rings, including EluRyng. Annovera ha
 **Device support in this source:** 55 round Connect IQ 5.1+ watches, including
 recent Approach, D2, Descent, Enduro, epix, fēnix, Forerunner, Instinct AMOLED,
 MARQ, Venu, and vívoactive models. See the exact IDs in
-[supported-devices.txt](supported-devices.txt). The published Store version may
-still list only the three epix Pro sizes until the new package is submitted.
+[supported-devices.txt](supported-devices.txt).
 
 [Install from the Connect IQ Store](https://apps.garmin.com/apps/5347b9a1-5dd1-4e0a-93bd-b5dcf2a1ef4f) · [Latest GitHub release](https://github.com/BarishNamazov/garmin-ring-tracker/releases/latest)
 
