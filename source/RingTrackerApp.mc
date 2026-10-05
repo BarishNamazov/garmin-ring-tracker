@@ -7,6 +7,7 @@ import Toybox.Time;
 import Toybox.Timer;
 import Toybox.WatchUi;
 
+(:background)
 class RingTrackerApp extends Application.AppBase {
     private var _startupState as Lang.Dictionary?;
 
@@ -16,6 +17,10 @@ class RingTrackerApp extends Application.AppBase {
     }
 
     function onStart(state as Lang.Dictionary?) as Void { _startupState = state; }
+    (:background)
+    function onAppInstall() as Void { BackgroundRegistration.ensureHourly(); }
+    (:background)
+    function onAppUpdate() as Void { BackgroundRegistration.ensureHourly(); }
     (:typecheck(disableBackgroundCheck))
     function getInitialView() { return [new ForegroundEntryView(_startupState)]; }
     (:typecheck(disableBackgroundCheck))
@@ -165,12 +170,7 @@ class ForegroundController {
     }
 
     function registerBackground() as Void {
-        try {
-            Background.registerForTemporalEvent(new Time.Duration(60 * 60));
-            _backgroundWarning = false;
-        } catch (ex) {
-            _backgroundWarning = true;
-        }
+        _backgroundWarning = !BackgroundRegistration.ensureHourly();
     }
 
     function getState() as Lang.Dictionary { return _state; }

@@ -27,7 +27,10 @@ function afterOptionalSeed(action as Lang.Symbol, data) as Void { }
 function reportOptionalServiceMemory() as Void { }
 
 (:production, :background)
-function showOptionalNotification(title as Lang.String, subtitle as Lang.String, options) as Void {
+function optionalServiceStage(stage as Lang.Number) as Void { }
+
+(:production, :background)
+function showOptionalNotification(title as Lang.String, subtitle as Lang.String, options as Lang.Dictionary) as Void {
     Toybox.Notifications.showNotification(title, subtitle, options);
 }
 

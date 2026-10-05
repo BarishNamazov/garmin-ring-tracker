@@ -145,12 +145,39 @@ function afterOptionalSeed(action as Lang.Symbol, data) as Void {
     Storage.setValue("debugBackgroundScenario", scenario.toString());
     Storage.deleteValue("debugBackgroundResult");
     Storage.deleteValue("debugBackgroundThrow");
+    Storage.deleteValue("debugBackgroundIconThrow");
+    Storage.deleteValue("debugBackgroundFailStage");
+    Storage.deleteValue("debugBackgroundNotifyStub");
+    Storage.deleteValue("debugBackgroundNotifyCalls");
+    Storage.deleteValue("debugBackgroundNotifyIcon");
+    Storage.deleteValue("debugBackgroundNotifyDismiss");
+    Storage.deleteValue(BackgroundStatus.TEST_KEY);
     if (scenario == :backgroundNil) {
         Storage.deleteValue(RingStore.BACKGROUND_KEY);
     } else if (scenario == :backgroundCorrupt) {
         Storage.setValue(RingStore.BACKGROUND_KEY, ["corrupt"]);
     } else if (scenario == :backgroundThrow) {
         Storage.setValue("debugBackgroundThrow", true);
+    } else if (scenario == :backgroundIconRetry) {
+        Storage.setValue("debugBackgroundIconThrow", true);
+    } else if (scenario == :backgroundMismatch) {
+        var mirror = Storage.getValue(RingStore.BACKGROUND_KEY) as Lang.Array;
+        var active = mirror[2] as Lang.Array;
+        active[3] += 3600;
+        active[9] = active[3];
+        Storage.setValue(RingStore.BACKGROUND_KEY, mirror);
+    } else if (scenario == :backgroundLoadFailure) {
+        Storage.setValue("debugBackgroundFailStage", BackgroundStatus.LOAD);
+    } else if (scenario == :backgroundEvaluateFailure) {
+        Storage.setValue("debugBackgroundFailStage", BackgroundStatus.EVALUATE);
+    } else if (scenario == :backgroundSaveFailure) {
+        Storage.setValue("debugBackgroundFailStage", BackgroundStatus.SAVE);
+    }
+    if (scenario == :backgroundTest || scenario == :backgroundTestThrow
+        || scenario == :backgroundTestIconRetry) {
+        BackgroundStatus.queueTest();
+        if (scenario == :backgroundTestThrow) { Storage.setValue("debugBackgroundThrow", true); }
+        if (scenario == :backgroundTestIconRetry) { Storage.setValue("debugBackgroundIconThrow", true); }
     }
 }
 
@@ -161,12 +188,26 @@ function reportOptionalServiceMemory() as Void {
 }
 
 (:debug, :background)
-function showOptionalNotification(title as Lang.String, subtitle as Lang.String, options) as Void {
-    if (Storage.getValue("debugBackgroundThrow") == true) {
-        Storage.deleteValue("debugBackgroundThrow");
+function showOptionalNotification(title as Lang.String, subtitle as Lang.String, options as Lang.Dictionary) as Void {
+    if (Storage.getValue("debugBackgroundThrow") == true
+        || (Storage.getValue("debugBackgroundIconThrow") == true && options.hasKey(:icon))) {
         throw new Lang.InvalidValueException("injected notification failure");
     }
+    if (Storage.getValue("debugBackgroundNotifyStub") == true) {
+        var calls = Storage.getValue("debugBackgroundNotifyCalls");
+        Storage.setValue("debugBackgroundNotifyCalls", calls == null ? 1 : calls + 1);
+        Storage.setValue("debugBackgroundNotifyIcon", options.hasKey(:icon));
+        Storage.setValue("debugBackgroundNotifyDismiss", options[:dismissPrevious]);
+        return;
+    }
     Notifications.showNotification(title, subtitle, options);
+}
+
+(:debug, :background)
+function optionalServiceStage(stage as Lang.Number) as Void {
+    if (Storage.getValue("debugBackgroundFailStage") == stage) {
+        throw new Lang.InvalidValueException("injected service failure");
+    }
 }
 
 (:debug, :background)
@@ -181,6 +222,8 @@ function reportOptionalServiceResult(kind, notificationShown as Lang.Boolean,
             + ",kind=" + kind + ",notification=" + notificationShown
             + ",ledgerSaved=" + ledgerSaved + ",caught=" + caught
             + ",exit=1,ledger=" + ledger;
+        line += ",status=" + Storage.getValue(BackgroundStatus.KEY);
+        line += ",testQueued=" + (Storage.getValue(BackgroundStatus.TEST_KEY) == true);
         Toybox.System.println(line);
         Storage.setValue("debugBackgroundResult", line);
     } catch (ignored) { }
@@ -219,7 +262,7 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     Storage.setValue("debugNowUtc", nowUtc);
     var state = ScheduleModel.defaultState();
     if (scenario == :fresh) { return state; }
-    if (scenario == :noCycle) { state[:setupStep] = 3; return state; }
+    if (scenario == :noCycle || scenario == :backgroundNoActive) { state[:setupStep] = 3; return state; }
     if (scenario == :maximumState) { return maximumDemoState(state, nowUtc); }
     state[:setupStep] = 3;
     var regimen = state[:regimen] as Lang.Dictionary;
@@ -286,7 +329,9 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     }
     else if (scenario == :notificationReminder1 || scenario == :notificationReminder2
         || scenario == :backgroundReminder1 || scenario == :backgroundReminder2
-        || scenario == :backgroundThrow) {
+        || scenario == :backgroundThrow || scenario == :backgroundIconRetry
+        || scenario == :backgroundLoadFailure || scenario == :backgroundEvaluateFailure
+        || scenario == :backgroundSaveFailure) {
         insertion = nowUtc - (21 * CalendarMath.SECONDS_PER_DAY);
     }
     else if (scenario == :notificationOverdue || scenario == :backgroundOverdue) {
@@ -313,7 +358,9 @@ function demoState(scenario as Lang.Symbol, nowUtc as Lang.Number) as Lang.Dicti
     var scenarioReminders = state[:reminders] as Lang.Dictionary;
     if (scenario == :notificationDayBefore || scenario == :notificationReminder1
         || scenario == :backgroundDayBefore || scenario == :backgroundReminder1
-        || scenario == :backgroundThrow) {
+        || scenario == :backgroundThrow || scenario == :backgroundIconRetry
+        || scenario == :backgroundLoadFailure || scenario == :backgroundEvaluateFailure
+        || scenario == :backgroundSaveFailure) {
         var reminderNow = CalendarMath.localFields(nowUtc);
         scenarioReminders[:reminder1Hour] = reminderNow[:hour];
         scenarioReminders[:reminder1Minute] = reminderNow[:minute];

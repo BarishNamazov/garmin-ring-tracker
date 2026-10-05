@@ -38,6 +38,79 @@ and phone settings. Production display and picker formatting follow
 `System.getDeviceSettings().is24Hour`; debug picker fixtures can force either
 format so both layouts remain visually testable.
 
+## Reminder reliability (v1.5.0)
+
+The application class and its install/update callbacks carry `(:background)`.
+Both callbacks and foreground startup use `BackgroundRegistration.ensureHourly()`.
+The helper checks `Background.getTemporalEventRegisteredTime()` and registers a
+3,600-second Duration only when registration is absent, is a Moment, or has a
+different Duration. A correct hourly registration survives repeated opens.
+Registration exceptions still use the foreground `ReminderRegistrationError`
+screen and retry on the next open.
+
+Garmin's [Background API reference](https://developer.garmin.com/connect-iq/api-docs/Toybox/Background.html#registerForTemporalEvent-instance_function)
+specifies recurring Duration events and says another registration overwrites
+the existing event. It does not specify whether registering the same Duration
+resets a countdown. In the [Garmin forum discussion about changing intervals](https://forums.garmin.com/developer/connect-iq/f/discussion/6895/restarting-background-temporal-process-after-settings-change/46272),
+re-registering a Duration is described as scheduling relative to the last
+trigger, including an immediate trigger when that interval has elapsed. That
+supports preserving the existing registration; it does **not** establish that
+repeated opens starved this watch's reminders. The [AppBase reference](https://developer.garmin.com/connect-iq/api-docs/Toybox/Application/AppBase.html#onAppInstall-instance_function)
+confirms that install/update callbacks run in the background and require the
+Background permission and application class annotation.
+
+`ringTrackerBackgroundStatus` is an optional Storage value independent of
+canonical state, history, both mirrors, and schema version 3:
+
+```text
+[1, checkUtc, outcome, stage, kind, alertUtc, alertKind]
+```
+
+| Field | Values |
+| --- | --- |
+| `checkUtc` | UTC seconds of the last check; null before any check |
+| `outcome` | 0 not checked; 1 no active cycle; 2 invalid mirror; 3 canonical mismatch; 4 nothing due; 5 alert shown; 6 failed |
+| `stage` | 0 none; failures use 1 load, 2 evaluate, 3 notify, or 4 save |
+| `kind`, `alertKind` | 0 ring-free limit; 1 temporary out; 2 four weeks; 3 overdue; 4 Reminder 1; 5 day before; 6 Reminder 2; 7 test; null when absent |
+| `alertUtc` | UTC seconds of the last notification whose API call returned; retained across later checks |
+
+The status decoder validates shape, types, ranges, timestamp/kind pairs, and
+failure stages. Missing or corrupt values default to not checked. Notification
+success records the alert before saving the ledger, so a ledger write failure
+can show both the last alert and a save problem. Status writes are best effort:
+a persistent Storage failure can prevent recording the failure itself. A
+returned notification call does not prove the watch displayed or sounded it.
+
+The service tracks load, evaluate, notify, and save separately. If notification
+with the custom icon throws, the service retries once with the same text and
+options minus the icon. Only a returned notification call allows the normal
+reminder ledger to be marked and saved. Foreground load/repair preserves both
+the status and legacy `ringTrackerMirrorError`. A newer recorded background
+check replaces the status; a check without a mirror/load problem clears the
+legacy mirror error. Reminder timing, selection, priority, and revisions are
+unchanged.
+
+Settings adds `Reminder check`, with `Not checked yet`, `Checked <time>`, or
+`No check for <hours> h` after two hours. The detail view shows `Last check`,
+`Last alert`, local `Today`/`Yesterday` or a date, and the watch's 12/24-hour time.
+A problem line appears for stale checks, mirror problems, or the failed stage.
+`Send test alert` stores `ringTrackerTestAlert = true` and confirms
+`Test queued`. While pending, the view shows `Next hourly check` without hiding
+a recorded problem. Every check loads and evaluates the reminder state first.
+A selected real reminder owns the notification slot and retains the test flag,
+even if its notification or ledger save fails. When no real reminder is selected,
+the service deletes the flag before attempting `Test alert` / `Reminder check
+complete`. Tests use `dismissPrevious = false` and never save the reminder ledger.
+A failed test is consumed too. The hourly Duration is retained throughout.
+
+A queued test is also attempted after an invalid mirror, canonical mismatch, or
+load/evaluate failure, to exercise the temporal-event-to-notification chain.
+The original problem remains in `outcome`/`stage`; `kind = 7` identifies the test
+attempt, and `alertUtc`/`alertKind = 7` update only when its notification call
+returns. A test failure on a problem check also retains the original problem.
+The seven-field version-1 format and `BackgroundStatus.valid` rules are unchanged;
+the detail view can therefore show both the problem and the last test alert.
+
 ## File map
 
 | Area | Files | Responsibility |
@@ -48,8 +121,8 @@ format so both layouts remain visually testable.
 | Application shell | `source/RingTrackerApp.mc` | Startup, notification launch, navigation, confirmations, deferred writes, and settings orchestration |
 | Main and common UI | `source/MainView.mc`, `source/UiUtils.mc`, `source/ScreenInput.mc`, `source/Lateness.mc` | Main states, cycle/lateness arcs, measured countdown typography, date/time degradation, coordinate-aware touch/key dispatch, and warnings |
 | Lists | `source/UpcomingView.mc`, `source/HistoryView.mc`, `source/ListUi.mc` | Six-cycle projection, history, cycle detail helpers, scrolling, dates, variance, and round-screen geometry |
-| Menus and supporting views | `source/Menus.mc`, `source/StaticViews.mc`, `source/Pickers.mc` | State menus, settings, confirmations, Correct dates, setup/About/migration screens, and date/time/number pickers |
-| Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/ServiceDelegate.mc` | Glance rendering, compact background decoding, notifications, ledger updates, and single-exit handling |
+| Menus and supporting views | `source/Menus.mc`, `source/StaticViews.mc`, `source/Pickers.mc`, `source/ReminderCheckView.mc` | State menus, settings, confirmations, Correct dates, setup/About/migration screens, and date/time/number pickers |
+| Constrained personalities | `source/GlanceView.mc`, `source/BackgroundRuntime.mc`, `source/BackgroundRegistration.mc`, `source/BackgroundStatus.mc`, `source/ServiceDelegate.mc` | Glance rendering, compact background decoding, notifications, ledger updates, and single-exit handling |
 | Build variants | `source/OptionalFeatures.mc`, `source/DemoScenarios.mc`, `source/Clock.mc`, `resources-debug/` | Production seams and debug-only fixtures, notification previews, fixed clock, diagnostics, and memory reporting |
 | Resources | `resources/strings/strings.xml`, `resources/drawables/` | Visible copy, launcher artwork, and the background-scoped notification icon |
 | Tests and checks | `source/tests/`, `scripts/build.sh`, `scripts/check-background-scope.sh`, `scripts/ci/` | Simulator tests, device builds, constrained-scope checks, version checks, and release freshness |
@@ -124,7 +197,19 @@ schedule boundaries, DST gaps/folds, actual-event anchoring,
 temporary-out identity, reminder priority/deduplication, migrations, storage
 interruption and compaction, settings repair, phone/watch picker conversion,
 copy contracts, navigation helpers, all main countdown tiers, lists, glance
-copy, and all notification kinds. The 13 UI-polish regressions cover input
+copy, and all notification kinds.
+
+The final v1.5.0 gate passes all 210 tests on epix Pro 47 mm and Forerunner
+255S, exports all 68 part-number variants for the 55 manifest devices, and
+builds all 55 debug targets. Warnings remain the existing launcher scaling
+warnings: the IQ export has the same 47 warning lines as v1.4.0 and no new
+warning identities. Version consistency and background scope checks pass.
+
+The 28 v1.5.0 reliability tests cover registration decisions and callbacks,
+status decoding and outcomes, stage failures, icon fallback, single-use test
+requests, real-reminder priority, preservation of problems during tests, ledger
+isolation, evidence retention, and Settings copy/navigation.
+The 13 UI-polish regressions cover input
 routing, picker directions and touch targets, History heading clearance,
 paragraph/scrollbar spacing, wrapping, custom-schedule menus, long-overdue
 progress, and time formatting.
@@ -142,37 +227,100 @@ This is a simulator temporal-event test, separate from unit tests:
 5. Record `RING_TRACKER_BACKGROUND_RESULT` and
    `RING_TRACKER_BACKGROUND_MEMORY`, then repeat for every row.
 
-The final 1.3.0 temporal-event run on 2026-09-18 produced:
+The v1.5.0 temporal-event run on 2026-10-05 uses the pinned SDK 9.2.0 and
+47 mm simulator in America/New_York. The temporary foreground harness selects
+and saves each fixture, synchronizes properties, then injects the fault after
+foreground settings writes. Property-change callbacks are held during fixture
+injection so they cannot repair a fault before the background service reads it.
+Background code is unchanged. The ordinary debug menu and Reminder check action
+also exercise native test notifications and repeat checks. The priority follow-up
+adds 45 checks across 18 fixtures with a queued test; both intermediate real
+alerts and the eventual test are recorded. Unit tests additionally assert the
+notification's dismissal policy and version-1 status validity.
 
-| Fixture | Kind | Notification | Ledger saved | Caught | Exit | Result |
+| Fixture | Kind | Notification | Ledger saved | Caught | Exit | Status/result |
 | --- | ---: | --- | --- | --- | ---: | --- |
-| Day before | 5 | yes | yes | no | 1 | day-before slot marked |
-| Reminder 1 | 4 | yes | yes | no | 1 | first day-of slot marked |
-| Reminder 2 | 4 | yes | yes | no | 1 | second day-of slot marked |
-| Overdue | 3 | yes | yes | no | 1 | overdue slot marked |
-| Temporary out over 3 h | 1 | yes | yes | no | 1 | interval-specific slot marked |
-| Ring free over 7 d | 0 | yes | yes | no | 1 | duration warning marked |
-| Ring in over 4 weeks | 2 | yes | yes | no | 1 | duration warning marked |
-| Valid no-op | — | no | no | no | 1 | ledger unchanged |
-| Nil mirror | — | no | no | no | 1 | no mirror accepted |
-| Corrupt mirror | — | no | no | no | 1 | invalid mirror rejected |
-| Injected notification exception | 4 | no | no | yes | 1 | ledger unchanged for retry |
+| Day before | 5 | yes | yes | no | 1 | alert shown; day-before slot marked |
+| Reminder 1 | 4 | yes | yes | no | 1 | alert shown; first day-of slot marked |
+| Reminder 2 | 4 | yes | yes | no | 1 | alert shown; status kind 6; second day-of slot marked |
+| Overdue | 3 | yes | yes | no | 1 | alert shown; overdue slot marked |
+| Temporary out over 3 h | 1 | yes | yes | no | 1 | alert shown; interval-specific slot marked |
+| Ring free over 7 d | 0 | yes | yes | no | 1 | alert shown; duration warning marked |
+| Ring in over 4 weeks | 2 | yes | yes | no | 1 | alert shown; duration warning marked |
+| Valid no-op | — | no | no | no | 1 | nothing due; ledger unchanged |
+| Nil mirror | — | no | no | no | 1 | mirror invalid; ledger unchanged |
+| Corrupt mirror | — | no | no | no | 1 | mirror invalid; ledger unchanged |
+| Injected notification exception | 4 | no | no | yes | 1 | failed: notify; both attempts failed; eligible for retry |
+| No active cycle | — | no | no | no | 1 | no active cycle |
+| Canonical mismatch | — | no | no | no | 1 | canonical mismatch; ledger unchanged |
+| Injected load exception | — | no | no | yes | 1 | failed: load; ledger unchanged |
+| Injected evaluate exception | — | no | no | yes | 1 | failed: evaluate; ledger unchanged |
+| Injected save exception | 4 | yes | no | yes | 1 | failed: save; last alert retained; ledger unchanged |
+| Icon exception | 4 | yes | yes | no | 1 | alert shown without custom icon; first day-of slot marked |
+| Test alert, nothing due | 7 | yes | no | no | 1 | normal evaluation first; alert shown; flag consumed; ledger unchanged |
+| Test alert, second check | — | no | no | no | 1 | nothing due; last test alert retained |
+| Test notification exception | 7 | no | no | yes | 1 | failed: notify; test flag consumed; ledger unchanged |
+| Failed test, second check | — | no | no | no | 1 | nothing due; no second test attempt |
+| Test icon exception | 7 | yes | no | no | 1 | alert shown without custom icon; flag consumed; ledger unchanged |
+| Test icon exception, second check | — | no | no | no | 1 | nothing due; no second test attempt |
+| Queued test with day before | 5 | yes | yes | no | 1 | real alert first; test flag retained |
+| Queued test with Reminder 1 | 4 | yes | yes | no | 1 | real alert first; test flag retained |
+| Queued test with Reminder 2 | 4 | yes | yes | no | 1 | real alert first; status kind 6; test flag retained |
+| Queued test with overdue | 3 | yes | yes | no | 1 | real alert first; test flag retained |
+| Queued test with temporary-out warning | 1 | yes | yes | no | 1 | real alert first; test flag retained |
+| Queued test with ring-free warning | 0 | yes | yes | no | 1 | real alert first; test flag retained |
+| Queued test with four-week warning | 2 | yes | yes | no | 1 | real alert first; test flag retained |
+| Another real reminder remains due | 3 or 5 | yes | yes | no | 1 | real alert first again; test flag retained |
+| Deferred test, first check with nothing due | 7 | yes | no | no | 1 | test consumed; marked reminder ledger unchanged |
+| Deferred test, following check | — | no | no | no | 1 | nothing due; no duplicate test |
+| Queued test with no active cycle | 7 | yes | no | no | 1 | alert shown; test consumed; ledger unchanged |
+| Queued test with nil mirror | 7 | yes | no | no | 1 | mirror invalid retained; last alert is test; flag consumed |
+| Queued test with corrupt mirror | 7 | yes | no | no | 1 | mirror invalid retained; last alert is test; flag consumed |
+| Queued test with canonical mismatch | 7 | yes | no | no | 1 | canonical mismatch retained; last alert is test; flag consumed |
+| Queued test with load exception | 7 | yes | no | yes | 1 | failed: load retained; last alert is test; flag consumed |
+| Queued test with evaluate exception | 7 | yes | no | yes | 1 | failed: evaluate retained; last alert is test; flag consumed |
+| Problem check after test consumed | — | no | no | varies | 1 | original mirror/load/evaluate problem retained; no duplicate test |
+| Queued test with real notify exception | 4 | no | no | yes | 1 | failed: notify; test remains queued |
+| Queued test with real save exception | 4 | yes | no | yes | 1 | failed: save; test remains queued |
 
-Each success showed one notification and one save. The no-op and invalid-input
-paths showed and saved nothing. The injected failure was caught before the
-ledger changed.
+`Caught` reports a failed stage after any icon fallback; a successful fallback
+reports false. Each successful reminder shows one notification and saves its
+ledger. Queued tests never preempt a selected real reminder, including failed
+real notification/save attempts. All test calls pass `dismissPrevious = false`,
+including the icon fallback. Test checks never save the ledger. Later no-op/failure checks preserve
+the last returned alert's time and kind. The scope check enforces one final
+`Background.exit()` call.
+
+Unit tests query the simulator's actual registration after install/update
+callbacks and foreground registration. Forced **Background Events** do not
+prove that the device scheduler will invoke the service automatically. Store
+install/update callbacks, automatic hourly delivery, and notification visibility
+or sound still require an epix Pro device check.
 
 ## Memory verification
 
-The v1.3.0 measurements use the final 47 mm source in debug fixture harnesses,
-so they include fixture navigation and diagnostic overhead. Used and free
-values are derived from `System.getSystemStats()` at the rendered state.
+Foreground and glance figures below retain the v1.3.0 fixture measurements.
+Background was re-measured on 2026-10-05 with SDK 9.2.0 on the 47 mm simulator,
+using the eleven v1.4.0 paths, all twenty v1.5.0 fixtures and repeat checks, and
+ordinary debug-menu checks. Measurements include diagnostic overhead and sample
+`System.getSystemStats()` after each service result. The temporary fault harness
+holds foreground settings callbacks; ordinary debug checks retain those callbacks.
 
 | Personality/state | Used | Free | Total | Limit result |
 | --- | ---: | ---: | ---: | --- |
-| Foreground, maximum 24-cycle history with Upcoming open | 172,152 B (168.1 KiB) | 609,736 B (595.4 KiB) | 781,888 B | within foreground budget |
-| Glance, peak across five states | 22,624 B (22.1 KiB) | 38,632 B (37.7 KiB) | 61,256 B | used memory below 45 KiB |
-| Background, peak across eleven paths | 18,696 B (18.3 KiB) | 42,560 B (41.6 KiB) | 61,256 B | used memory below 45 KiB |
+| Foreground, v1.3.0 maximum 24-cycle history with Upcoming open | 172,152 B (168.1 KiB) | 609,736 B (595.4 KiB) | 781,888 B | within foreground budget |
+| Glance, v1.3.0 peak across five states | 22,624 B (22.1 KiB) | 38,632 B (37.7 KiB) | 61,256 B | used memory below 45 KiB |
+| Background before, v1.4.0 peak | 19,360 B (18.9 KiB) | 41,896 B (40.9 KiB) | 61,256 B | used memory below 45 KiB |
+| Background before priority correction, v1.5.0 peak | 21,264 B (20.8 KiB) | 39,992 B (39.1 KiB) | 61,256 B | used memory below 45 KiB |
+| Background after priority correction, v1.5.0 peak | 21,608 B (21.1 KiB) | 39,648 B (38.7 KiB) | 61,256 B | used memory below 45 KiB |
+
+The priority correction adds 344 B to the previous ordinary-debug sample
+(21,264 B → 21,608 B). The follow-up harness sampled 45 native checks across
+18 fixtures, including every real reminder kind with a queued test, subsequent
+checks until the test runs, mirror/load/evaluate problems with a test, and
+real/test notification failures. Its peak was 21,584 B, compared with 21,224 B
+in the previous harness. An ordinary-debug overdue check used 21,608 B. These
+are sampled path peaks, not an allocation trace inside the notification API.
 
 ## Debug fixtures and screenshots
 
@@ -261,6 +409,13 @@ it. The final integration preserves time in the ring-free action line and
 removes the separator when a serious-state secondary line wraps. The clock
 validity warning uses separate title/body spacing even when the body wraps on
 the 390 px display.
+
+Version 1.5.0 adds two 47 mm captures from the ordinary debug UI:
+`epix2pro47mm-settings-reminder-check.png` and
+`epix2pro47mm-reminder-check.png`. Both use the existing 416×416 crop at
+`+122+263`; the screenshot inventory now contains 121 PNGs. The Settings row,
+last-check/last-alert text, problem slot, and test action were inspected for
+round-edge clearance and clipping.
 
 Native menus may reveal a partial adjacent row at the round bezel while
 scrolling; selected rows and custom-rendered values were visually checked.

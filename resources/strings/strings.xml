@@ -301,7 +301,7 @@ Clinician advice only</string>
     <string id="TextRegimenIn">Ring in</string>
     <string id="TextRegimenOut">Ring out</string>
     <string id="TextAboutTitle">About</string>
-    <string id="TextProductVersion">Ring Tracker 1.4.0</string>
+    <string id="TextProductVersion">Ring Tracker 1.5.0</string>
     <string id="TextAboutDisclaimer">Reminders only · Not medical advice</string>
     <string id="TextAboutScope">For monthly rings with these timing rules. Not Annovera.</string>
     <string id="TextDone">Done</string>
@@ -311,7 +311,7 @@ Clinician advice only</string>
     <string id="TextWhatHappened">What happened?</string>
     <string id="TextDueDate">Due $1$</string>
     <string id="TextBackupDirective">Use backup 7 days</string>
-    <string id="ProductVersion">Ring Tracker 1.4.0</string>
+    <string id="ProductVersion">Ring Tracker 1.5.0</string>
     <string id="SupportedScope">Monthly rings with these timing rules</string>
     <string id="ReminderLimit">Reminders can be delayed · Keep another reminder</string>
     <string id="Privacy">Data stays on your watch · Garmin App Settings syncs configuration</string>
@@ -522,4 +522,33 @@ Phone $2$</string>
     <string id="PhoneTime2315">11:15 PM</string>
     <string id="PhoneTime2330">11:30 PM</string>
     <string id="PhoneTime2345">11:45 PM</string>
+    <string id="ReminderCheck">Reminder check</string>
+    <string id="CheckNotYet">Not checked yet</string>
+    <string id="CheckRecent">Checked $1$</string>
+    <string id="CheckStale">No check for $1$ h</string>
+    <string id="CheckLastCheck">Last check</string>
+    <string id="CheckLastAlert">Last alert</string>
+    <string id="CheckNever">None yet</string>
+    <string id="CheckToday">Today</string>
+    <string id="CheckYesterday">Yesterday</string>
+    <string id="CheckFreeLimit">Ring-free limit</string>
+    <string id="CheckTemporaryOut">Ring out over 3 h</string>
+    <string id="CheckFourWeeks">Ring in over 4 weeks</string>
+    <string id="CheckOverdue">Overdue</string>
+    <string id="CheckReminder1">Reminder 1</string>
+    <string id="CheckReminder2">Reminder 2</string>
+    <string id="CheckDayBefore">Day before</string>
+    <string id="CheckTest">Test alert</string>
+    <string id="CheckMirrorError">Reminder data invalid</string>
+    <string id="CheckMismatch">Reminder data mismatch</string>
+    <string id="CheckLoadFailed">Check failed: load</string>
+    <string id="CheckEvaluateFailed">Check failed: evaluate</string>
+    <string id="CheckNotifyFailed">Alert failed</string>
+    <string id="CheckSaveFailed">Check failed: save</string>
+    <string id="CheckSendTest">Send test alert</string>
+    <string id="CheckTestQueued">Test queued</string>
+    <string id="CheckTestNext">Next hourly check</string>
+    <string id="CheckQueueFailed">Test not queued</string>
+    <string id="NotifyTestTitle" scope="background">Test alert</string>
+    <string id="NotifyTestBody" scope="background">Reminder check complete</string>
 </strings>

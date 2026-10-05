@@ -16,6 +16,8 @@ done < <(
     {
         grep -Eo 'Rez\.Strings\.[A-Za-z0-9_]+' source/ServiceDelegate.mc || true
         grep -Eo 'Rez\.Strings\.[A-Za-z0-9_]+' source/BackgroundRuntime.mc || true
+        grep -Eo 'Rez\.Strings\.[A-Za-z0-9_]+' source/BackgroundStatus.mc || true
+        grep -Eo 'Rez\.Strings\.[A-Za-z0-9_]+' source/BackgroundRegistration.mc || true
     } | sed 's/.*Rez\.Strings\.//' | sort -u
 )
 

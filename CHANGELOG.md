@@ -2,6 +2,32 @@
 
 All notable changes to Ring Tracker are documented in this file.
 
+## [1.5.0] - 2026-10-05
+
+### Fixed
+
+- Register hourly reminder checks on install and update, and retain an existing
+  hourly registration when the app opens.
+- Keep background check and failure evidence when foreground storage repairs
+  reminder mirrors. Retry notification once without the custom icon.
+
+### Added
+
+- Settings > Reminder check shows the last check, last alert, and any problem.
+  Send test alert queues a notification for the next hourly check without
+  changing the reminder ledger. Due reminders take priority; test alerts retain
+  load problems and leave existing notifications on screen.
+- Added 28 reliability regressions and background fixtures for diagnostics,
+  stage failures, icon fallback, and test alerts.
+
+### Verification
+
+- All 210 tests pass on epix Pro 47 mm and Forerunner 255S.
+- Release and debug builds pass for all 55 devices with no new warnings.
+- Rechecked all background outcomes and single-use test alerts in the simulator.
+  Sampled background peak rises from 19,360 B to 21,608 B.
+- Added 47 mm Settings and Reminder check screenshots.
+
 ## [1.4.0] - 2026-09-23
 
 ### Added

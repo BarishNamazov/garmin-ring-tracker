@@ -52,6 +52,8 @@ With a USB install, change settings on the watch; phone App Settings need the St
 
 The watch checks for reminders about once an hour, so alerts can arrive an hour late or longer if Garmin delays background activity. Sleep Mode, Do Not Disturb, and watch sound settings also affect alerts. Use an independent alarm for time-critical actions.
 
+Settings > Reminder check shows the last check and alert. Select Send test alert to queue a test after due reminders.
+
 ## Development
 
 Follow the [toolchain setup](docs/TOOLCHAIN.md), then run:

@@ -172,6 +172,8 @@ module Menus {
             reminders[:vibrationEnabled]));
         menu.addItem(toggle(Rez.Strings.SettingsSound, :toggleSound,
             reminders[:soundEnabled]));
+        menu.addItem(item(Rez.Strings.ReminderCheck,
+            ReminderCheckUi.sublabel(BackgroundStatus.load(), currentUtc()), :reminderCheck));
         return menu;
     }
 
@@ -186,6 +188,7 @@ module Menus {
         if (id == :daysOut) { return 5 + offset; }
         if (id == :toggleVibration) { return 6 + offset; }
         if (id == :toggleSound) { return 7 + offset; }
+        if (id == :reminderCheck) { return 8 + offset; }
         return 0;
     }
 
@@ -265,6 +268,15 @@ module Menus {
         menu.addItem(item(Rez.Strings.DemoBackgroundNil, null, :backgroundNil));
         menu.addItem(item(Rez.Strings.DemoBackgroundCorrupt, null, :backgroundCorrupt));
         menu.addItem(item(Rez.Strings.DemoBackgroundThrow, null, :backgroundThrow));
+        menu.addItem(item(Rez.Strings.DemoBackgroundNoActive, null, :backgroundNoActive));
+        menu.addItem(item(Rez.Strings.DemoBackgroundMismatch, null, :backgroundMismatch));
+        menu.addItem(item(Rez.Strings.DemoBackgroundLoadFailure, null, :backgroundLoadFailure));
+        menu.addItem(item(Rez.Strings.DemoBackgroundEvaluateFailure, null, :backgroundEvaluateFailure));
+        menu.addItem(item(Rez.Strings.DemoBackgroundSaveFailure, null, :backgroundSaveFailure));
+        menu.addItem(item(Rez.Strings.DemoBackgroundIconRetry, null, :backgroundIconRetry));
+        menu.addItem(item(Rez.Strings.DemoBackgroundTest, null, :backgroundTest));
+        menu.addItem(item(Rez.Strings.DemoBackgroundTestThrow, null, :backgroundTestThrow));
+        menu.addItem(item(Rez.Strings.DemoBackgroundTestIconRetry, null, :backgroundTestIconRetry));
         menu.addItem(item(Rez.Strings.DemoAlertDetail, null, :alertDetail));
         return menu;
     }
@@ -317,6 +329,9 @@ class SettingsMenuDelegate extends WatchUi.Menu2InputDelegate {
         else if (id == :repeat) {
             WatchUi.switchToView(Menus.repeatMenu((state[:reminders] as Lang.Dictionary)[:overdueRepeatHours]),
                 new ValueMenuDelegate(:setRepeat), WatchUi.SLIDE_LEFT);
+        }
+        else if (id == :reminderCheck) {
+            WatchUi.switchToView(new ReminderCheckView(), new ReminderCheckDelegate(), WatchUi.SLIDE_LEFT);
         }
         else if (id == :toggleReminder2 || id == :toggleDayBefore
             || id == :toggleVibration || id == :toggleSound) {
