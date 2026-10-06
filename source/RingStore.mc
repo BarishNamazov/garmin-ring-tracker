@@ -479,7 +479,6 @@ module RingStore {
                 || !backgroundMatchesState(background as Lang.Array, state)) {
                 Storage.setValue(BACKGROUND_KEY, encodeBackground(state, revision));
             }
-            Storage.deleteValue(MIRROR_ERROR_KEY);
         } catch (ignored) { }
     }
 

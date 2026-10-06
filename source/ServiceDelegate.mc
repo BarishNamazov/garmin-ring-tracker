@@ -15,48 +15,119 @@ class RingServiceDelegate extends System.ServiceDelegate {
     }
 
     function onTemporalEvent() as Void {
+        runCheck();
+        try { reportOptionalServiceMemory(); }
+        catch (ignoredMemory) { }
+        Background.exit(null);
+    }
+
+    // Also callable by unit tests without terminating the foreground process.
+    function runCheck() as Lang.Array {
+        var status = BackgroundStatus.begin(Time.now().value());
+        var stage = BackgroundStatus.LOAD;
         var selectedKind = null;
         var notificationShown = false;
         var ledgerSaved = false;
         var caught = false;
+        var selected = null;
         try {
-            var state = BackgroundRuntime.load();
+            status[1] = currentUtc();
+            optionalServiceStage(stage);
+            var state = BackgroundRuntime.loadForCheck(status);
             if (state != null) {
-                var active = state[2] as Lang.Array?;
-                var nowUtc = currentUtc();
-                var selected = BackgroundRuntime.evaluate(nowUtc, state);
+                stage = BackgroundStatus.EVALUATE;
+                optionalServiceStage(stage);
+                selected = BackgroundRuntime.evaluate(status[1], state);
+                status[2] = state[2] == null ? BackgroundStatus.NO_ACTIVE : BackgroundStatus.NOTHING_DUE;
                 if (selected != null) {
                     selectedKind = selected[0];
+                    var slot = selected.size() > 3 ? selected[3] : 0;
+                    var kind = selectedKind == 4 && slot == 2
+                        ? BackgroundStatus.REMINDER_2 : selectedKind;
+                    status[4] = kind;
+                    var active = state[2] as Lang.Array;
                     var reminders = state[5] as Lang.Array;
                     var referenceUtc = active[9] as Lang.Number;
-                    if (selected[0] == 0) { referenceUtc = active[6] as Lang.Number; }
-                    else if (selected[0] == 1) { referenceUtc = active[7] as Lang.Number; }
-                    else if (selected[0] == 2) { referenceUtc = active[5] as Lang.Number; }
-                    var reminderSlot = selected.size() > 3 ? selected[3] : 0;
-                    var copy = notificationIds(selected[0], selected[1], referenceUtc,
-                        reminders[9], nowUtc, reminderSlot);
+                    if (selectedKind == 0) { referenceUtc = active[6]; }
+                    else if (selectedKind == 1) { referenceUtc = active[7]; }
+                    else if (selectedKind == 2) { referenceUtc = active[5]; }
+                    var copy = notificationIds(selectedKind, selected[1], referenceUtc,
+                        reminders[9], status[1], slot);
                     var options = {
-                        :icon => Rez.Drawables.NotificationIcon,
-                        :data => [active[0], selected[0]],
-                        :dismissPrevious => true
+                        :icon=>Rez.Drawables.NotificationIcon,
+                        :data=>[active[0], selectedKind], :dismissPrevious=>true
                     };
                     if (copy[2] != null) { options[:body] = copy[2]; }
-                    showOptionalNotification(copy[0], copy[1], options);
+                    stage = BackgroundStatus.NOTIFY;
+                    optionalServiceStage(stage);
+                    notify(copy[0], copy[1], options);
                     notificationShown = true;
+                    BackgroundStatus.shown(status, kind);
+                    stage = BackgroundStatus.SAVE;
+                    optionalServiceStage(stage);
                     BackgroundRuntime.markSent(state, selected);
                     BackgroundRuntime.save(state);
                     ledgerSaved = true;
                 }
             }
         } catch (ignored) {
-            // A later hourly evaluation retries. Do not mark unsent work done.
+            BackgroundStatus.failed(status, stage);
             caught = true;
+        }
+        // A selected reminder owns this check, even if notification or save fails.
+        // With no selection, a test may prove delivery without hiding a load problem.
+        if (selected == null && (status[2] == BackgroundStatus.NO_ACTIVE
+            || status[2] == BackgroundStatus.NOTHING_DUE
+            || status[2] == BackgroundStatus.MIRROR_INVALID
+            || status[2] == BackgroundStatus.CANONICAL_MISMATCH
+            || (status[2] == BackgroundStatus.FAILED
+                && (status[3] == BackgroundStatus.LOAD || status[3] == BackgroundStatus.EVALUATE)))) {
+            var keepProblem = status[2] != BackgroundStatus.NO_ACTIVE
+                && status[2] != BackgroundStatus.NOTHING_DUE;
+            stage = BackgroundStatus.LOAD;
+            try {
+                if (BackgroundStatus.consumeTest()) {
+                    selectedKind = BackgroundStatus.TEST;
+                    status[4] = selectedKind;
+                    stage = BackgroundStatus.NOTIFY;
+                    optionalServiceStage(stage);
+                    notify(text(Rez.Strings.NotifyTestTitle), text(Rez.Strings.NotifyTestBody),
+                        { :icon=>Rez.Drawables.NotificationIcon, :dismissPrevious=>false });
+                    notificationShown = true;
+                    if (keepProblem) { BackgroundStatus.alertReturned(status, BackgroundStatus.TEST); }
+                    else { BackgroundStatus.shown(status, BackgroundStatus.TEST); }
+                }
+            } catch (ignoredTest) {
+                if (!keepProblem) { BackgroundStatus.failed(status, stage); }
+                caught = true;
+            }
+        }
+        try {
+            BackgroundStatus.save(status);
+            // Only a newer recorded check clears the legacy mirror evidence.
+            if (status[2] != BackgroundStatus.MIRROR_INVALID
+                && status[2] != BackgroundStatus.CANONICAL_MISMATCH
+                && !(status[2] == BackgroundStatus.FAILED && status[3] == BackgroundStatus.LOAD)) {
+                Toybox.Application.Storage.deleteValue("ringTrackerMirrorError");
+            }
+        } catch (ignoredStatusSave) {
+            BackgroundStatus.failed(status, BackgroundStatus.SAVE);
+            caught = true;
+            // A transient write failure may still allow the failure to be saved.
+            try { BackgroundStatus.save(status); } catch (ignoredRetry) { }
         }
         try { reportOptionalServiceResult(selectedKind, notificationShown, ledgerSaved, caught); }
         catch (ignoredResult) { }
-        try { reportOptionalServiceMemory(); }
-        catch (ignoredMemory) { }
-        Background.exit(null);
+        return status;
+    }
+
+    private function notify(title as Lang.String, subtitle as Lang.String,
+                            options as Lang.Dictionary) as Void {
+        try { showOptionalNotification(title, subtitle, options); }
+        catch (iconFailure) {
+            options.remove(:icon);
+            showOptionalNotification(title, subtitle, options);
+        }
     }
 
     function notificationIds(kind as Lang.Number, action as Lang.Number,

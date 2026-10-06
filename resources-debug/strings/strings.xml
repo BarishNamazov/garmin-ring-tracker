@@ -51,4 +51,13 @@
     <string id="DemoAlertDetail">Alert detail</string>
     <string id="DemoSeedQuestion">Load demo?
 Replaces data</string>
+    <string id="DemoBackgroundNoActive">BG · No active cycle</string>
+    <string id="DemoBackgroundMismatch">BG · Canonical mismatch</string>
+    <string id="DemoBackgroundLoadFailure">BG · Load failure</string>
+    <string id="DemoBackgroundEvaluateFailure">BG · Evaluate failure</string>
+    <string id="DemoBackgroundSaveFailure">BG · Save failure</string>
+    <string id="DemoBackgroundIconRetry">BG · Icon retry</string>
+    <string id="DemoBackgroundTest">BG · Test alert</string>
+    <string id="DemoBackgroundTestThrow">BG · Test alert failure</string>
+    <string id="DemoBackgroundTestIconRetry">BG · Test icon retry</string>
 </strings>

@@ -15,26 +15,32 @@ import Toybox.Time.Gregorian;
 module BackgroundRuntime {
     function load() as Lang.Array? {
         try {
-            var raw = Storage.getValue("ringTrackerBackground");
-            if (!(raw instanceof Lang.Array) || !valid(raw as Lang.Array)) {
-                markMirrorError("invalid background mirror");
-                return null;
-            }
-            var state = Storage.getValue("ringTrackerState");
-            if (!(state instanceof Lang.Array)
-                || !matchesCanonical(raw as Lang.Array, state as Lang.Array)) {
-                markMirrorError("background canonical mismatch");
-                return null;
-            }
-            return raw as Lang.Array;
+            return loadForCheck(BackgroundStatus.empty());
         } catch (ignored) {
             markMirrorError("background read failed");
             return null;
         }
     }
 
+    function loadForCheck(status as Lang.Array) as Lang.Array? {
+        var raw = Storage.getValue("ringTrackerBackground");
+        if (!(raw instanceof Lang.Array) || !valid(raw as Lang.Array)) {
+            status[2] = BackgroundStatus.MIRROR_INVALID;
+            markMirrorError("invalid background mirror");
+            return null;
+        }
+        var state = Storage.getValue("ringTrackerState");
+        if (!(state instanceof Lang.Array)
+            || !matchesCanonical(raw as Lang.Array, state as Lang.Array)) {
+            status[2] = BackgroundStatus.CANONICAL_MISMATCH;
+            markMirrorError("background canonical mismatch");
+            return null;
+        }
+        return raw as Lang.Array;
+    }
+
     function save(state as Lang.Array) as Void {
-        if (!valid(state)) { markMirrorError("background write rejected"); return; }
+        if (!valid(state)) { throw new Lang.InvalidValueException("background write rejected"); }
         Storage.setValue("ringTrackerBackground", state);
     }
 
